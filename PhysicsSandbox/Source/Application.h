@@ -3,6 +3,7 @@
 #include "Pipeline.h"
 #include "Device.h"
 #include "SwapChain.h"
+#include "Model.h"
 
 //std 
 #include <memory>
@@ -22,20 +23,26 @@ public:
 
 	void run();
 private: 
+	void LoadModels(); 
 	void CreatePipelineLayout(); 
 	void CreatePipeline(); 
 	void CreateCommandBuffers(); 
+	void FreeCommandBuffers(); 
 	void DrawFrame(); 
+	void RecreateSwapChain(); 
+	void RecordCommandBuffer(int imageIndex); 
 
-	static constexpr unsigned int m_WIDTH = 1080; 
-	static constexpr unsigned int m_HEIGHT = 720; 
+
+	static constexpr int m_WIDTH = 1080; 
+	static constexpr int m_HEIGHT = 720; 
 
 	Window m_Window{"Graphics_Programming_2_PhysicsSandbox", m_WIDTH, m_HEIGHT};
 	Device m_Device{m_Window}; 
-	SwapChain m_SwapChain{ m_Device, m_Window.GetExtent() }; 
+	std::unique_ptr<SwapChain> m_SwapChain; 
 	std::unique_ptr<Pipeline> m_pPipeline; 
 	VkPipelineLayout m_PipelineLayout; 
 	std::vector<VkCommandBuffer> m_CommandBuffers; 
+	std::unique_ptr<Model> m_pModel; 
 
 };
 

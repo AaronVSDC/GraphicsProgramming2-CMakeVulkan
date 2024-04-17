@@ -11,7 +11,7 @@ namespace cve
 	class Window
 	{
 	public:
-		Window(std::string windowName, unsigned int width, unsigned int height);
+		Window(std::string windowName, int width, int height);
 		Window(Window& other) = delete;
 		Window(Window&& other) = delete;
 		Window& operator=(Window& rhs) = delete;
@@ -19,16 +19,21 @@ namespace cve
 		~Window(); 
 
 		bool ShouldClose() { return glfwWindowShouldClose(m_Window); }
-		VkExtent2D GetExtent() { return { static_cast<uint32_t>(m_WIDTH),static_cast<uint32_t>(m_HEIGHT) }; }
+		VkExtent2D GetExtent() { return { static_cast<uint32_t>(m_Width),static_cast<uint32_t>(m_Height) }; }
+
+		bool WasWindowResized() { return m_FrameBufferResized; }
+		void ResetWindowResizedFlag() { m_FrameBufferResized = false;  }
 
 
 		void CreateWindowSurface(VkInstance instance, VkSurfaceKHR* surface);
 
 	private:
+		static void FrameBufferResizeCallback(GLFWwindow* window, int width, int height); 
 		void InitWindow(); 
 
-		const unsigned int m_WIDTH; 
-		const unsigned int m_HEIGHT; 
+		int m_Width; 
+		int m_Height; 
+		bool m_FrameBufferResized = false; 
 
 		std::string m_WindowName; 
 		GLFWwindow* m_Window; 

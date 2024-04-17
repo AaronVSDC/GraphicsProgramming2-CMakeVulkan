@@ -7,9 +7,9 @@
 namespace cve
 {
 
-	Window::Window(std::string windowName, unsigned int width, unsigned int height)
-		:m_WIDTH{width}, 
-		m_HEIGHT{height}, 
+	Window::Window(std::string windowName,int width,  int height)
+		:m_Width{width}, 
+		m_Height{height}, 
 		m_WindowName{windowName}
 	{
 		InitWindow(); 
@@ -17,17 +17,26 @@ namespace cve
 
 
 
+	void Window::FrameBufferResizeCallback(GLFWwindow* window, int width, int height)
+	{
+		auto pWindow = reinterpret_cast<Window*>(glfwGetWindowUserPointer(window)); 
+		pWindow->m_FrameBufferResized = true; 
+		pWindow->m_Width = width; 
+		pWindow->m_Height = height; 
+	}
+
 	void Window::InitWindow()
 	{
 		//initialize the glfw window
 		glfwInit(); 
 
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); //Tells glfw that this is not a window creation for OpenGL (or something like that) 
-		glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE); //Tells glfw that the window is not resizeable for now because its a whole thing to resize the window
+		glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE); //Tells glfw that the window is not resizeable for now because its a whole thing to resize the window
 
 		//now create the window
-		m_Window = glfwCreateWindow(m_WIDTH, m_HEIGHT, m_WindowName.c_str(), nullptr, nullptr); //last 2 parameters meant for full screen
-
+		m_Window = glfwCreateWindow(m_Width, m_Height, m_WindowName.c_str(), nullptr, nullptr); //last 2 parameters meant for full screen
+		glfwSetWindowUserPointer(m_Window, this); 
+		glfwSetFramebufferSizeCallback(m_Window, FrameBufferResizeCallback); 
 	}
 	
 

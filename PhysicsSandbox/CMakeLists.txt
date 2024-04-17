@@ -17,6 +17,10 @@ set(SOURCE_FILES
 	source/Device.cpp
 	source/SwapChain.h
 	source/SwapChain.cpp
+	source/Model.h
+	source/Model.cpp
+	source/GameObject.h
+	source/GameObject.cpp
 
 )
 

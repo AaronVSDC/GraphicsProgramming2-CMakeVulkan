@@ -8,7 +8,7 @@
 // std lib headers
 #include <string>
 #include <vector>
-
+#include <memory>
 namespace cve {
 
 class SwapChain {
@@ -16,12 +16,14 @@ class SwapChain {
   static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
   SwapChain(Device &deviceRef, VkExtent2D windowExtent);
+  SwapChain(Device& deviceRef, VkExtent2D windowExtent, std::shared_ptr<SwapChain> previous);
+
   ~SwapChain();
 
   SwapChain(const SwapChain &) = delete;
-  void operator=(const SwapChain &) = delete;
+  SwapChain& operator=(const SwapChain &) = delete;
 
-  VkFramebuffer getFrameBuffer(int index) { return swapChainFramebuffers[index]; }
+  VkFramebuffer getFrameBuffer(size_t index) { return swapChainFramebuffers[index]; }
   VkRenderPass getRenderPass() { return renderPass; }
   VkImageView getImageView(int index) { return swapChainImageViews[index]; }
   size_t imageCount() { return swapChainImages.size(); }
@@ -39,6 +41,7 @@ class SwapChain {
   VkResult submitCommandBuffers(const VkCommandBuffer *buffers, uint32_t *imageIndex);
 
  private:
+  void init(); 
   void createSwapChain();
   void createImageViews();
   void createDepthResources();
@@ -69,6 +72,7 @@ class SwapChain {
   VkExtent2D windowExtent;
 
   VkSwapchainKHR swapChain;
+  std::shared_ptr<SwapChain> oldSwapChain; 
 
   std::vector<VkSemaphore> imageAvailableSemaphores;
   std::vector<VkSemaphore> renderFinishedSemaphores;

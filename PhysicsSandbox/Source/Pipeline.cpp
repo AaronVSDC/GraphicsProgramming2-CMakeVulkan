@@ -1,5 +1,5 @@
- #include "Pipeline.h"
-
+#include "Pipeline.h"
+#include "Model.h"
 //std
 #include <fstream>
 #include <iostream>
@@ -81,24 +81,17 @@ namespace cve
 		shaderStages[1].pNext = nullptr;
 		shaderStages[1].pSpecializationInfo = nullptr;
 
+
+		auto bindingDescriptions = Model::Vertex::GetBindingDescriptions(); 
+		auto attributeDescriptions = Model::Vertex::GetAttributeDescriptions();
 		//this struct describes how we interpret the vertexbuffer data (initial input) into the graphics pipeline
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo{}; 
 		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO; 
-		//TODO: this is set to 0 at the moment because the vertex data is hardcoded as of now, this will have to change apparently if i want to load in data i think. 
-		vertexInputInfo.vertexAttributeDescriptionCount = 0; 
-		vertexInputInfo.vertexBindingDescriptionCount = 0; 
-		vertexInputInfo.pVertexAttributeDescriptions = nullptr; 
-		vertexInputInfo.pVertexAttributeDescriptions = nullptr; 
-
-
-
-		VkPipelineViewportStateCreateInfo viewportInfo{}; 
-		//if you want you can add multiple scissors or viewports, but dont think i'll need that (also not on every graphics card)
-		viewportInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-		viewportInfo.viewportCount = 1;
-		viewportInfo.pViewports = &configInfo.viewport; //reference the viewport variable
-		viewportInfo.scissorCount = 1;
-		viewportInfo.pScissors = &configInfo.scissor;  //reference the scissor; 
+		//TODO: [SOLVED] this is set to 0 at the moment because the vertex data is hardcoded as of now, this will have to change apparently if i want to load in data i think. 
+		vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size()); 
+		vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(bindingDescriptions.size());
+		vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data(); 
+		vertexInputInfo.pVertexBindingDescriptions = bindingDescriptions.data(); 
 
 		//and about 5 fucking years later create the actual GraphicsPipeline object that uses all the shit that's just initialised
 		VkGraphicsPipelineCreateInfo pipelineInfo{}; 
@@ -108,12 +101,12 @@ namespace cve
 		//wire the configInfo (selfmade) struct to the pipelineInfo 
 		pipelineInfo.pVertexInputState = &vertexInputInfo;
 		pipelineInfo.pInputAssemblyState = &configInfo.inputAssemblyInfo; 
-		pipelineInfo.pViewportState = &viewportInfo; 
+		pipelineInfo.pViewportState = &configInfo.viewportInfo; 
 		pipelineInfo.pMultisampleState = &configInfo.multisampleInfo; 
 		pipelineInfo.pRasterizationState = &configInfo.rasterizationInfo; 
 		pipelineInfo.pColorBlendState = &configInfo.colorBlendInfo; 
 		pipelineInfo.pDepthStencilState = &configInfo.depthStencilInfo; 
-		pipelineInfo.pDynamicState = nullptr; 
+		pipelineInfo.pDynamicState = &configInfo.dynamicStateInfo; 
 
 		pipelineInfo.layout = configInfo.pipelineLayout; 
 		pipelineInfo.renderPass = configInfo.renderPass; 
@@ -145,9 +138,8 @@ namespace cve
 
 	}
 
-	PipelineConfigInfo Pipeline::DefaultPipelineConfigInfo(uint32_t width, uint32_t height)
+	void Pipeline::DefaultPipelineConfigInfo(PipelineConfigInfo& configInfo)
 	{
-		PipelineConfigInfo configInfo{}; 
 
 		//----------------------------------------------------------------------
 		//INPUT ASSEMBLY STAGE
@@ -158,17 +150,11 @@ namespace cve
 		configInfo.inputAssemblyInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST; 
 		configInfo.inputAssemblyInfo.primitiveRestartEnable = VK_FALSE; 
 
-		//setting viewport (changing this will change were everything is rendered)
-		configInfo.viewport.x = 0.f; 
-		configInfo.viewport.y = 0.f; 
-		configInfo.viewport.width = static_cast<float>(width); 
-		configInfo.viewport.height = static_cast<float>(height);
-		configInfo.viewport.maxDepth = 1.f;
-		configInfo.viewport.minDepth = 0.f; 
-
-		//scissor cuts the scene, so this rectangle will be the only thing rendered (when the rectangle overlaps a triangle, the triangle will not be drawn fully)
-		configInfo.scissor.offset = { 0,0 };
-		configInfo.scissor.extent = { width, height }; 
+		configInfo.viewportInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO; 
+		configInfo.viewportInfo.viewportCount = 1; 
+		configInfo.viewportInfo.pViewports = nullptr; 
+		configInfo.viewportInfo.scissorCount = 1; 
+		configInfo.viewportInfo.pScissors = nullptr; 
 
 
 		//----------------------------------------------------------------------
@@ -233,11 +219,11 @@ namespace cve
 		configInfo.depthStencilInfo.front = {}; //optional
 		configInfo.depthStencilInfo.back = {}; //optional
 		 
-		 
-		 
-		 
-
-		return configInfo; 
+		configInfo.dynamicStateEnables = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR }; 
+		configInfo.dynamicStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO; 
+		configInfo.dynamicStateInfo.pDynamicStates = configInfo.dynamicStateEnables.data(); 
+		configInfo.dynamicStateInfo.dynamicStateCount = static_cast<uint32_t>(configInfo.dynamicStateEnables.size()); 
+		configInfo.dynamicStateInfo.flags = 0; 
 	}
 	void Pipeline::Bind(VkCommandBuffer commandBuffer)
 	{
