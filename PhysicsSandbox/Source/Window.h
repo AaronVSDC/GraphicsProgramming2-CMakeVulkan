@@ -21,11 +21,13 @@ namespace cve
 		bool ShouldClose() { return glfwWindowShouldClose(m_Window); }
 		VkExtent2D GetExtent() { return { static_cast<uint32_t>(m_Width),static_cast<uint32_t>(m_Height) }; }
 
-		bool WasWindowResized() { return m_FrameBufferResized; }
+		bool WasWindowResized() const { return m_FrameBufferResized; }
 		void ResetWindowResizedFlag() { m_FrameBufferResized = false;  }
 
 
 		void CreateWindowSurface(VkInstance instance, VkSurfaceKHR* surface);
+
+		GLFWwindow* GetGLFWwindow() const { return m_Window;  }
 
 	private:
 		static void FrameBufferResizeCallback(GLFWwindow* window, int width, int height); 

@@ -21,6 +21,16 @@ set(SOURCE_FILES
 	source/Model.cpp
 	source/GameObject.h
 	source/GameObject.cpp
+	source/Renderer.h
+	source/Renderer.cpp
+	source/SimpleRenderSystem.h
+	source/SimpleRenderSystem.cpp
+	source/Camera.h
+	source/Camera.cpp
+	source/UserInput.h
+	source/UserInput.cpp
+	source/Utils.h
+	source/Utils.cpp 
 
 )
 
@@ -34,6 +44,15 @@ target_include_directories(PhysicsSandbox PRIVATE ${Vulkan_INCLUDE_DIRS})
 #Link with GLFW
 target_link_libraries(PhysicsSandbox glfw)
 
+#Link with Tiny_Object_Loader library
+target_link_libraries(PhysicsSandbox tinyobjloader)
+
+# Models directory handling for IDE visibility
+file(GLOB_RECURSE MODEL_FILES "${CMAKE_CURRENT_SOURCE_DIR}/Models/*.*")
+source_group("Models" FILES ${MODEL_FILES})
+
+# Ensure these files are not compiled
+set_source_files_properties(${MODEL_FILES} PROPERTIES HEADER_FILE_ONLY TRUE)
 #----------------------------
 #Configure shader settings
 #----------------------------

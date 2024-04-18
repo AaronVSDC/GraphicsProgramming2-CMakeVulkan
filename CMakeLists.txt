@@ -27,6 +27,15 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(glm)
 
+#Tiny_Obj_Loader library
+FetchContent_Declare(
+  tinyobjloader
+  GIT_REPOSITORY https://github.com/tinyobjloader/tinyobjloader.git
+  GIT_TAG        v2.0.0rc5  # Specify the version you need
+)
+FetchContent_MakeAvailable(tinyobjloader)
+
+
 #Find the vulkan package
 find_package(Vulkan REQUIRED)
 
