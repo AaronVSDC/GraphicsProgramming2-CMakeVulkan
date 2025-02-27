@@ -1,7 +1,7 @@
-//Visual leak detector
-#ifdef _DEBUG
-#include <vld.h>
-#endif
+////Visual leak detector
+//#ifdef _DEBUG
+//#include <vld.h>
+//#endif
 
 #include "VulkanEngine.hpp"
 

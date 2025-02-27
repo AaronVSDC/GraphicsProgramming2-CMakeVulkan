@@ -8,8 +8,8 @@ namespace cve
 	class VulkanEngine final 
 	{
 	public: 
-		VulkanEngine(); 
-		~VulkanEngine(); 
+		VulkanEngine() = default; 
+		~VulkanEngine() = default; 
 
 		VulkanEngine(const VulkanEngine&) = delete; 
 		VulkanEngine& operator=(const VulkanEngine&) = delete; 

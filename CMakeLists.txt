@@ -1,11 +1,4 @@
-﻿cmake_minimum_required (VERSION 3.28)
-
-# Enable Hot Reload for MSVC compilers if supported.
-if (POLICY CMP0141)
-  cmake_policy(SET CMP0141 NEW)
-  set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<IF:$<AND:$<C_COMPILER_ID:MSVC>,$<CXX_COMPILER_ID:MSVC>>,$<$<CONFIG:Debug,RelWithDebInfo>:EditAndContinue>,$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>>")
-endif()
-
+﻿cmake_minimum_required (VERSION 3.27)
 
 project(VulkanApp_GP2_AaronVanSichemDeCombe VERSION 0.0.1)
 
@@ -39,6 +32,7 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(tinyobjloader)
 
+
 #Find the vulkan package
 find_package(Vulkan REQUIRED)
 
@@ -52,12 +46,12 @@ add_executable(VulkanApp_GP2_AaronVanSichemDeCombe
 #----------------------------
 #Visual Leak Detector
 #----------------------------
-if(MSVC)
-    find_path(VLD_INCLUDE_DIR NAMES vld.h PATHS "C:/Program Files (x86)/Visual Leak Detector/include")
-    find_library(VLD_LIBRARY NAMES vld.lib PATHS "C:/Program Files (x86)/Visual Leak Detector/lib/Win64")
-    include_directories(${VLD_INCLUDE_DIR})
-    target_link_libraries(VulkanApp_GP2_AaronVanSichemDeCombe ${VLD_LIBRARY})
-endif()
+#if(MSVC)
+#    find_path(VLD_INCLUDE_DIR NAMES vld.h PATHS "C:/Program Files (x86)/Visual Leak Detector/include")
+#    find_library(VLD_LIBRARY NAMES vld.lib PATHS "C:/Program Files (x86)/Visual Leak Detector/lib/Win64")
+#    include_directories(${VLD_INCLUDE_DIR})
+#    target_link_libraries(VulkanApp_GP2_AaronVanSichemDeCombe ${VLD_LIBRARY})
+#endif()
 
 #----------------------------
 #LINK WITH LIBRARYS

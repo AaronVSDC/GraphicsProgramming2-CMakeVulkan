@@ -109,7 +109,7 @@ void InitVulkan::initWindow()
 	glfwInit(); 
 
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); // tell it not to create OpenGl context, it was made for openGL
-	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE); //for now the window wont be resizable
+	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE); //for now the window won't be resizable
 
 	m_Window = glfwCreateWindow(static_cast<int>(m_WINDOW_WIDTH), static_cast<int>(m_WINDOW_HEIGHT), "VulkanApp", nullptr, nullptr); //second last is to make it full screen
 
@@ -187,8 +187,7 @@ void InitVulkan::createInstance()
 std::vector<const char*> InitVulkan::getRequiredExtension()
 {
 	uint32_t glfwExtensionCount = {};
-	const char** glfwExtensions;
-	glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+	const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
 	std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
 
@@ -220,13 +219,13 @@ void InitVulkan::setupDebugMessenger()
 VkResult InitVulkan::CreateDebugUtilsMessengerEXT(
 	VkInstance instance,
 	const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
-	const VkAllocationCallbacks* pAllocater,
+	const VkAllocationCallbacks* pAllocator,
 	VkDebugUtilsMessengerEXT* pDebugMessenger)
 {
 	auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
 	if (func != nullptr)
 	{
-		return func(instance, pCreateInfo, pAllocater, pDebugMessenger);
+		return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
 	}
 	else
 	{
@@ -750,8 +749,8 @@ void InitVulkan::createGraphicsPipeline()
 	VkViewport viewport{};
 	viewport.x = 0.0f;
 	viewport.y = 0.0f;
-	viewport.width = (float)m_SwapChainExtent.width;
-	viewport.height = (float)m_SwapChainExtent.height;
+	viewport.width = static_cast<float>(m_SwapChainExtent.width);
+	viewport.height = static_cast<float>(m_SwapChainExtent.height);
 	viewport.minDepth = 0.0f;
 	viewport.maxDepth = 1.0f;
 
@@ -775,7 +774,7 @@ void InitVulkan::createGraphicsPipeline()
 	rasterizer.rasterizerDiscardEnable = VK_FALSE;
 	rasterizer.polygonMode = VK_POLYGON_MODE_FILL; //Lines, filled, or drawn as points
 	rasterizer.lineWidth = 1.0f;
-	rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+	rasterizer.cullMode = VK_CULL_MODE_FRONT_BIT;
 	rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
 	rasterizer.depthBiasEnable = VK_FALSE;
 	rasterizer.depthBiasConstantFactor = 0.0f; // Optional

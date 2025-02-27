@@ -126,7 +126,7 @@ namespace cve
 		VkResult CreateDebugUtilsMessengerEXT(
 			VkInstance instance,
 			const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
-			const VkAllocationCallbacks* pAllocater,
+			const VkAllocationCallbacks* pAllocator,
 			VkDebugUtilsMessengerEXT* pDebugMessenger); 
 		//proxy funtion to clean up
 		static void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator);

@@ -3,14 +3,6 @@
 
 namespace cve {
 
-VulkanEngine::VulkanEngine()
-{
-}
-
-VulkanEngine::~VulkanEngine()
-{
-}
-
 void VulkanEngine::run()
 {
 
