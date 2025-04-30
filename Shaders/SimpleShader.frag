@@ -1,17 +1,19 @@
 #version 450
 
-layout(location = 0) in vec3 fragColor; 
+// incoming from vertex
+layout(location = 0) in vec3 litColor;
+layout(location = 1) in vec2 fragUV;
+
+// our texture binding (set 0, binding 0)
+layout(set = 0, binding = 0) uniform sampler2D uTexture;
+
+// final color output
 layout(location = 0) out vec4 outColor;
 
+void main() {
+    // fetch texture
+    vec4 tex = texture(uTexture, fragUV);
 
-layout(push_constant) uniform Push
-{
-	mat4 transform; // projection * view * model
-	mat4 modelMatrix; 
-} push; 
-
-
-void main()
-{
-    outColor = vec4(fragColor, 1.0); // RGBA color
+    // combine texture rgb with your lit color, preserve texture alpha
+    outColor = vec4(litColor * tex.rgb, tex.a);
 }

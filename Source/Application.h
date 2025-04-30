@@ -3,6 +3,7 @@
 #include "Device.h"
 #include "GameObject.h"
 #include "Renderer.h"
+#include "Texture.h"
 //std 
 #include <memory>
 #include <vector>
@@ -29,7 +30,8 @@ private:
 	Window m_Window{"Graphics_Programming_2_PhysicsSandbox", m_WIDTH, m_HEIGHT};
 	Device m_Device{m_Window}; 
 	Renderer m_Renderer{ m_Window, m_Device }; 
-	std::vector<GameObject> m_GameObjects; 
+	std::vector<GameObject> m_GameObjects;
+	std::vector<std::unique_ptr<Texture>> m_Textures;
 
 };
 

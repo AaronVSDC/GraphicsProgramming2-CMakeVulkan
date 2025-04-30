@@ -29,7 +29,7 @@ Application::~Application()
 void Application::run()
 {
 
-	SimpleRenderSystem simpleRenderSystem = {m_Device, m_Renderer.GetSwapChainRenderPass()};
+	SimpleRenderSystem simpleRenderSystem = {m_Device, m_Renderer.GetSwapChainRenderPass(), m_Textures };
     Camera camera{}; 
     camera.SetViewTarget(glm::vec3(-1.f, -2.f, 2.f), glm::vec3(0.f, 0.f, 2.5f)); 
 
@@ -79,6 +79,7 @@ void Application::LoadGameObjects()
     std::shared_ptr<Model> model = Model::CreateModelFromFile(
         m_Device,
         "Models/VikingRoom.obj");
+    m_Textures.push_back(std::make_unique<Texture>(m_Device, "Textures/VikingRoom.png"));
 
     auto gameObj = GameObject::CreateGameObject(); 
     gameObj.m_Model = model; 

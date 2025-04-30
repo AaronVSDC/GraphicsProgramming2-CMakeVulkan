@@ -1,9 +1,10 @@
 #pragma once
 #include "Pipeline.h"
 #include "Device.h"
-#pragma once
 #include "GameObject.h"
 #include "Camera.h"
+#include "Texture.h"
+
 
 //std 
 #include <memory>
@@ -13,7 +14,7 @@ namespace cve {
 	class SimpleRenderSystem
 	{
 	public:
-		SimpleRenderSystem(Device& device, VkRenderPass renderPass);
+		SimpleRenderSystem(Device& device, VkRenderPass renderPass, const std::vector<std::unique_ptr<Texture>>& textures);
 		~SimpleRenderSystem();
 
 		SimpleRenderSystem(const SimpleRenderSystem& other) = delete;
@@ -25,11 +26,14 @@ namespace cve {
 	private:
 		void CreatePipelineLayout();
 		void CreatePipeline(VkRenderPass renderPass);
+		void SetupDescriptorSets(const std::vector<Texture*>& textures);
 
 		Device& m_Device;
 		std::unique_ptr<Pipeline> m_pPipeline;
 		VkPipelineLayout m_PipelineLayout;
-
+		VkDescriptorSetLayout m_DescriptorSetLayout = VK_NULL_HANDLE; 
+		VkDescriptorPool m_DescriptorPool = VK_NULL_HANDLE; 
+		std::vector<VkDescriptorSet> m_DescriptorSets; 
 	};
 
 }

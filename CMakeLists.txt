@@ -35,6 +35,13 @@ FetchContent_Declare(tinyobjloader
 )
 FetchContent_MakeAvailable(tinyobjloader)
 
+FetchContent_Declare(
+  stb
+  GIT_REPOSITORY https://github.com/nothings/stb.git
+  GIT_TAG        master
+)
+FetchContent_MakeAvailable(stb)
+
 find_package(Vulkan REQUIRED)
 
 # Source files
@@ -64,7 +71,8 @@ set(SOURCE_FILES
   source/UserInput.h
   source/Utils.cpp
   source/Utils.h
-)
+  source/Texture.h
+  source/Texture.cpp)
 
 # Define executable
 add_executable(${TARGET_NAME} ${SOURCE_FILES})
@@ -74,7 +82,9 @@ target_link_libraries(${TARGET_NAME}
   PRIVATE ${Vulkan_LIBRARIES} glfw tinyobjloader
 )
 target_include_directories(${TARGET_NAME}
-  PRIVATE ${Vulkan_INCLUDE_DIRS}
+  PRIVATE 
+    ${Vulkan_INCLUDE_DIRS}
+    ${stb_SOURCE_DIR}
 )
 
 # C++20 standard
@@ -123,4 +133,16 @@ add_custom_command(
   COMMAND ${CMAKE_COMMAND} -E copy_directory
     "${MODELS_SOURCE_DIR}"
     "$<TARGET_FILE_DIR:${TARGET_NAME}>/Models"
+)
+
+#--------------------------------------------------------------------------------------
+# Copy Textures folder next to the executable
+#--------------------------------------------------------------------------------------
+set(TEXTURES_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Textures")
+add_custom_command(
+  TARGET ${TARGET_NAME}
+  POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${TEXTURES_SOURCE_DIR}"
+    "$<TARGET_FILE_DIR:${TARGET_NAME}>/Textures"
 )
