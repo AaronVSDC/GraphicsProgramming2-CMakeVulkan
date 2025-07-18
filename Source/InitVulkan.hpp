@@ -10,6 +10,8 @@
 
 namespace cve
 {
+	const int MAX_FRAMES_IN_FLIGHT = 2;
+
 	//------------------------------
 	//QUEUE FAMILY STUCT
 	//------------------------------
@@ -44,7 +46,22 @@ namespace cve
 		InitVulkan(const InitVulkan&&) = delete;
 		InitVulkan& operator=(const InitVulkan&&) = delete;
 
+		//-------------------
+		//COMMAND BUFFER PUBLIC METHODS
+		//-------------------
 		void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+
+		//--------------------------
+		//SWAPCHAIN PUBLIC METHODS
+		//--------------------------
+		void recreateSwapChain();
+
+		//--------
+		//DRAWING
+		//--------
+		void drawFrame();
+		uint32_t m_CurrentFrame = 0; 
+
 
 
 
@@ -52,15 +69,13 @@ namespace cve
 		//GETTERS
 		//--------------------
 		GLFWwindow* GetWindow() const { return m_Window; }
-		VkInstance& getInstance() { return m_Instance;  }
 		VkDevice& getDevice() { return m_Device;  }
-		VkFence& getInFlightFence() { return m_InFlightFence;  }
-		VkSwapchainKHR& getSwapChain() { return m_SwapChain;  }
-		VkSemaphore& getImageAvailableSemaphore() { return m_ImageAvailableSemaphore;  }
-		VkSemaphore& getRenderFinishedSemaphore() { return m_RenderFinishedSemaphore; }
-		VkCommandBuffer& getCommandBuffer() { return m_CommandBuffer;  }
-		VkQueue& getGraphicsQueue() { return m_GraphicsQueue;  }
-		VkQueue& getPresentQueue() { return m_PresentQueue;  }
+
+
+		//---------
+		//SETTERS
+		//---------
+		void setFrameBufferResized(bool newValue) { m_FrameBufferResized = newValue;  }
 
 
 
@@ -89,7 +104,8 @@ namespace cve
 		//--------------------
 		GLFWwindow* m_Window; 
 		const size_t m_WINDOW_WIDTH = 1200; 
-		const size_t m_WINDOW_HEIGHT = 800; 
+		const size_t m_WINDOW_HEIGHT = 800;
+		static void frameBufferResizeCallback(GLFWwindow* window, int width, int height); 
 
 
 
@@ -175,8 +191,8 @@ namespace cve
 		//choosing the right settings
 		VkSurfaceFormatKHR chooseSwapChainSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
 		VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes); 
-		VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities); 
-
+		VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
+		void cleanupSwapChain(); 
 		std::vector<VkImage> m_SwapChainImages;
 		VkFormat m_SwapChainImageFormat;
 		VkExtent2D m_SwapChainExtent;
@@ -211,16 +227,18 @@ namespace cve
 		//---------------------------------------------
 
 		VkCommandPool m_CommandPool;
-		VkCommandBuffer m_CommandBuffer; 
+		std::vector<VkCommandBuffer> m_CommandBuffers; 
 
 
 
 		//---------------------------------------------
 		//SYNCHRONIZATION OBJECTS
 		//---------------------------------------------
-		VkSemaphore m_ImageAvailableSemaphore;
-		VkSemaphore m_RenderFinishedSemaphore;
-		VkFence m_InFlightFence;
+		std::vector<VkSemaphore> m_ImageAvailableSemaphores;
+		std::vector<VkSemaphore> m_RenderFinishedSemaphores;
+		std::vector<VkFence> m_InFlightFences;
+		bool m_FrameBufferResized = false; 
+
 
 };
 

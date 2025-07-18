@@ -25,8 +25,7 @@ namespace cve
 
 		//Initialize Vulkan (everything is in the constructor)
 		InitVulkan m_InitVulkan; 
-
-		void drawFrame(); 
+	
 
 
 
