@@ -7,7 +7,7 @@ if (POLICY CMP0141)
 endif()
 
 
-project(VulkanApp_GP2_AaronVanSichemDeCombe VERSION 0.0.1)
+project(VulkanApp_GP2_AaronVanSichemDeCombe VERSION 0.0.1) 
 
 
 #--------------------------------------------------------------------------------------
@@ -18,7 +18,7 @@ include(FetchContent)
 #GLFW library
 FetchContent_Declare(
 	glfw
-	GIT_REPOSITORY https://github.com/glfw/glfw.git
+	GIT_REPOSITORY https://github.com/glfw/glfw.git 
 	GIT_TAG 3.4 # Specify the version you need
 )
 FetchContent_MakeAvailable(glfw)
