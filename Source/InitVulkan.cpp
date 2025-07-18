@@ -775,8 +775,8 @@ void InitVulkan::createGraphicsPipeline()
 	rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
 	rasterizer.depthClampEnable = VK_FALSE;
 	rasterizer.rasterizerDiscardEnable = VK_FALSE;
-	rasterizer.polygonMode = VK_POLYGON_MODE_LINE; //todo: try the point and line one because it will be interesting once you have the full renderer
-	rasterizer.lineWidth = 100.0f;
+	rasterizer.polygonMode = VK_POLYGON_MODE_FILL; //todo: try the point and line one because it will be interesting once you have the full renderer
+	rasterizer.lineWidth = 1.0f;
 	rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
 	rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
 	rasterizer.depthBiasEnable = VK_FALSE;
@@ -832,6 +832,7 @@ void InitVulkan::createGraphicsPipeline()
 	//PIPELINE LAYOUT//
 	///////////////////
 
+	//todo: add descriptor sets and fill this in
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	pipelineLayoutInfo.setLayoutCount = 0; // Optional
@@ -912,6 +913,10 @@ VkShaderModule InitVulkan::createShaderModule(const std::vector<char>& code) con
 
 void InitVulkan::createRenderPass()
 {
+
+	//How i think i understand renderpasses now is kind of like instructing vulkan how were gonna render each frame
+	//we can like choose to have some subpasses that do certain things which we then can configure to execute when we want
+
 	VkAttachmentDescription colorAttachment{};
 	colorAttachment.format = m_SwapChainImageFormat;
 	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -962,8 +967,10 @@ void InitVulkan::createFrameBuffers()
 {
 	swapChainFramebuffers.resize(m_SwapChainImageViews.size());
 
-	for (size_t i = 0; i < m_SwapChainImageViews.size(); i++) {
-		VkImageView attachments[] = {
+	for (size_t i = 0; i < m_SwapChainImageViews.size(); i++) 
+	{
+		VkImageView attachments[] = 
+		{
 			m_SwapChainImageViews[i]
 		};
 
