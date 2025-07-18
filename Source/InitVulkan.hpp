@@ -112,7 +112,7 @@ namespace cve
 		#endif
 
 		bool checkValidationLayerSupport(); 
-		std::vector<const char*> getRequiredExtension(); 
+		std::vector<const char*> getRequiredExtension() const; 
 
 		//function to see what you want debugged (vulkan calls this function but pointer to function is setup in setupDebugMessenger)
 		static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
@@ -147,11 +147,11 @@ namespace cve
 		//---------------------------------------------
 
 		//queue families is meant for finding the type of queue that we need so that the right type of commands can be submitted to the queue
-		//for example we need a queu that supports graphics commands, and we need to find and use the right one ( something like that )
+		//for example we need a queue that supports graphics commands, and we need to find and use the right one ( something like that )
 		QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device); 
 		VkQueue m_PresentQueue;
 		VkQueue m_GraphicsQueue;
-
+		
 
 		//---------------------------------------------
 		//LOGICAL DEVICE
@@ -192,7 +192,7 @@ namespace cve
 
 		//helper function to load the binary data from the shader file
 		static std::vector<char> readFile(const std::string& filename); 
-		VkShaderModule createShaderModule(const std::vector<char>& code);
+		VkShaderModule createShaderModule(const std::vector<char>& code) const;
 
 		//Renderpass
 		VkRenderPass m_RenderPass;
