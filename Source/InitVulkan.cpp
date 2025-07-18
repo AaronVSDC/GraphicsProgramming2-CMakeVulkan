@@ -5,6 +5,7 @@
 #include <set>
 #include <algorithm>
 #include <fstream>
+#include <string>
 
 namespace cve {
 
@@ -184,7 +185,7 @@ void InitVulkan::createInstance()
 
 
 }
-std::vector<const char*> InitVulkan::getRequiredExtension()
+std::vector<const char*> InitVulkan::getRequiredExtension() const
 {
 	uint32_t glfwExtensionCount = {};
 	const char** glfwExtensions;
@@ -272,7 +273,7 @@ bool InitVulkan::checkValidationLayerSupport()
 				break; 
 			}
 		}
-		if (!layerFound) return false; 
+		if (!layerFound) return false;
 	}
 
 	std::cout << "Validation Layers Supported!" << std::endl; 
@@ -374,6 +375,7 @@ QueueFamilyIndices InitVulkan::findQueueFamilies(VkPhysicalDevice device)
 		}
 
 		i++;
+
 	}
 
 	return indices; 
@@ -508,7 +510,7 @@ void InitVulkan::createSwapChain()
 	createInfo.oldSwapchain = VK_NULL_HANDLE; 
 
 
-	//and as always after fucking 50 years, create the swapchain
+	//and as always after 50 fucking years, create the swapchain
 	if (vkCreateSwapchainKHR(m_Device, &createInfo, nullptr, &m_SwapChain) != VK_SUCCESS)
 	{
 		throw std::runtime_error("failed to create SwapChain ya idiot"); 
@@ -728,7 +730,7 @@ void InitVulkan::createGraphicsPipeline()
 	VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
 	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 	vertexInputInfo.vertexBindingDescriptionCount = 0;
-	vertexInputInfo.pVertexBindingDescriptions = nullptr; // Optional
+	vertexInputInfo.pVertexBindingDescriptions = nullptr; // todo: week 5 will see this
 	vertexInputInfo.vertexAttributeDescriptionCount = 0;
 	vertexInputInfo.pVertexAttributeDescriptions = nullptr; // Optional
 
@@ -750,15 +752,15 @@ void InitVulkan::createGraphicsPipeline()
 	VkViewport viewport{};
 	viewport.x = 0.0f;
 	viewport.y = 0.0f;
-	viewport.width = (float)m_SwapChainExtent.width;
-	viewport.height = (float)m_SwapChainExtent.height;
+	viewport.width = static_cast<float>(m_SwapChainExtent.width);
+	viewport.height = static_cast<float>(m_SwapChainExtent.height);
 	viewport.minDepth = 0.0f;
 	viewport.maxDepth = 1.0f;
 
 	VkRect2D scissor{};
 	scissor.offset = { 0, 0 };
 	scissor.extent = m_SwapChainExtent;
-
+	                               
 	//this shit is in dynamic state right now
 	VkPipelineViewportStateCreateInfo viewportState{};
 	viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -773,8 +775,8 @@ void InitVulkan::createGraphicsPipeline()
 	rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
 	rasterizer.depthClampEnable = VK_FALSE;
 	rasterizer.rasterizerDiscardEnable = VK_FALSE;
-	rasterizer.polygonMode = VK_POLYGON_MODE_FILL; //Lines, filled, or drawn as points
-	rasterizer.lineWidth = 1.0f;
+	rasterizer.polygonMode = VK_POLYGON_MODE_LINE; //todo: try the point and line one because it will be interesting once you have the full renderer
+	rasterizer.lineWidth = 100.0f;
 	rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
 	rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
 	rasterizer.depthBiasEnable = VK_FALSE;
@@ -799,7 +801,7 @@ void InitVulkan::createGraphicsPipeline()
 	//DEPTH AND STENCIL TESTING//
 	/////////////////////////////
 
-	//right now is disabled TODO: enable that shit when needed
+	//right now is disabled TODO: enable "depth and stencil testing" when needed
 
 	//////////////////
 	//COLOR BLENDING//
@@ -890,7 +892,7 @@ std::vector<char> InitVulkan::readFile(const std::string& filename)
 	return buffer; 
 
 }
-VkShaderModule InitVulkan::createShaderModule(const std::vector<char>& code)
+VkShaderModule InitVulkan::createShaderModule(const std::vector<char>& code) const
 {
 	VkShaderModuleCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
