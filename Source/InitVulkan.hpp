@@ -1,16 +1,50 @@
 #pragma once
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
-
+#include <glm\glm.hpp>
 
 //std
 #include <vector>
 #include <iostream>
 #include <optional>
+#include <array>
 
 namespace cve
 {
 	const int MAX_FRAMES_IN_FLIGHT = 2;
+
+	//-----------------------------
+	//MATH (vertices and stuff) 
+	//-----------------------------
+	struct Vertex {
+
+		glm::vec2 pos; 
+		glm::vec3 color; 
+
+		static VkVertexInputBindingDescription getBindingDescription() {
+			VkVertexInputBindingDescription bindingDescription{}; 
+			bindingDescription.binding = 0; 
+			bindingDescription.stride = sizeof(Vertex); 
+			bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX; 
+			return bindingDescription; 
+		}
+		static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions() {
+			std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions{};
+			attributeDescriptions[0].binding = 0; 
+			attributeDescriptions[0].location = 0; 
+			attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT; 
+			attributeDescriptions[0].offset = offsetof(Vertex, pos); 
+
+			attributeDescriptions[1].binding = 0;
+			attributeDescriptions[1].location = 1;
+			attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+			attributeDescriptions[1].offset = offsetof(Vertex, color);
+
+			return attributeDescriptions;
+		}
+	};
+
+
 
 	//------------------------------
 	//QUEUE FAMILY STUCT
@@ -25,6 +59,7 @@ namespace cve
 		}
 	};
 
+	
 	//------------------------------
 	//SWAPCHAIN STUCT
 	//------------------------------
@@ -94,7 +129,7 @@ namespace cve
 		void createGraphicsPipeline(); 
 		void createFrameBuffers(); 
 		void createCommandPool();
-		void createCommandBuffer(); 
+		void createCommandBuffers(); 
 		void createSyncObjects(); 
 			 
 		void cleanup(); 
@@ -229,8 +264,6 @@ namespace cve
 		VkCommandPool m_CommandPool;
 		std::vector<VkCommandBuffer> m_CommandBuffers; 
 
-
-
 		//---------------------------------------------
 		//SYNCHRONIZATION OBJECTS
 		//---------------------------------------------
@@ -238,6 +271,20 @@ namespace cve
 		std::vector<VkSemaphore> m_RenderFinishedSemaphores;
 		std::vector<VkFence> m_InFlightFences;
 		bool m_FrameBufferResized = false; 
+
+		//-------------------
+		//VERTICES/BUFFERS/...
+		//-------------------
+		const std::vector<Vertex> m_Vertices = {
+		{{0.0f, -0.5f}, {0.0f, 0.0f, 1.0f}},
+		{{0.5f, 0.5f},  {1.0f, 1.0f, 0.0f}},
+		{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
+		};
+
+		void createVertexBuffer();
+		uint32_t findMemoryType(uint32_t typefilter, VkMemoryPropertyFlags properties); 
+		VkBuffer m_VertexBuffer; 
+		VkDeviceMemory m_VertexBufferMemory;
 
 
 };

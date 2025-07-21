@@ -42,7 +42,9 @@ InitVulkan::InitVulkan()
 
 	createCommandPool(); 
 
-	createCommandBuffer(); 
+	createVertexBuffer(); 
+
+	createCommandBuffers(); 
 
 	createSyncObjects(); 
 
@@ -61,6 +63,9 @@ InitVulkan::~InitVulkan()
 void InitVulkan::cleanup()
 {
 	cleanupSwapChain();
+
+	vkDestroyBuffer(m_Device, m_VertexBuffer, nullptr);
+	vkFreeMemory(m_Device, m_VertexBufferMemory, nullptr);
 
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 		vkDestroySemaphore(m_Device, m_RenderFinishedSemaphores[i], nullptr);
@@ -757,12 +762,15 @@ void InitVulkan::createGraphicsPipeline()
 	//VERTEX INPUT STAGE// 
 	//////////////////////
 
+	auto bindingDescription = Vertex::getBindingDescription();
+	auto attributeDescription = Vertex::getAttributeDescriptions();
+
 	VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
 	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-	vertexInputInfo.vertexBindingDescriptionCount = 0;
-	vertexInputInfo.pVertexBindingDescriptions = nullptr; // todo: week 5 will see this
-	vertexInputInfo.vertexAttributeDescriptionCount = 0;
-	vertexInputInfo.pVertexAttributeDescriptions = nullptr; // Optional
+	vertexInputInfo.vertexBindingDescriptionCount = 1;
+	vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescription.size());
+	vertexInputInfo.pVertexBindingDescriptions = &bindingDescription; 
+	vertexInputInfo.pVertexAttributeDescriptions = attributeDescription.data();
 
 
 	//////////////////////// 
@@ -937,6 +945,8 @@ VkShaderModule InitVulkan::createShaderModule(const std::vector<char>& code) con
 	return shaderModule; 
 }
 
+
+
 #pragma endregion
 
 #pragma region RENDER_PASS
@@ -1038,7 +1048,7 @@ void InitVulkan::createCommandPool()
 	}
 }
 
-void InitVulkan::createCommandBuffer()
+void InitVulkan::createCommandBuffers()
 {
 	m_CommandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
 	VkCommandBufferAllocateInfo allocInfo{};
@@ -1080,8 +1090,6 @@ void InitVulkan::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t ima
 
 	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline);
-
 	VkViewport viewport{};
 	viewport.x = 0.0f;
 	viewport.y = 0.0f;
@@ -1096,9 +1104,13 @@ void InitVulkan::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t ima
 	scissor.extent = m_SwapChainExtent;
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline);
 
-	//AND FINALLY WE FUCKING DRAW
-	vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+	VkBuffer vertexBuffers[] = { m_VertexBuffer }; 
+	VkDeviceSize offsets[] = { 0 }; 
+	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets); 
+
+	vkCmdDraw(commandBuffer, static_cast<uint32_t>(m_Vertices.size()), 1, 0, 0); 
 
 	vkCmdEndRenderPass(commandBuffer);
 	if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
@@ -1204,4 +1216,62 @@ void InitVulkan::drawFrame()
 
 #pragma endregion
 
+#pragma region VERTEX_BUFFER
+
+void InitVulkan::createVertexBuffer()
+{
+	VkBufferCreateInfo bufferInfo{}; 
+	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO; 
+	bufferInfo.size = sizeof(m_Vertices[0]) * m_Vertices.size(); 
+	bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT; 
+	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE; 
+
+	if (vkCreateBuffer(m_Device, &bufferInfo, nullptr, &m_VertexBuffer) != VK_SUCCESS)
+	{
+		throw std::runtime_error("Failed to create vertex buffer."); 
+	}
+
+
+	//I think the rest of the vertex part of the tutorial goes here??? 
+	VkMemoryRequirements memRequirements;
+	vkGetBufferMemoryRequirements(m_Device, m_VertexBuffer, &memRequirements);
+
+	//memory allocation 
+	VkMemoryAllocateInfo allocInfo{}; 
+	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO; 
+	allocInfo.allocationSize = memRequirements.size; 
+	allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT); 
+
+	if (vkAllocateMemory(m_Device, &allocInfo, nullptr, &m_VertexBufferMemory) != VK_SUCCESS)
+	{
+		throw std::runtime_error("Failed to allocate vertex buffer memory."); 
+	}
+
+	vkBindBufferMemory(m_Device, m_VertexBuffer, m_VertexBufferMemory, 0); 
+
+	void* data; 
+	vkMapMemory(m_Device, m_VertexBufferMemory, 0, bufferInfo.size, 0, &data); 
+	memcpy(data, m_Vertices.data(), (size_t)bufferInfo.size); 
+	vkUnmapMemory(m_Device, m_VertexBufferMemory); 
+
+
+}
+
+uint32_t InitVulkan::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
+{
+	VkPhysicalDeviceMemoryProperties memProperties; 
+	vkGetPhysicalDeviceMemoryProperties(m_PhysicalDevice, &memProperties); 
+	
+	for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
+	{
+		if (typeFilter & (1 << i) and (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
+		{
+			return i; 
+		}
+	}
+	throw std::runtime_error("Failed to find suitable memory type."); 
+
+}
+
+#pragma endregion
 }
