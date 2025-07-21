@@ -30,28 +30,20 @@ InitVulkan::InitVulkan()
 	//create a logical device to interface with the physical device 
 	createLogicalDevice(); 
 
-	//create swapchain
 	createSwapChain(); 
 
-	//create imageviews (duh)
 	createImageViews();
 
-	//create renderPass 
 	createRenderPass(); 
 
-	//graphics pipeline
 	createGraphicsPipeline(); 
 
-	//framebuffers 
 	createFrameBuffers(); 
 
-	//commandpool 
 	createCommandPool(); 
 
-	//commandBuffer
 	createCommandBuffer(); 
 
-	//synchronization for the renderloop 
 	createSyncObjects(); 
 
 

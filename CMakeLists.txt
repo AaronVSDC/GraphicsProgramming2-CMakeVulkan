@@ -32,12 +32,12 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(glm)
 
 #Tiny_Obj_Loader library
-FetchContent_Declare(
-  tinyobjloader
-  GIT_REPOSITORY https://github.com/tinyobjloader/tinyobjloader.git
-  GIT_TAG        v2.0.0rc5  # Specify the version you need
-)
-FetchContent_MakeAvailable(tinyobjloader)
+#FetchContent_Declare(
+#  tinyobjloader
+#  GIT_REPOSITORY https://github.com/tinyobjloader/tinyobjloader.git
+#  GIT_TAG        v2.0.0rc5  # Specify the version you need
+#)
+#FetchContent_MakeAvailable(tinyobjloader)
 
 #Find the vulkan package
 find_package(Vulkan REQUIRED)
@@ -67,11 +67,11 @@ add_executable(VulkanApp_GP2_AaronVanSichemDeCombe
 target_link_libraries(VulkanApp_GP2_AaronVanSichemDeCombe ${Vulkan_LIBRARIES} )
 target_include_directories(VulkanApp_GP2_AaronVanSichemDeCombe PRIVATE ${Vulkan_INCLUDE_DIRS})
 
-#Link with GLFW
+#Link with GLFW 
 target_link_libraries(VulkanApp_GP2_AaronVanSichemDeCombe glfw)
 
 #Link with Tiny_Object_Loader library
-target_link_libraries(VulkanApp_GP2_AaronVanSichemDeCombe tinyobjloader)
+#target_link_libraries(VulkanApp_GP2_AaronVanSichemDeCombe tinyobjloader)
 
 
 #----------------------------
