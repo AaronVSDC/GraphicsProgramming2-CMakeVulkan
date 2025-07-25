@@ -1,7 +1,15 @@
 #pragma once
+
+//vulkan/glfw
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
-#include <glm\glm.hpp>
+
+//glm
+#define GLM_FORCE_RADIANS
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
+#include <chrono>
 
 //std
 #include <vector>
@@ -42,6 +50,17 @@ namespace cve
 
 			return attributeDescriptions;
 		}
+	};
+
+	struct UniformBufferObject
+	{
+		//ALWAYS LOOK UP ALIGNMENT OF DIFFERENT TYPES BECAUSE VULKAN EXPECTS
+		//THEM TO BE A CERTAIN WAY INSIDE THE SHADERS
+		//(im being explicit on purpose here and not including the macro
+		//that does this alignment automatically 90 percent of the time)
+		alignas(16)glm::mat4 model; 
+		alignas(16)glm::mat4 view;
+		alignas(16)glm::mat4 proj; 
 	};
 
 
@@ -273,7 +292,7 @@ namespace cve
 		bool m_FrameBufferResized = false; 
 
 		//-------------------
-		//VERTICES/BUFFERS/...
+		//VERTICES/BUFFERS/UBO/...
 		//-------------------
 		const std::vector<Vertex> m_Vertices = {
 		{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
@@ -290,11 +309,32 @@ namespace cve
 		VkBuffer m_IndexBuffer;
 		VkDeviceMemory m_IndexBufferMemory;
 
+		std::vector<VkBuffer> m_UniformBuffers;
+		std::vector<VkDeviceMemory> m_UniformBuffersMemory;
+		std::vector<void*> m_UniformBuffersMapped;
+		void createUniformBuffers();
+		void updateUniformBuffer(uint32_t currentImage); 
+
 		void createVertexBuffer();
 		void createIndexBuffer(); 
 		uint32_t findMemoryType(uint32_t typefilter, VkMemoryPropertyFlags properties); 
 		void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory); 
 		void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size); 
+
+
+		//---------------------------------------------------------------------
+		//DescriptorSets, DescriptorsetLayout, DescriptorPool
+		//---------------------------------------------------------------------
+
+		VkDescriptorSetLayout m_DescriptorSetLayout;
+		VkDescriptorPool m_DescriptorPool;
+		std::vector<VkDescriptorSet> m_DescriptorSets;
+
+		void createDescriptorSetLayout();
+		void createDescriptorPool();
+		void createDescriptorSets(); 
+
+
 
 
 };
