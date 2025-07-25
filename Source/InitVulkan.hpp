@@ -276,15 +276,25 @@ namespace cve
 		//VERTICES/BUFFERS/...
 		//-------------------
 		const std::vector<Vertex> m_Vertices = {
-		{{0.0f, -0.5f}, {0.0f, 0.0f, 1.0f}},
-		{{0.5f, 0.5f},  {1.0f, 1.0f, 0.0f}},
+		{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+		{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+		{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
 		{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
 		};
+		const std::vector<uint16_t> indices = {
+			0, 1, 2, 2, 3, 0
+		};
+
+		VkBuffer m_VertexBuffer;
+		VkDeviceMemory m_VertexBufferMemory;
+		VkBuffer m_IndexBuffer;
+		VkDeviceMemory m_IndexBufferMemory;
 
 		void createVertexBuffer();
+		void createIndexBuffer(); 
 		uint32_t findMemoryType(uint32_t typefilter, VkMemoryPropertyFlags properties); 
-		VkBuffer m_VertexBuffer; 
-		VkDeviceMemory m_VertexBufferMemory;
+		void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory); 
+		void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size); 
 
 
 };

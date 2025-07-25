@@ -29,7 +29,7 @@ FetchContent_Declare(
   GIT_REPOSITORY https://github.com/g-truc/glm.git
   GIT_TAG        1.0.1 # Specify the version you want to use
 )
-FetchContent_MakeAvailable(glm)
+FetchContent_MakeAvailable(glm) 
 
 #Tiny_Obj_Loader library
 #FetchContent_Declare(
@@ -70,6 +70,7 @@ target_include_directories(VulkanApp_GP2_AaronVanSichemDeCombe PRIVATE ${Vulkan_
 #Link with GLFW 
 target_link_libraries(VulkanApp_GP2_AaronVanSichemDeCombe glfw)
 
+target_link_libraries(VulkanApp_GP2_AaronVanSichemDeCombe glm)
 #Link with Tiny_Object_Loader library
 #target_link_libraries(VulkanApp_GP2_AaronVanSichemDeCombe tinyobjloader)
 
