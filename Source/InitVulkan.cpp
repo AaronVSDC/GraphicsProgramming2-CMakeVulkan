@@ -1,7 +1,13 @@
 #include "InitVulkan.hpp"
 
+//stb
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
+
+//assimp
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
 
 //std
 #include <map>
@@ -54,7 +60,9 @@ InitVulkan::InitVulkan()
 
 	createTextureImageView();
 
-	createTextureSampler(); 
+	createTextureSampler();
+
+	loadModel();
 
 	createVertexBuffer();
 
@@ -1175,10 +1183,10 @@ void InitVulkan::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t ima
 	VkDeviceSize offsets[] = { 0 };
 
 	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets); 
-	vkCmdBindIndexBuffer(commandBuffer, m_IndexBuffer, 0, VK_INDEX_TYPE_UINT16); 
+	vkCmdBindIndexBuffer(commandBuffer, m_IndexBuffer, 0, VK_INDEX_TYPE_UINT32); 
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 0, 1, &m_DescriptorSets[m_CurrentFrame], 0, nullptr);
 
-	vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+	vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(m_Indices.size()), 1, 0, 0, 0);
 
 	vkCmdEndRenderPass(commandBuffer);
 	if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
@@ -1359,7 +1367,7 @@ void InitVulkan::createVertexBuffer()
 
 void InitVulkan::createIndexBuffer()
 {
-	VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
+	VkDeviceSize bufferSize = sizeof(m_Indices[0]) * m_Indices.size();
 
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
@@ -1371,7 +1379,7 @@ void InitVulkan::createIndexBuffer()
 
 	void* data;
 	vkMapMemory(m_Device, stagingBufferMemory, 0, bufferSize, 0, &data);
-	memcpy(data, indices.data(), (size_t)bufferSize);
+	memcpy(data, m_Indices.data(), (size_t)bufferSize);
 	vkUnmapMemory(m_Device, stagingBufferMemory);
 
 	createBuffer(bufferSize,
@@ -1603,7 +1611,7 @@ void InitVulkan::createDescriptorSets()
 void InitVulkan::createTextureImage()
 {
 	int texWidth, texHeight, texChannels;
-	stbi_uc* pixels = stbi_load("Textures/ExampleTexture.jpg", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+	stbi_uc* pixels = stbi_load(TEXTURE_PATH.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
 	VkDeviceSize imageSize = texWidth * texHeight * 4;
 
 	if (!pixels) {
@@ -1870,5 +1878,68 @@ bool InitVulkan::hasStencilComponent(VkFormat format)
 
 #pragma endregion
 
+#pragma region MODEL_LOADING
+void InitVulkan::loadModel()
+{
+	Assimp::Importer importer;
 
+	const aiScene* scene = importer.ReadFile(
+		MODEL_PATH,
+		aiProcess_Triangulate        // make sure everything is triangles
+		| aiProcess_FlipUVs            // flip for GL-style UVs
+		| aiProcess_CalcTangentSpace); // if you need normals/tangents
+
+	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mMeshes) {
+		throw std::runtime_error("Assimp error: " + std::string(importer.GetErrorString()));
+	}
+
+	aiMesh* mesh = scene->mMeshes[0];  // just load the first mesh
+
+	// Reserve so we don’t reallocate
+	m_Vertices.reserve(mesh->mNumVertices);
+	m_Indices.reserve(mesh->mNumFaces * 3);
+
+	// **Vertices**
+	for (uint32_t i = 0; i < mesh->mNumVertices; i++) {
+		Vertex v{};
+		// positions
+		v.pos = {
+			mesh->mVertices[i].x,
+			mesh->mVertices[i].y,
+			mesh->mVertices[i].z
+		};
+		// colors (optional—OBJ doesn’t carry per-vertex color by default)
+		v.color = { 1.0f, 1.0f, 1.0f };
+
+		// texture coordinates?
+		if (mesh->mTextureCoords[0]) {
+			v.texCoord = {
+				mesh->mTextureCoords[0][i].x,
+				mesh->mTextureCoords[0][i].y
+			};
+		}
+		else {
+			v.texCoord = { 0.0f, 0.0f };
+		}
+
+		m_Vertices.push_back(v);
+	}
+
+	// **Indices** (we told Assimp to triangulate)
+	for (uint32_t f = 0; f < mesh->mNumFaces; f++) {
+		const aiFace& face = mesh->mFaces[f];
+		for (uint32_t idx = 0; idx < face.mNumIndices; idx++) {
+			m_Indices.push_back(face.mIndices[idx]);
+		}
+	}
+
+	aiMaterial* mat = scene->mMaterials[mesh->mMaterialIndex];
+	if (mat->GetTextureCount(aiTextureType_DIFFUSE) > 0) {
+		aiString texPath;
+		mat->GetTexture(aiTextureType_DIFFUSE, 0, &texPath);
+		TEXTURE_PATH = std::string("Textures/") + texPath.C_Str();
+	}
+}
+
+#pragma endregion
 }

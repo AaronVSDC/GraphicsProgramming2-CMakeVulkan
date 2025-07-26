@@ -42,6 +42,14 @@ FetchContent_Declare(
 # Populate stb repo
 FetchContent_MakeAvailable(stb)
 
+FetchContent_Declare(
+    assimp
+    GIT_REPOSITORY https://github.com/assimp/assimp.git
+    GIT_TAG v6.0.2
+)
+FetchContent_MakeAvailable(assimp)
+
+
 #create interface target
 add_library(stb INTERFACE)
 target_include_directories(stb INTERFACE ${stb_SOURCE_DIR})
@@ -55,17 +63,6 @@ add_executable(VulkanApp_GP2_AaronVanSichemDeCombe
     "Source/main.cpp"
     "Source/InitVulkan.cpp"
 )
-
-#----------------------------
-#Visual Leak Detector
-#----------------------------
-#if(MSVC)
-#    find_path(VLD_INCLUDE_DIR NAMES vld.h PATHS "C:/Program Files (x86)/Visual Leak Detector/include")
-#    find_library(VLD_LIBRARY NAMES vld.lib PATHS "C:/Program Files (x86)/Visual Leak Detector/lib/Win64")
-#    include_directories(${VLD_INCLUDE_DIR})
-#    target_link_libraries(VulkanApp_GP2_AaronVanSichemDeCombe ${VLD_LIBRARY})
-#endif()
-
 #----------------------------
 #LINK WITH LIBRARYS
 #----------------------------
@@ -83,14 +80,21 @@ target_link_libraries(VulkanApp_GP2_AaronVanSichemDeCombe glm)
 #Link with STB 
 target_link_libraries(VulkanApp_GP2_AaronVanSichemDeCombe stb)
 
+#Link with assimp
+target_link_libraries(VulkanApp_GP2_AaronVanSichemDeCombe assimp)
 
 #----------------------------
-#Texture configuration
+#Texture/OBJ configuration
 #----------------------------
-# Copy the entire Textures folder from the source tree into the build tree
+# Copy the entire Textures and Models folder from the source tree into the build tree
 file(COPY
      "${CMAKE_SOURCE_DIR}/Textures"
      DESTINATION "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+file(COPY
+     "${CMAKE_SOURCE_DIR}/Models"
+     DESTINATION "${CMAKE_CURRENT_BINARY_DIR}" 
 )
 
 #----------------------------

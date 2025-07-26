@@ -311,21 +311,8 @@ namespace cve
 		//--------------------------
 		//VERTICES/BUFFERS/UBO/...
 		//--------------------------
-		const std::vector<Vertex> m_Vertices = {
-	{{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-	{{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-	{{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-	{{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
-
-	{{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-	{{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-	{{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-	{{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
-		};
-		const std::vector<uint16_t> indices = {
-		0, 1, 2, 2, 3, 0,
-		4, 5, 6, 6, 7, 4
-		};
+		std::vector<Vertex> m_Vertices; 
+		std::vector<uint32_t> m_Indices;
 
 		VkBuffer m_VertexBuffer;
 		VkDeviceMemory m_VertexBufferMemory;
@@ -399,8 +386,15 @@ namespace cve
 		void createDepthResources();
 		VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features); 
 		VkFormat findDepthFormat();
-		bool hasStencilComponent(VkFormat format); 
+		bool hasStencilComponent(VkFormat format);
 
+
+		//--------------
+		//MODEL LOADING
+		//--------------
+		std::string MODEL_PATH = "Models/viking_room.obj";
+		std::string TEXTURE_PATH = "Textures/viking_room.png";
+		void loadModel(); 
 
 	};
 
