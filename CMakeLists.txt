@@ -11,7 +11,7 @@ project(VulkanApp_GP2_AaronVanSichemDeCombe VERSION 0.0.1)
 
 
 #--------------------------------------------------------------------------------------
-#Use fancy FetchContent to download from github directly and also configure library
+#Use FetchContent to download from github directly and also configure library
 #--------------------------------------------------------------------------------------
 include(FetchContent)
 
@@ -19,7 +19,7 @@ include(FetchContent)
 FetchContent_Declare(
 	glfw
 	GIT_REPOSITORY https://github.com/glfw/glfw.git 
-	GIT_TAG 3.4 # Specify the version you need
+	GIT_TAG 3.4 
 )
 FetchContent_MakeAvailable(glfw)
 
@@ -27,17 +27,24 @@ FetchContent_MakeAvailable(glfw)
 FetchContent_Declare(
   glm
   GIT_REPOSITORY https://github.com/g-truc/glm.git
-  GIT_TAG        1.0.1 # Specify the version you want to use
+  GIT_TAG        1.0.1 
 )
 FetchContent_MakeAvailable(glm) 
 
-#Tiny_Obj_Loader library
-#FetchContent_Declare(
-#  tinyobjloader
-#  GIT_REPOSITORY https://github.com/tinyobjloader/tinyobjloader.git
-#  GIT_TAG        v2.0.0rc5  # Specify the version you need
-#)
-#FetchContent_MakeAvailable(tinyobjloader)
+#STB library (image loader)
+FetchContent_Declare(
+  stb
+  GIT_REPOSITORY https://github.com/nothings/stb.git
+  GIT_TAG        master
+  CONFIGURE_COMMAND ""
+  BUILD_COMMAND ""
+)
+# Populate stb repo
+FetchContent_MakeAvailable(stb)
+
+#create interface target
+add_library(stb INTERFACE)
+target_include_directories(stb INTERFACE ${stb_SOURCE_DIR})
 
 #Find the vulkan package
 find_package(Vulkan REQUIRED)
@@ -70,13 +77,24 @@ target_include_directories(VulkanApp_GP2_AaronVanSichemDeCombe PRIVATE ${Vulkan_
 #Link with GLFW 
 target_link_libraries(VulkanApp_GP2_AaronVanSichemDeCombe glfw)
 
+#Link with GLM
 target_link_libraries(VulkanApp_GP2_AaronVanSichemDeCombe glm)
-#Link with Tiny_Object_Loader library
-#target_link_libraries(VulkanApp_GP2_AaronVanSichemDeCombe tinyobjloader)
+
+#Link with STB 
+target_link_libraries(VulkanApp_GP2_AaronVanSichemDeCombe stb)
 
 
 #----------------------------
-#Configure shader settings
+#Texture configuration
+#----------------------------
+# Copy the entire Textures folder from the source tree into the build tree
+file(COPY
+     "${CMAKE_SOURCE_DIR}/Textures"
+     DESTINATION "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+#----------------------------
+#Shader configuration
 #----------------------------
 
 #####################################################################################################################################

@@ -9,9 +9,9 @@
 int main()
 {
 
-	cve::VulkanEngine engine{}; 
 	try
 	{
+		cve::VulkanEngine engine{};
 		engine.run(); 
 	}
 	catch (const std::exception& e)
