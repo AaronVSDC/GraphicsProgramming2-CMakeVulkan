@@ -55,14 +55,15 @@ add_library(stb INTERFACE)
 target_include_directories(stb INTERFACE ${stb_SOURCE_DIR})
 
 #Find the vulkan package
-find_package(Vulkan REQUIRED)
+find_package(Vulkan REQUIRED) 
 
 # Define the executable target
 add_executable(VulkanApp_GP2_AaronVanSichemDeCombe 
-    "Source/VulkanCore/VulkanApp.cpp"
+    "Source/App/VulkanApp.cpp"
     "Source/main.cpp"
-    "Source/VulkanCore/InitVulkan.cpp"
- "Source/Window/Window.cpp" "Source/VulkanCore/Instance.cpp")
+    "Source/App/InitVulkan.cpp"
+    "Source/Window/Window.cpp" 
+    "Source/VulkanCore/Instance.cpp")
 #----------------------------
 #LINK WITH LIBRARYS
 #----------------------------

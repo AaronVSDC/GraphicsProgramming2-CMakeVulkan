@@ -1,6 +1,6 @@
 
 
-#include "VulkanCore/VulkanApp.hpp"
+#include "App/VulkanApp.hpp"
 
 //std
 #include <iostream>

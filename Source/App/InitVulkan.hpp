@@ -1,6 +1,6 @@
 #pragma once
 #include "../Window/Window.hpp"
-#include "Instance.hpp"
+#include "../VulkanCore/Instance.hpp"
 
 
 //vulkan/glfw
