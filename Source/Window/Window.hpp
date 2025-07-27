@@ -21,14 +21,10 @@ namespace cvr
 		Window& operator=(const Window&) = delete;
 		Window& operator=(const Window&&) = delete;
 
-		
-		void createSurface(VkInstance instance);
-
 		//Getters/Setters
-		GLFWwindow* getWindowHandle() const { return m_Window; }
+		GLFWwindow* getWindow() const { return m_Window; }
 		bool getFrameBufferResized() const { return m_FrameBufferResized; }
 		void setFrameBufferResized(bool newValue) { m_FrameBufferResized = newValue; }
-		VkSurfaceKHR& getSurface() { return m_Surface;  }
 
 	private:
 		//glfw window
@@ -41,11 +37,6 @@ namespace cvr
 		const std::string m_WINDOW_TITLE;
 		static void frameBufferResizeCallback(GLFWwindow* window, int width, int height);
 
-		//vulkan surface
-		VkSurfaceKHR m_Surface;
-
-		//instance handle for destruction
-		VkInstance m_Instance; 
 
 
 

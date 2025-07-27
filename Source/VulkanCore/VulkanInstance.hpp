@@ -4,15 +4,15 @@
 #include <vulkan/vulkan.hpp>
 namespace cvr
 {
-	class Instance final
+	class VulkanInstance final
 	{
 	public: 
-		Instance(); 
-		~Instance(); 
-		Instance(const Instance&) = delete; 
-		Instance(const Instance&&) = delete; 
-		Instance& operator=(const Instance&) = delete;
-		Instance& operator=(const Instance&&) = delete;
+		VulkanInstance(); 
+		~VulkanInstance(); 
+		VulkanInstance(const VulkanInstance&) = delete; 
+		VulkanInstance(const VulkanInstance&&) = delete; 
+		VulkanInstance& operator=(const VulkanInstance&) = delete;
+		VulkanInstance& operator=(const VulkanInstance&&) = delete;
 
 		//getters/setters
 		VkInstance& getInstance() { return m_Instance; }

@@ -1,6 +1,7 @@
 #pragma once
 #include "../Window/Window.hpp"
-#include "../VulkanCore/Instance.hpp"
+#include "../VulkanCore/VulkanInstance.hpp"
+#include "../VulkanCore/VulkanSurface.hpp"
 
 
 //vulkan/glfw
@@ -135,7 +136,7 @@ namespace cvr
 		//--------------------
 		//GETTERS
 		//--------------------
-		GLFWwindow* GetWindow() const { return m_Window->getWindowHandle(); }
+		GLFWwindow* GetWindow() const { return m_Window->getWindow(); }
 		VkDevice& getDevice() { return m_Device;  }
 
 
@@ -167,14 +168,8 @@ namespace cvr
 		//REFACTORED SHIT
 		//--------------------
 		Window* m_Window;
-
-
-
-		//-------------------
-		//INSTANCE VARIABLES WHICH INCLUDE VALIDATION LAYERS
-		//-------------------
-		Instance* m_Instance; 
-
+		VulkanInstance* m_Instance; //includes validation layers
+		VulkanSurface* m_Surface; 
 
 		//----------------------------------------------
 		//PHYSICAL DEVICE VARIABLES

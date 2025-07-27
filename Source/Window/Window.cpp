@@ -22,7 +22,6 @@ namespace cvr
 	}
 	Window::~Window()
 	{
-		vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
 		glfwDestroyWindow(m_Window);
 		glfwTerminate();
 
@@ -33,14 +32,6 @@ namespace cvr
 		app->m_FrameBufferResized = true;
 	}
 
-	void Window::createSurface(VkInstance instance)
-	{
-		m_Instance = instance; 
-		if (glfwCreateWindowSurface(instance, m_Window, nullptr, &m_Surface) != VK_SUCCESS)
-		{
-			throw std::runtime_error("Failed to create Vulkan surface");
-		}
-	}
 
 
 }

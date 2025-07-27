@@ -20,23 +20,23 @@
 namespace cvr {
 
 
-InitVulkan::InitVulkan()
-{
-	//initialize window
-	//initWindow();
-	m_Window = new Window{}; 
+	InitVulkan::InitVulkan()
+	{
+		//initialize window
+		//initWindow();
+		m_Window = new Window{};
 
-	//creates vulkan instance to initialize vulkan library
-	//createInstance();
-	m_Instance = new Instance{}; 
+		//creates vulkan instance to initialize vulkan library
+		//createInstance();
+		m_Instance = new VulkanInstance{};
 
-	//enables validation layers to debug shit
-	//setupDebugMessenger(); 
+		//enables validation layers to debug shit
+		//setupDebugMessenger(); 
 
-	//create window surface to actually show something instead of just calculating it
-	//createSurface(); 
+		//create window surface to actually show something instead of just calculating it
+		//createSurface(); 
 
-	m_Window->createSurface(m_Instance->getInstance());
+		m_Surface = new VulkanSurface{m_Instance->getInstance(),m_Window->getWindow()};
 
 	//selects the graphics card that supports the features needed
 	pickPhysicalDevice(); 
@@ -235,7 +235,7 @@ QueueFamilyIndices InitVulkan::findQueueFamilies(VkPhysicalDevice device)
 		}
 
 		VkBool32 presentSupport = false; 
-		vkGetPhysicalDeviceSurfaceSupportKHR(device, i, m_Window->getSurface( ), &presentSupport); 
+		vkGetPhysicalDeviceSurfaceSupportKHR(device, i, m_Surface->getSurface( ), &presentSupport); 
 
 		if (presentSupport)
 		{
@@ -342,7 +342,7 @@ void InitVulkan::createSwapChain()
 	//now fill in all the swapchain info
 	VkSwapchainCreateInfoKHR createInfo{}; 
 	createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR; 
-	createInfo.surface = m_Window->getSurface( ); 
+	createInfo.surface = m_Surface->getSurface( ); 
 
 	createInfo.minImageCount = imageCount; 
 	createInfo.imageFormat = surfaceFormat.format; 
@@ -416,23 +416,23 @@ SwapChainSupportDetails InitVulkan::querySwapChainSupport(VkPhysicalDevice devic
 {
 	SwapChainSupportDetails details;
 
-	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, m_Window->getSurface( ), &details.capabilities);
+	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, m_Surface->getSurface( ), &details.capabilities);
 
 	uint32_t formatCount;
-	vkGetPhysicalDeviceSurfaceFormatsKHR(device, m_Window->getSurface( ), &formatCount, nullptr);
+	vkGetPhysicalDeviceSurfaceFormatsKHR(device, m_Surface->getSurface( ), &formatCount, nullptr);
 
 	if (formatCount != 0) 
 	{
 		details.formats.resize(formatCount);
-		vkGetPhysicalDeviceSurfaceFormatsKHR(device, m_Window->getSurface( ), &formatCount, details.formats.data());
+		vkGetPhysicalDeviceSurfaceFormatsKHR(device, m_Surface->getSurface( ), &formatCount, details.formats.data());
 	}
 
 	uint32_t presentModeCount;
-	vkGetPhysicalDeviceSurfacePresentModesKHR(device, m_Window->getSurface( ), &presentModeCount, nullptr);
+	vkGetPhysicalDeviceSurfacePresentModesKHR(device, m_Surface->getSurface( ), &presentModeCount, nullptr);
 
 	if (presentModeCount != 0) {
 		details.presentModes.resize(presentModeCount);
-		vkGetPhysicalDeviceSurfacePresentModesKHR(device, m_Window->getSurface( ), &presentModeCount, details.presentModes.data());
+		vkGetPhysicalDeviceSurfacePresentModesKHR(device, m_Surface->getSurface( ), &presentModeCount, details.presentModes.data());
 	}
 
 
@@ -484,7 +484,7 @@ VkExtent2D InitVulkan::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabili
 	else
 	{
 		int width, height; 
-		glfwGetFramebufferSize(m_Window->getWindowHandle(), &width, &height); 
+		glfwGetFramebufferSize(m_Window->getWindow(), &width, &height); 
 
 		VkExtent2D actualExtent = { static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
 		actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
@@ -515,7 +515,7 @@ void InitVulkan::recreateSwapChain()
 {
 	int width = 0, height = 0;
 	while (width == 0 || height == 0) {
-		glfwGetFramebufferSize(m_Window->getWindowHandle(), &width, &height);
+		glfwGetFramebufferSize(m_Window->getWindow(), &width, &height);
 		glfwWaitEvents();
 	}
 
