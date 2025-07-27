@@ -1,7 +1,7 @@
 #pragma once
 #include "../Window/Window.hpp"
-#include "../VulkanCore/VulkanInstance.hpp"
-#include "../VulkanCore/VulkanSurface.hpp"
+#include "../Core/VulkanInstance.hpp"
+#include "../Window/VulkanSurface.hpp"
 
 
 //vulkan/glfw

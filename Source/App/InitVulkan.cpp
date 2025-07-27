@@ -22,20 +22,8 @@ namespace cvr {
 
 	InitVulkan::InitVulkan()
 	{
-		//initialize window
-		//initWindow();
 		m_Window = new Window{};
-
-		//creates vulkan instance to initialize vulkan library
-		//createInstance();
 		m_Instance = new VulkanInstance{};
-
-		//enables validation layers to debug shit
-		//setupDebugMessenger(); 
-
-		//create window surface to actually show something instead of just calculating it
-		//createSurface(); 
-
 		m_Surface = new VulkanSurface{m_Instance->getInstance(),m_Window->getWindow()};
 
 	//selects the graphics card that supports the features needed
@@ -127,9 +115,10 @@ void InitVulkan::cleanup()
 
 	vkDestroyDevice(m_Device, nullptr); 
 
+	delete m_Surface; 
+	delete m_Instance;
 	delete m_Window;
 
-	delete m_Instance; 
 
 
 }
