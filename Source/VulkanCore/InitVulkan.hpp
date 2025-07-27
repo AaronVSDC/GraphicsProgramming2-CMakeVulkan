@@ -1,5 +1,6 @@
 #pragma once
-#include "Window.hpp"
+#include "../Window/Window.hpp"
+#include "Instance.hpp"
 
 
 //vulkan/glfw
@@ -170,46 +171,10 @@ namespace cvr
 
 
 		//-------------------
-		//INSTANCE VARIABLES
+		//INSTANCE VARIABLES WHICH INCLUDE VALIDATION LAYERS
 		//-------------------
-		VkInstance m_Instance;
+		Instance* m_Instance; 
 
-
-
-		//------------------------------------------------------------------------------------
-		//VALIDATION LAYER VARIABLES
-		//------------------------------------------------------------------------------------
-		const std::vector<const char*> m_ValidationLayers = { "VK_LAYER_KHRONOS_validation" }; 
-
-		#ifdef _DEBUG
-		const bool m_EnableValidationLayers = true; 
-		#else
-		const bool m_EnableValidationLayers = false; 
-		#endif
-
-		bool checkValidationLayerSupport(); 
-		std::vector<const char*> getRequiredExtension() const; 
-
-		//function to see what you want debugged (vulkan calls this function but pointer to function is setup in setupDebugMessenger)
-		static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
-			VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, //specifies the severity of the message
-			VkDebugUtilsMessageTypeFlagsEXT messageType,  //type of message ofc
-			const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, //refers to VkDebugUtilsMessengerCallbackDataEXT struct containing details of the message itself
-			void* pUserData) //pointer specified during setup of callback and allows you to pass your own data
-		{ std::cerr << "Validation layer: " << pCallbackData->pMessage << std::endl << std::endl; return VK_FALSE; }
-
-		//because vkCreateDebugUtilsMessengerEXT (inside setupDebugMessenger) is an extension the address and shit must be specified which is done in this proxy function
-		VkResult CreateDebugUtilsMessengerEXT(
-			VkInstance instance,
-			const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
-			const VkAllocationCallbacks* pAllocator,
-			VkDebugUtilsMessengerEXT* pDebugMessenger); 
-		//proxy funtion to clean up
-		static void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator);
-
-		void populateDebugMessengerInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo); 
-
-		VkDebugUtilsMessengerEXT m_DebugMessenger; 
 
 		//----------------------------------------------
 		//PHYSICAL DEVICE VARIABLES
@@ -238,7 +203,8 @@ namespace cvr
 		//---------------------------------------------
 		//WINDOW SURFACE CREATION
 		//---------------------------------------------
-		VkSurfaceKHR m_Surface; 
+		//handled by the window
+
 
 		//---------------------------------------------
 		//SWAPCHAIN
