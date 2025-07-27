@@ -1,8 +1,10 @@
 #pragma once
+#include "Window.hpp"
+
 
 //vulkan/glfw
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
+#include <vulkan/vulkan.h>
+
 
 //glm
 #define GLM_FORCE_RADIANS
@@ -19,7 +21,7 @@
 #include <optional>
 #include <array>
 
-namespace cve
+namespace cvr
 {
 	const int MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -132,14 +134,11 @@ namespace cve
 		//--------------------
 		//GETTERS
 		//--------------------
-		GLFWwindow* GetWindow() const { return m_Window; }
+		GLFWwindow* GetWindow() const { return m_Window->getWindowHandle(); }
 		VkDevice& getDevice() { return m_Device;  }
 
 
-		//---------
-		//SETTERS
-		//---------
-		void setFrameBufferResized(bool newValue) { m_FrameBufferResized = newValue;  }
+		
 
 
 
@@ -164,12 +163,9 @@ namespace cve
 		void cleanup(); 
 
 		//--------------------
-		//WINDOW VARIABLES
+		//REFACTORED SHIT
 		//--------------------
-		GLFWwindow* m_Window; 
-		const size_t m_WINDOW_WIDTH = 1200; 
-		const size_t m_WINDOW_HEIGHT = 800;
-		static void frameBufferResizeCallback(GLFWwindow* window, int width, int height); 
+		Window* m_Window;
 
 
 
@@ -306,7 +302,6 @@ namespace cve
 		std::vector<VkSemaphore> m_ImageAvailableSemaphores;
 		std::vector<VkSemaphore> m_RenderFinishedSemaphores;
 		std::vector<VkFence> m_InFlightFences;
-		bool m_FrameBufferResized = false; 
 
 		//--------------------------
 		//VERTICES/BUFFERS/UBO/...

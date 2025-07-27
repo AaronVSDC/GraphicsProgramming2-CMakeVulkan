@@ -1,6 +1,6 @@
 
 
-#include "VulkanEngine.hpp"
+#include "VulkanCore/VulkanApp.hpp"
 
 //std
 #include <iostream>
@@ -11,7 +11,7 @@ int main()
 
 	try
 	{
-		cve::VulkanEngine engine{};
+		cvr::VulkanApp engine{};
 		engine.run(); 
 	}
 	catch (const std::exception& e)

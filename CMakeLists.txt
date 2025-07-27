@@ -59,10 +59,10 @@ find_package(Vulkan REQUIRED)
 
 # Define the executable target
 add_executable(VulkanApp_GP2_AaronVanSichemDeCombe 
-    "Source/VulkanEngine.cpp"
+    "Source/VulkanCore/VulkanApp.cpp"
     "Source/main.cpp"
-    "Source/InitVulkan.cpp"
-)
+    "Source/VulkanCore/InitVulkan.cpp"
+ "Source/VulkanCore/Window.cpp")
 #----------------------------
 #LINK WITH LIBRARYS
 #----------------------------

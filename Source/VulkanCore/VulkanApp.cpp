@@ -1,8 +1,8 @@
-#include "VulkanEngine.hpp"
+#include "VulkanApp.hpp"
 
-namespace cve {
+namespace cvr {
 
-void VulkanEngine::run()
+void VulkanApp::run()
 {
     using clock = std::chrono::high_resolution_clock;
     auto lastTime = clock::now();

@@ -17,13 +17,14 @@
 #include <string>
 #include <iostream>
 
-namespace cve {
+namespace cvr {
 
 
 InitVulkan::InitVulkan()
 {
 	//initialize window
-	initWindow(); 
+	//initWindow();
+	m_Window = new Window{}; 
 
 	//creates vulkan instance to initialize vulkan library
 	createInstance();
@@ -32,7 +33,9 @@ InitVulkan::InitVulkan()
 	setupDebugMessenger(); 
 
 	//create window surface to actually show something instead of just calculating it
-	createSurface(); 
+	//createSurface(); 
+
+	m_Surface = m_Window->createSurface(m_Instance);
 
 	//selects the graphics card that supports the features needed
 	pickPhysicalDevice(); 
@@ -129,31 +132,14 @@ void InitVulkan::cleanup()
 
 	vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
 	vkDestroyInstance(m_Instance, nullptr);
-	glfwDestroyWindow(m_Window);
-	glfwTerminate();
+
+	delete m_Window; 
 
 }
 #pragma endregion
 
 #pragma region WINDOW
-void InitVulkan::initWindow()
-{
-	
-	glfwInit(); 
 
-	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); // tell it not to create OpenGl context, it was made for openGL
-
-	m_Window = glfwCreateWindow(static_cast<int>(m_WINDOW_WIDTH), static_cast<int>(m_WINDOW_HEIGHT), "VulkanApp", nullptr, nullptr); //second last is to make it full screen
-	glfwSetWindowUserPointer(m_Window, this);
-	glfwSetFramebufferSizeCallback(m_Window, frameBufferResizeCallback); 
-
-	glfwSetFramebufferSizeCallback(m_Window, frameBufferResizeCallback); 
-}
-void InitVulkan::frameBufferResizeCallback(GLFWwindow* window, int width, int height)
-{
-	auto app = reinterpret_cast<InitVulkan*>(glfwGetWindowUserPointer(window));
-	app->m_FrameBufferResized = true; 
-}
 
 #pragma endregion 
 
@@ -490,13 +476,6 @@ void InitVulkan::createLogicalDevice()
 
 #pragma region WINDOW_SURFACE
 
-void InitVulkan::createSurface()
-{
-	if (glfwCreateWindowSurface(m_Instance, m_Window, nullptr, &m_Surface) != VK_SUCCESS) {
-		throw std::runtime_error("failed to create window surface!");
-	}
-
-}
 
 
 #pragma endregion
@@ -664,7 +643,7 @@ VkExtent2D InitVulkan::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabili
 	else
 	{
 		int width, height; 
-		glfwGetFramebufferSize(m_Window, &width, &height); 
+		glfwGetFramebufferSize(m_Window->getWindowHandle(), &width, &height); 
 
 		VkExtent2D actualExtent = { static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
 		actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
@@ -695,7 +674,7 @@ void InitVulkan::recreateSwapChain()
 {
 	int width = 0, height = 0;
 	while (width == 0 || height == 0) {
-		glfwGetFramebufferSize(m_Window, &width, &height);
+		glfwGetFramebufferSize(m_Window->getWindowHandle(), &width, &height);
 		glfwWaitEvents();
 	}
 
@@ -1317,8 +1296,8 @@ void InitVulkan::drawFrame()
 
 	result = vkQueuePresentKHR(m_PresentQueue, &presentInfo);
 
-	if (result == VK_ERROR_OUT_OF_DATE_KHR or result == VK_SUBOPTIMAL_KHR or m_FrameBufferResized) {
-		m_FrameBufferResized = false; 
+	if (result == VK_ERROR_OUT_OF_DATE_KHR or result == VK_SUBOPTIMAL_KHR or m_Window->getFrameBufferResized()) {
+		m_Window->setFrameBufferResized(false); 
 		recreateSwapChain();
 	}
 	else if (result != VK_SUCCESS) {
