@@ -1929,7 +1929,7 @@ void InitVulkan::loadModel()
 	for (uint32_t f = 0; f < mesh->mNumFaces; f++) {
 		const aiFace& face = mesh->mFaces[f];
 		for (uint32_t idx = 0; idx < face.mNumIndices; idx++) {
-			m_Indices.push_back(face.mIndices[idx]);
+			m_Indices.push_back(face.mIndices[idx]);   
 		}
 	}
 
