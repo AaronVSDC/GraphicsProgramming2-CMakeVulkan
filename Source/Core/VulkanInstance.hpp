@@ -1,7 +1,11 @@
 #pragma once
 
 #include <iostream>
-#include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan.h>
+
+
+//std
+#include <vector>
 namespace cvr
 {
 	class VulkanInstance final
@@ -26,13 +30,7 @@ namespace cvr
 		//VALIDATION LAYERS
 		//-----------------------
 		VkDebugUtilsMessengerEXT m_DebugMessenger;
-		const std::vector<const char*> m_ValidationLayers = { "VK_LAYER_KHRONOS_validation" };
 
-#ifdef _DEBUG
-		const bool m_EnableValidationLayers = true;
-#else
-		const bool m_EnableValidationLayers = false;
-#endif
 		void setupDebugMessenger();
 
 		bool checkValidationLayerSupport();

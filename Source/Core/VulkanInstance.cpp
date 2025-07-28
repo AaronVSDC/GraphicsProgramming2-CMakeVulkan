@@ -1,3 +1,5 @@
+
+#include "../Utils/Globals.hpp"
 #include "VulkanInstance.hpp"
 #include "GLFW/glfw3.h"
 
@@ -9,7 +11,7 @@ namespace cvr
 	VulkanInstance::VulkanInstance()
 	{
 		//Validation layers
-		if (m_EnableValidationLayers and !checkValidationLayerSupport())
+		if (enableValidationLayers and !checkValidationLayerSupport())
 		{
 			throw std::runtime_error("Validation layers requested, but not available! (createInstance function)");
 		}
@@ -51,7 +53,7 @@ namespace cvr
 
 		//Validation Layers
 		VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
-		if (m_EnableValidationLayers)
+		if (enableValidationLayers)
 		{
 			createInfo.enabledLayerCount = static_cast<uint32_t>(m_ValidationLayers.size());
 			createInfo.ppEnabledLayerNames = m_ValidationLayers.data();
@@ -78,7 +80,7 @@ namespace cvr
 
 	VulkanInstance::~VulkanInstance()
 	{
-		if (m_EnableValidationLayers) {
+		if (enableValidationLayers) {
 			DestroyDebugUtilsMessengerEXT(m_Instance, m_DebugMessenger, nullptr);
 		}
 		vkDestroyInstance(m_Instance, nullptr);
@@ -91,7 +93,7 @@ namespace cvr
 
 		std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
 
-		if (m_EnableValidationLayers)
+		if (enableValidationLayers)
 		{
 			extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 		}
@@ -101,7 +103,7 @@ namespace cvr
 	}
 	void VulkanInstance::setupDebugMessenger()
 	{
-		if (!m_EnableValidationLayers) return;
+		if (!enableValidationLayers) return;
 
 		VkDebugUtilsMessengerCreateInfoEXT createInfo{};
 		populateDebugMessengerInfo(createInfo);

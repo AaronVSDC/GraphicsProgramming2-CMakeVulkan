@@ -1,5 +1,8 @@
 #include "VulkanSurface.hpp"
 
+//std
+#include <stdexcept>
+
 namespace cvr
 {
 	VulkanSurface::VulkanSurface(VkInstance instance, GLFWwindow* pWindow)

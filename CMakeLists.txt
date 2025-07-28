@@ -64,7 +64,11 @@ add_executable(VulkanApp_GP2_AaronVanSichemDeCombe
     "Source/App/InitVulkan.cpp"
     "Source/Window/Window.cpp" 
     "Source/Core/VulkanInstance.cpp" 
-    "Source/Window/VulkanSurface.cpp")
+    "Source/Window/VulkanSurface.cpp" 
+    "Source/Core/Device.cpp"
+    "Source/Utils/Structs.hpp"
+    "Source/Utils/Globals.hpp"
+)
 #----------------------------
 #LINK WITH LIBRARYS
 #----------------------------

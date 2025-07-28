@@ -2,106 +2,21 @@
 #include "../Window/Window.hpp"
 #include "../Core/VulkanInstance.hpp"
 #include "../Window/VulkanSurface.hpp"
-
+#include "../Utils/Structs.hpp"
+#include "../Core/Device.hpp"
 
 //vulkan/glfw
 #include <vulkan/vulkan.h>
-
-
-//glm
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-//#define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES //handy but doesnt work for nested types unfortunately (explicitly aligning is what i'll do to avoid forgetting this and causing annoying errors)
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 
 
 //std
 #include <chrono>
 #include <vector>
 #include <iostream>
-#include <optional>
-#include <array>
+
 
 namespace cvr
 {
-	const int MAX_FRAMES_IN_FLIGHT = 2;
-
-	//-----------------------------
-	//MATH (vertices and stuff) 
-	//-----------------------------
-	struct Vertex {
-		glm::vec3 pos;
-		glm::vec3 color;
-		glm::vec2 texCoord;
-
-		static VkVertexInputBindingDescription getBindingDescription() {
-			VkVertexInputBindingDescription bindingDescription{};
-			bindingDescription.binding = 0;
-			bindingDescription.stride = sizeof(Vertex);
-			bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-			return bindingDescription;
-		}
-
-		static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions() {
-			std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
-
-			attributeDescriptions[0].binding = 0;
-			attributeDescriptions[0].location = 0;
-			attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-			attributeDescriptions[0].offset = offsetof(Vertex, pos);
-
-			attributeDescriptions[1].binding = 0;
-			attributeDescriptions[1].location = 1;
-			attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-			attributeDescriptions[1].offset = offsetof(Vertex, color);
-
-			attributeDescriptions[2].binding = 0;
-			attributeDescriptions[2].location = 2;
-			attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-			attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
-
-			return attributeDescriptions;
-		}
-	};
-
-	struct UniformBufferObject
-	{
-		//ALWAYS LOOK UP ALIGNMENT OF DIFFERENT TYPES BECAUSE VULKAN EXPECTS
-		//THEM TO BE A CERTAIN WAY INSIDE THE SHADERS
-		//(im being explicit on purpose here and not including the macro
-		//that does this alignment automatically when not using nested types)
-		alignas(16)glm::mat4 model; 
-		alignas(16)glm::mat4 view;
-		alignas(16)glm::mat4 proj; 
-	};
-
-
-
-	//------------------------------
-	//QUEUE FAMILY STUCT
-	//------------------------------
-	struct QueueFamilyIndices
-	{
-		std::optional<uint32_t> graphicsFamily;
-		std::optional<uint32_t> presentFamily; 
-
-		bool isComplete() const {
-			return graphicsFamily.has_value() && presentFamily.has_value(); 
-		}
-	};
-
-	
-	//------------------------------
-	//SWAPCHAIN STUCT
-	//------------------------------
-	struct SwapChainSupportDetails 
-	{
-		VkSurfaceCapabilitiesKHR capabilities;
-		std::vector<VkSurfaceFormatKHR> formats;
-		std::vector<VkPresentModeKHR> presentModes;
-	};
 
 	class InitVulkan final
 	{
@@ -137,7 +52,7 @@ namespace cvr
 		//GETTERS
 		//--------------------
 		GLFWwindow* GetWindow() const { return m_Window->getWindow(); }
-		VkDevice& getDevice() { return m_Device;  }
+		VkDevice getDevice() const { return m_Device->getDevice();  }
 
 
 		
@@ -169,36 +84,31 @@ namespace cvr
 		//--------------------
 		Window* m_Window;
 		VulkanInstance* m_Instance; //includes validation layers
-		VulkanSurface* m_Surface; 
+		VulkanSurface* m_Surface;
+		Device* m_Device; 
 
 		//----------------------------------------------
 		//PHYSICAL DEVICE VARIABLES
 		//----------------------------------------------
-		VkPhysicalDevice m_PhysicalDevice = VK_NULL_HANDLE; 
-		bool isDeviceSuitable(VkPhysicalDevice device); 
+		//VkPhysicalDevice m_PhysicalDevice = VK_NULL_HANDLE; 
+		//bool isDeviceSuitable(VkPhysicalDevice device); 
 
 
-		//---------------------------------------------
-		//QUEUE FAMILY VARIABLES
-		//---------------------------------------------
+		////---------------------------------------------
+		////QUEUE FAMILY VARIABLES
+		////---------------------------------------------
 
-		//queue families is meant for finding the type of queue that we need so that the right type of commands can be submitted to the queue
-		//for example we need a queue that supports graphics commands, and we need to find and use the right one ( something like that )
-		QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device); 
-		VkQueue m_PresentQueue;
-		VkQueue m_GraphicsQueue;
-		
+		////queue families is meant for finding the type of queue that we need so that the right type of commands can be submitted to the queue
+		////for example we need a queue that supports graphics commands, and we need to find and use the right one ( something like that )
+		//QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device); 
+		//VkQueue m_PresentQueue;
+		//VkQueue m_GraphicsQueue;
+		//
 
-		//---------------------------------------------
-		//LOGICAL DEVICE
-		//---------------------------------------------
-		VkDevice m_Device; 
-		
-
-		//---------------------------------------------
-		//WINDOW SURFACE CREATION
-		//---------------------------------------------
-		//handled by the window
+		////---------------------------------------------
+		////LOGICAL DEVICE
+		////---------------------------------------------
+		//VkDevice m_Device; 
 
 
 		//---------------------------------------------
