@@ -4,6 +4,7 @@
 #include "../Window/VulkanSurface.hpp"
 #include "../Utils/Structs.hpp"
 #include "../Core/Device.hpp"
+#include "../Core/Swapchain.hpp"
 
 //vulkan/glfw
 #include <vulkan/vulkan.h>
@@ -33,11 +34,6 @@ namespace cvr
 		//COMMAND BUFFER PUBLIC METHODS
 		//-------------------
 		void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
-
-		//--------------------------
-		//SWAPCHAIN PUBLIC METHODS
-		//--------------------------
-		void recreateSwapChain();
 
 		//--------
 		//DRAWING
@@ -85,57 +81,10 @@ namespace cvr
 		Window* m_Window;
 		VulkanInstance* m_Instance; //includes validation layers
 		VulkanSurface* m_Surface;
-		Device* m_Device; 
-
-		//----------------------------------------------
-		//PHYSICAL DEVICE VARIABLES
-		//----------------------------------------------
-		//VkPhysicalDevice m_PhysicalDevice = VK_NULL_HANDLE; 
-		//bool isDeviceSuitable(VkPhysicalDevice device); 
+		Device* m_Device;
+		Swapchain* m_Swapchain; 
 
 
-		////---------------------------------------------
-		////QUEUE FAMILY VARIABLES
-		////---------------------------------------------
-
-		////queue families is meant for finding the type of queue that we need so that the right type of commands can be submitted to the queue
-		////for example we need a queue that supports graphics commands, and we need to find and use the right one ( something like that )
-		//QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device); 
-		//VkQueue m_PresentQueue;
-		//VkQueue m_GraphicsQueue;
-		//
-
-		////---------------------------------------------
-		////LOGICAL DEVICE
-		////---------------------------------------------
-		//VkDevice m_Device; 
-
-
-		//---------------------------------------------
-		//SWAPCHAIN
-		//---------------------------------------------
-		VkSwapchainKHR m_SwapChain;
-		const std::vector<const char*> m_DeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME }; 
-		bool checkDeviceExtensionSupport(VkPhysicalDevice device);
-		SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device); 
-
-		//choosing the right settings
-		VkSurfaceFormatKHR chooseSwapChainSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
-		VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes); 
-		VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
-		void cleanupSwapChain(); 
-		std::vector<VkImage> m_SwapChainImages;
-		VkFormat m_SwapChainImageFormat;
-		VkExtent2D m_SwapChainExtent;
-
-		//helper
-		VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
-
-
-		//---------------------------------------------
-		//SWAPCHAIN
-		//---------------------------------------------
-		std::vector<VkImageView> m_SwapChainImageViews;
 
 		//---------------------------------------------
 		//PIPELINE

@@ -68,7 +68,7 @@ add_executable(VulkanApp_GP2_AaronVanSichemDeCombe
     "Source/Core/Device.cpp"
     "Source/Utils/Structs.hpp"
     "Source/Utils/Globals.hpp"
-)
+ "Source/Core/Swapchain.cpp")
 #----------------------------
 #LINK WITH LIBRARYS
 #----------------------------
