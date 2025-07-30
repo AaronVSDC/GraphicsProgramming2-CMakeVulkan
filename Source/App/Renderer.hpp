@@ -1,9 +1,9 @@
 #pragma once
-#include "../Core/Device.hpp"
-#include "../Core/SyncObjects.hpp"
-#include "../Core/Swapchain.hpp"
-#include "../Buffers/CommandBuffer.hpp"
-#include "../Window/Window.hpp"
+#include "../Vulkan/Core/Device.hpp"
+#include "../Vulkan/Core/SyncObjects.hpp"
+#include "../Vulkan/Core/Swapchain.hpp"
+#include "../Vulkan/Buffers/CommandBuffer.hpp"
+#include "../Vulkan/Window/Window.hpp"
 namespace cvr
 {
 
