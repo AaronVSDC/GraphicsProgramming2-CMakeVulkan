@@ -22,6 +22,7 @@
 //std
 #include <chrono>
 #include <vector>
+#include "../Buffers/CommandBuffer.hpp"
 
 
 namespace cvr
@@ -37,11 +38,6 @@ namespace cvr
 		InitVulkan& operator=(const InitVulkan&) = delete; 
 		InitVulkan(const InitVulkan&&) = delete;
 		InitVulkan& operator=(const InitVulkan&&) = delete;
-
-		//-------------------
-		//COMMAND BUFFER PUBLIC METHODS
-		//-------------------
-		void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 
 		//--------
 		//DRAWING
@@ -67,7 +63,6 @@ namespace cvr
 		
 
 
-		void createCommandBuffers(); 
 		void createSyncObjects(); 
 			 
 		void cleanup(); 
@@ -90,7 +85,7 @@ namespace cvr
 		VertexBuffer* m_VertexBuffer;
 		Model* m_Model; 
 		IndexBuffer* m_IndexBuffer; 
-
+		CommandBuffer* m_CommandBuffers; 
 		//---------------------------------------------
 		//PIPELINE
 		//---------------------------------------------
@@ -110,10 +105,9 @@ namespace cvr
 		//---------------------------------------------
 		//COMMANDPOOL AND  COMMANDBUFFER
 		//---------------------------------------------
-		std::vector<VkCommandBuffer> m_CommandBuffers;
 
-		VkCommandBuffer beginSingleTimeCommands();
-		void endSingleTimeCommands(VkCommandBuffer commandBuffer); 
+		//VkCommandBuffer beginSingleTimeCommands();
+		//void endSingleTimeCommands(VkCommandBuffer commandBuffer); 
 
 		//---------------------------------------------
 		//SYNCHRONIZATION OBJECTS
@@ -126,12 +120,12 @@ namespace cvr
 		//VERTICES/BUFFERS/UBO/...
 		//--------------------------
 
-		uint32_t findMemoryType(uint32_t typefilter, VkMemoryPropertyFlags properties);
-		void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling,
-		                 VkImageUsageFlags usage,
-		                 VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
-		void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory); 
-		void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size); 
+		//uint32_t findMemoryType(uint32_t typefilter, VkMemoryPropertyFlags properties);
+		//void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling,
+		//                 VkImageUsageFlags usage,
+		//                 VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
+		//void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory); 
+		//void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size); 
 
 
 		//---------------------------------------------------------------------

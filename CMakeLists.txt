@@ -74,7 +74,14 @@ add_executable(VulkanApp_GP2_AaronVanSichemDeCombe
     "Source/Graphics/Descriptors.cpp" 
     "Source/Buffers/UniformBuffers.cpp"
     "Source/Buffers/Buffer.hpp" 
-    "Source/Textures/Texture.cpp" "Source/Buffers/DepthBuffer.cpp" "Source/Buffers/FrameBuffer.hpp" "Source/Buffers/VertexBuffer.hpp" "Source/Buffers/IndexBuffer.hpp" "Source/ModelLoading/Model.hpp")
+    "Source/Textures/Texture.cpp" 
+    "Source/Buffers/DepthBuffer.cpp"
+    "Source/Buffers/FrameBuffer.hpp" 
+    "Source/Buffers/VertexBuffer.hpp" 
+    "Source/Buffers/IndexBuffer.hpp" 
+    "Source/ModelLoading/Model.hpp"
+    "Source/Buffers/CommandBuffer.hpp"
+)
 #----------------------------
 #LINK WITH LIBRARYS
 #----------------------------
