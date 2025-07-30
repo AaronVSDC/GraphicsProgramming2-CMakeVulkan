@@ -37,7 +37,8 @@ void Application::run()
     KeyboardMovementController cameraController{}; 
 
     auto currentTime = std::chrono::high_resolution_clock::now(); 
-	//this is the main loop
+
+    //main loop
 	while (!m_Window.ShouldClose())
 	{
         //TODO: to make the resizing smoother find a way to continue to draw frames while resizing,this is probably blocked now.

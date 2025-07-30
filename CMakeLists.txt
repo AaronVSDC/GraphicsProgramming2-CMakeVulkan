@@ -1,4 +1,4 @@
-﻿cmake_minimum_required(VERSION 3.28)
+﻿cmake_minimum_required(VERSION 3.27)
 
 # Enable Hot Reload for MSVC compilers if supported.
 if(POLICY CMP0141)
@@ -79,7 +79,7 @@ add_executable(${TARGET_NAME} ${SOURCE_FILES})
 
 # Link libraries
 target_link_libraries(${TARGET_NAME}
-  PRIVATE ${Vulkan_LIBRARIES} glfw tinyobjloader
+  PRIVATE ${Vulkan_LIBRARIES} glfw tinyobjloader glm
 )
 target_include_directories(${TARGET_NAME}
   PRIVATE 
