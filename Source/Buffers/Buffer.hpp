@@ -117,9 +117,5 @@ namespace cvr
 
 			vkFreeCommandBuffers(m_Device->getDevice(), m_Device->getCommandPool(), 1, &commandBuffer);
 		}
-
 	};
-
-
-
 }

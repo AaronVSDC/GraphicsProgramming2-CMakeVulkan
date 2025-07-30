@@ -11,6 +11,9 @@
 #include "../Buffers/UniformBuffers.hpp"
 #include "../Buffers/DepthBuffer.hpp"
 #include "../Buffers/FrameBuffer.hpp"
+#include "../Buffers/VertexBuffer.hpp"
+#include "../Buffers/IndexBuffer.hpp"
+#include "../ModelLoading/Model.hpp"
 
 //vulkan/glfw
 #include <vulkan/vulkan.h>
@@ -64,7 +67,6 @@ namespace cvr
 		
 
 
-		void createFrameBuffers(); 
 		void createCommandBuffers(); 
 		void createSyncObjects(); 
 			 
@@ -85,7 +87,9 @@ namespace cvr
 		UniformBuffers* m_UniformBuffers;
 		DepthBuffer* m_DepthBuffer;
 		FrameBuffer* m_FrameBuffer; 
-
+		VertexBuffer* m_VertexBuffer;
+		Model* m_Model; 
+		IndexBuffer* m_IndexBuffer; 
 
 		//---------------------------------------------
 		//PIPELINE
@@ -121,17 +125,7 @@ namespace cvr
 		//--------------------------
 		//VERTICES/BUFFERS/UBO/...
 		//--------------------------
-		std::vector<Vertex> m_Vertices; 
-		std::vector<uint32_t> m_Indices;
 
-		VkBuffer m_VertexBuffer;
-		VkDeviceMemory m_VertexBufferMemory;
-		VkBuffer m_IndexBuffer;
-		VkDeviceMemory m_IndexBufferMemory;
-
-
-		void createVertexBuffer();
-		void createIndexBuffer(); 
 		uint32_t findMemoryType(uint32_t typefilter, VkMemoryPropertyFlags properties);
 		void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling,
 		                 VkImageUsageFlags usage,

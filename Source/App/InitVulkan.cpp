@@ -32,10 +32,9 @@ namespace cvr {
 		m_GraphicsPipeline = new GraphicsPipeline{ m_Device, m_Swapchain, m_Descriptors, m_RenderPass };
 		m_DepthBuffer = new DepthBuffer{ m_Device, m_Swapchain };
 		m_FrameBuffer = new FrameBuffer{ m_Device, m_RenderPass, m_DepthBuffer, m_Swapchain }; 
-
-		loadModel();
-		createVertexBuffer();
-		createIndexBuffer();
+		m_Model = new Model{ MODEL_PATH }; 
+		m_VertexBuffer = new VertexBuffer{ m_Device, m_Model->getVertices() };
+		m_IndexBuffer = new IndexBuffer{ m_Device, m_Model->getIndices()};
 		createCommandBuffers();
 		createSyncObjects();
 	}
@@ -58,11 +57,9 @@ namespace cvr {
 
 		delete m_UniformBuffers;
 
-		vkDestroyBuffer(m_Device->getDevice(), m_IndexBuffer, nullptr);
-		vkFreeMemory(m_Device->getDevice(), m_IndexBufferMemory, nullptr);
 
-		vkDestroyBuffer(m_Device->getDevice(), m_VertexBuffer, nullptr);
-		vkFreeMemory(m_Device->getDevice(), m_VertexBufferMemory, nullptr);
+
+
 
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 			vkDestroySemaphore(m_Device->getDevice(), m_RenderFinishedSemaphores[i], nullptr);
@@ -192,14 +189,14 @@ namespace cvr {
 
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline->getGraphicsPipeline());
 
-		VkBuffer vertexBuffers[] = { m_VertexBuffer };
+		VkBuffer vertexBuffers[] = { m_VertexBuffer->getVertexBuffer() };
 		VkDeviceSize offsets[] = { 0 };
 
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-		vkCmdBindIndexBuffer(commandBuffer, m_IndexBuffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdBindIndexBuffer(commandBuffer, m_IndexBuffer->getIndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline->getPipelineLayout(), 0, 1, &m_Descriptors->getDescriptorSets()[m_CurrentFrame], 0, nullptr);
 
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(m_Indices.size()), 1, 0, 0, 0);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(m_IndexBuffer->getIndices().size()), 1, 0, 0, 0);
 
 		vkCmdEndRenderPass(commandBuffer);
 		if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
@@ -310,64 +307,7 @@ namespace cvr {
 #pragma region VERTEX_STAGING_AND_INDEX_BUFFER
 
 
-	void InitVulkan::createVertexBuffer()
-	{
-		VkDeviceSize bufferSize = sizeof(m_Vertices[0]) * m_Vertices.size();
 
-		VkBuffer stagingBuffer;
-		VkDeviceMemory stagingBufferMemory;
-		createBuffer(bufferSize,
-			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			stagingBuffer,
-			stagingBufferMemory);
-
-		void* data;
-		vkMapMemory(m_Device->getDevice(), stagingBufferMemory, 0, bufferSize, 0, &data);
-		memcpy(data, m_Vertices.data(), (size_t)bufferSize);
-		vkUnmapMemory(m_Device->getDevice(), stagingBufferMemory);
-
-		createBuffer(bufferSize,
-			VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-			m_VertexBuffer,
-			m_VertexBufferMemory);
-
-		copyBuffer(stagingBuffer, m_VertexBuffer, bufferSize);
-
-		vkDestroyBuffer(m_Device->getDevice(), stagingBuffer, nullptr);
-		vkFreeMemory(m_Device->getDevice(), stagingBufferMemory, nullptr);
-
-
-	}
-
-	void InitVulkan::createIndexBuffer()
-	{
-		VkDeviceSize bufferSize = sizeof(m_Indices[0]) * m_Indices.size();
-
-		VkBuffer stagingBuffer;
-		VkDeviceMemory stagingBufferMemory;
-		createBuffer(bufferSize,
-			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			stagingBuffer,
-			stagingBufferMemory);
-
-		void* data;
-		vkMapMemory(m_Device->getDevice(), stagingBufferMemory, 0, bufferSize, 0, &data);
-		memcpy(data, m_Indices.data(), (size_t)bufferSize);
-		vkUnmapMemory(m_Device->getDevice(), stagingBufferMemory);
-
-		createBuffer(bufferSize,
-			VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-			m_IndexBuffer,
-			m_IndexBufferMemory);
-		copyBuffer(stagingBuffer, m_IndexBuffer, bufferSize);
-
-		vkDestroyBuffer(m_Device->getDevice(), stagingBuffer, nullptr);
-		vkFreeMemory(m_Device->getDevice(), stagingBufferMemory, nullptr);
-	}
 
 
 	//HELPERS: 
@@ -526,62 +466,7 @@ namespace cvr {
 #pragma endregion
 
 #pragma region MODEL_LOADING
-	void InitVulkan::loadModel()
-	{
-		Assimp::Importer importer;
 
-		const aiScene* scene = importer.ReadFile(
-			MODEL_PATH,
-			aiProcess_Triangulate        // make sure everything is triangles
-			| aiProcess_FlipUVs            // flip for GL-style UVs
-			| aiProcess_CalcTangentSpace); // if you need normals/tangents
-
-		if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mMeshes) {
-			throw std::runtime_error("Assimp error: " + std::string(importer.GetErrorString()));
-		}
-
-		aiMesh* mesh = scene->mMeshes[0];  // just load the first mesh
-
-		// Reserve so we don’t reallocate
-		m_Vertices.reserve(mesh->mNumVertices);
-		m_Indices.reserve(mesh->mNumFaces * 3);
-
-		// **Vertices**
-		for (uint32_t i = 0; i < mesh->mNumVertices; i++) {
-			Vertex v{};
-			// positions
-			v.pos = {
-				mesh->mVertices[i].x,
-				mesh->mVertices[i].y,
-				mesh->mVertices[i].z
-			};
-			// colors (optional—OBJ doesn’t carry per-vertex color by default)
-			v.color = { 1.0f, 1.0f, 1.0f };
-
-			// texture coordinates?
-			if (mesh->mTextureCoords[0]) {
-				v.texCoord = {
-					mesh->mTextureCoords[0][i].x,
-					mesh->mTextureCoords[0][i].y
-				};
-			}
-			else {
-				v.texCoord = { 0.0f, 0.0f };
-			}
-
-			m_Vertices.push_back(v);
-		}
-
-		// **Indices** (we told Assimp to triangulate)
-		for (uint32_t f = 0; f < mesh->mNumFaces; f++) {
-			const aiFace& face = mesh->mFaces[f];
-			for (uint32_t idx = 0; idx < face.mNumIndices; idx++) {
-				m_Indices.push_back(face.mIndices[idx]);
-			}
-		}
-
-
-	}
 
 #pragma endregion
 }
