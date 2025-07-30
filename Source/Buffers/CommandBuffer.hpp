@@ -126,11 +126,6 @@ namespace cvr
 			if (vkAllocateCommandBuffers(m_Device->getDevice(), &allocInfo, m_CommandBuffers.data()) != VK_SUCCESS) {
 				throw std::runtime_error("failed to allocate command buffers!");
 			}
-
 		}
-
-
-
 	};
-	
 }

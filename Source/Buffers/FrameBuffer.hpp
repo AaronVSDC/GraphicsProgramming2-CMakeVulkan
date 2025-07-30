@@ -15,11 +15,29 @@ namespace cvr
 		{
 			createFrameBuffers(); 
 		}
-		~FrameBuffer() = default; 
+		~FrameBuffer()
+		{
+			cleanup(); 
+		};
+
+		void recreate()
+		{
+			cleanup(); 
+			createFrameBuffers();
+		}
 
 		std::vector<VkFramebuffer>& getSwapchainFrameBuffers() { return m_SwapChainFramebuffers; }
 
-	private: 
+	private:
+
+		void cleanup()
+		{
+			for (auto framebuffer : m_SwapChainFramebuffers)
+			{
+				vkDestroyFramebuffer(m_Device->getDevice(), framebuffer, nullptr);
+			}
+			m_SwapChainFramebuffers.clear();
+		}
 
 		void createFrameBuffers()
 		{

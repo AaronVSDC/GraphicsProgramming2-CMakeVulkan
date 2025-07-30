@@ -26,23 +26,23 @@ namespace cvr {
     }
 	void VulkanApp::initialize()
 	{
-		m_Window = new Window{};
-		m_Instance = new VulkanInstance{};
-		m_Surface = new VulkanSurface{ m_Instance->getInstance(),m_Window->getWindow() };
-		m_Device = new Device{ m_Instance->getInstance(), m_Surface->getSurface() };
-		m_Swapchain = new Swapchain{ m_Device, m_Surface->getSurface(), m_Window->getWindow() };
-		m_RenderPass = new RenderPass{ m_Swapchain, m_Device };
-		m_UniformBuffers = new UniformBuffers{ m_Device, m_Swapchain };
-		m_Texture = new Texture{ m_Device, m_Swapchain };
-		m_Descriptors = new DescriptorManager{ m_Device,m_UniformBuffers, m_Texture };
-		m_GraphicsPipeline = new GraphicsPipeline{ m_Device, m_Swapchain, m_Descriptors, m_RenderPass };
-		m_DepthBuffer = new DepthBuffer{ m_Device, m_Swapchain };
-		m_FrameBuffer = new FrameBuffer{ m_Device, m_RenderPass, m_DepthBuffer, m_Swapchain };
-		m_Model = new Model{ std::string{"Models/viking_room.obj"} };
-		m_VertexBuffer = new VertexBuffer{ m_Device, m_Model->getVertices() };
-		m_IndexBuffer = new IndexBuffer{ m_Device, m_Model->getIndices() };
-		m_CommandBuffers = new CommandBuffer{ m_Device, m_RenderPass, m_FrameBuffer, m_Swapchain, m_GraphicsPipeline, m_VertexBuffer, m_IndexBuffer, m_Descriptors };
-		m_SyncObjects = new SyncObjects{ m_Device };
+		m_Window			= std::make_unique<Window>();
+		m_Instance			= std::make_unique<VulkanInstance>();
+		m_Surface			= std::make_unique<VulkanSurface>(m_Instance->getInstance(), m_Window->getWindow());
+		m_Device			= std::make_unique<Device>(m_Instance->getInstance(), m_Surface->getSurface());
+		m_Swapchain			= std::make_unique<Swapchain>(m_Device.get(), m_Surface->getSurface(), m_Window->getWindow());
+		m_RenderPass		= std::make_unique<RenderPass>(m_Swapchain.get(), m_Device.get()); 
+		m_UniformBuffers	= std::make_unique<UniformBuffers>(m_Device.get(), m_Swapchain.get());
+		m_Texture			= std::make_unique<Texture>(m_Device.get(), m_Swapchain.get());
+		m_Descriptors		= std::make_unique<DescriptorManager>(m_Device.get(), m_UniformBuffers.get(), m_Texture.get());
+		m_GraphicsPipeline	= std::make_unique<GraphicsPipeline>(m_Device.get(), m_Swapchain.get(), m_Descriptors.get(), m_RenderPass.get());
+		m_DepthBuffer		= std::make_unique<DepthBuffer>(m_Device.get(), m_Swapchain.get());
+		m_FrameBuffer		= std::make_unique<FrameBuffer>(m_Device.get(), m_RenderPass.get(), m_DepthBuffer.get(), m_Swapchain.get());
+		m_Model				= std::make_unique<Model>("Models/viking_room.obj");
+		m_VertexBuffer		= std::make_unique<VertexBuffer>(m_Device.get(), m_Model->getVertices());
+		m_IndexBuffer		= std::make_unique<IndexBuffer>(m_Device.get(), m_Model->getIndices());
+		m_CommandBuffers	= std::make_unique<CommandBuffer>(m_Device.get(), m_RenderPass.get(), m_FrameBuffer.get(), m_Swapchain.get(), m_GraphicsPipeline.get(), m_VertexBuffer.get(), m_IndexBuffer.get(), m_Descriptors.get());
+		m_SyncObjects		= std::make_unique<SyncObjects>(m_Device.get());
 
 	}
 	void VulkanApp::run()
@@ -66,7 +66,15 @@ namespace cvr {
 	        }
 
 	        glfwPollEvents();
-	        Renderer::drawFrame(m_Device,m_Swapchain, m_SyncObjects, m_UniformBuffers, m_CommandBuffers, m_Window, m_CurrentFrame);
+	        Renderer::drawFrame(
+				m_Device.get(),
+				m_Swapchain.get(),
+				m_SyncObjects.get(),
+				m_UniformBuffers.get(),
+				m_CommandBuffers.get(),
+				m_Window.get(),
+				m_DepthBuffer.get(),
+				m_FrameBuffer.get());
 	    }
 
 	    vkDeviceWaitIdle(m_Device->getDevice());

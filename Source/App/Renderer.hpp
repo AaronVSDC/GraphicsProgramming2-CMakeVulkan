@@ -20,10 +20,11 @@ namespace cvr
 			UniformBuffers* uniformBuffers,
 			CommandBuffer* commandBuffers,
 			Window* window,
-			uint32_t& currentFrame);
+			DepthBuffer* depthBuffer, 
+			FrameBuffer* frameBuffer);
 
 	private:
-		uint32_t m_CurrentFrame = 0;
+		static uint32_t m_CurrentFrame;
 
 
 	};

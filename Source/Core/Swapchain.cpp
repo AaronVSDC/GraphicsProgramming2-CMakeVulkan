@@ -147,14 +147,7 @@ namespace cvr
 	{
 		//TODO: FIX CLEANING UP PROPERLY 
 
-		//vkDestroyImageView(m_Device->getDevice(), m_DepthImageView, nullptr);
-		//vkDestroyImage(m_Device->getDevice(), m_DepthImage, nullptr);
-		//vkFreeMemory(m_Device->getDevice(), m_DepthImageMemory, nullptr);
 
-		//for (auto framebuffer : swapChainFramebuffers)
-		//{
-		//	vkDestroyFramebuffer(m_Device->getDevice(), framebuffer, nullptr);
-		//}
 		for (auto imageView : m_SwapChainImageViews)
 		{
 			vkDestroyImageView(m_Device->getDevice(), imageView, nullptr);
@@ -178,8 +171,6 @@ namespace cvr
 
 		createSwapChain();
 		createImageViews();
-		//createDepthResources();
-		//createFrameBuffers();
 
 	}
 

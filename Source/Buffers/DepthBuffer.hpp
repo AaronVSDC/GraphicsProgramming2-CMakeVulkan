@@ -9,13 +9,14 @@ namespace cvr
 	{
 	public:
 		DepthBuffer(Device* device, Swapchain* swapchain);
-		~DepthBuffer() = default; 
+		~DepthBuffer(); 
 
 		DepthBuffer(const DepthBuffer&) = delete;
 		DepthBuffer(DepthBuffer&&) = delete;
 		DepthBuffer& operator=(const DepthBuffer&) = delete;
 		DepthBuffer& operator=(DepthBuffer&&) = delete;
 
+		void recreate(); 
 
 		VkImageView& getDepthImageView() { return m_DepthImageView;  }
 
@@ -28,7 +29,7 @@ namespace cvr
 		VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
 		VkFormat findDepthFormat();
 		bool hasStencilComponent(VkFormat format);
-
+		void cleanup(); 
 
 		//ref
 		Swapchain* m_Swapchain;

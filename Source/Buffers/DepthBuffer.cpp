@@ -5,9 +5,27 @@ namespace cvr
 	DepthBuffer::DepthBuffer(Device* device, Swapchain* swapchain)
 		:m_Device{ device }, m_Swapchain{ swapchain }
 	{
-		createDepthResources(); 
+		createDepthResources();
+	}
+	DepthBuffer::~DepthBuffer()
+	{
+
+		cleanup(); 
 	}
 
+	void DepthBuffer::cleanup()
+	{
+		vkDestroyImageView(m_Device->getDevice(), m_DepthImageView, nullptr);
+		vkDestroyImage(m_Device->getDevice(), m_DepthImage, nullptr);
+		vkFreeMemory(m_Device->getDevice(), m_DepthImageMemory, nullptr);
+
+		
+	}
+	void DepthBuffer::recreate()
+	{
+		cleanup(); 
+		createDepthResources();
+	}
 
 	void DepthBuffer::createDepthResources()
 	{
