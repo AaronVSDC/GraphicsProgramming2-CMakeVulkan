@@ -38,9 +38,7 @@ namespace cvr
 
 	private: 
 
-
-
-		void initializeVulkan();
+		void initialize();
 		std::unique_ptr<Window>           m_Window;
 		std::unique_ptr<VulkanInstance>   m_Instance;
 		std::unique_ptr<VulkanSurface>    m_Surface;
@@ -53,7 +51,7 @@ namespace cvr
 		std::unique_ptr<GraphicsPipeline> m_GraphicsPipeline;
 		std::unique_ptr<DepthBuffer>      m_DepthBuffer;
 		std::unique_ptr<FrameBuffer>      m_FrameBuffer;
-		std::unique_ptr<Model>            m_VikingRoomModel;
+		std::unique_ptr<Model>            m_Model;
 		std::unique_ptr<VertexBuffer>     m_VertexBuffer;
 		std::unique_ptr<IndexBuffer>      m_IndexBuffer;
 		std::unique_ptr<CommandBuffer>    m_CommandBuffers;
