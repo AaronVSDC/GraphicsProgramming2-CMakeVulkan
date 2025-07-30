@@ -83,7 +83,7 @@ add_executable(VulkanApp_GP2_AaronVanSichemDeCombe
     "Source/Vulkan/ModelLoading/Model.hpp"
     "Source/Vulkan/Buffers/CommandBuffer.hpp"
     "Source/Vulkan/Core/SyncObjects.hpp"
- )
+  "Source/Vulkan/ModelLoading/Model.cpp")
 #----------------------------
 #LINK WITH LIBRARYS
 #----------------------------

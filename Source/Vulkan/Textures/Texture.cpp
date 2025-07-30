@@ -6,6 +6,9 @@
 
 namespace cvr
 {
+
+	
+
 	Texture::Texture(Device* device, Swapchain* swapchain)
 		:Buffer{device}, m_Swapchain{swapchain}
 	{
