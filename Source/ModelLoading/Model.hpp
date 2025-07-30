@@ -13,7 +13,7 @@ namespace cvr
     class Model final 
 	{
     public:
-		Model(std::string& path)
+		Model(const std::string& path)
 		{
 			loadModel(path); 
 		}
