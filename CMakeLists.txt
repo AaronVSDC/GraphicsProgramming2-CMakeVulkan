@@ -74,7 +74,7 @@ add_executable(VulkanApp_GP2_AaronVanSichemDeCombe
     "Source/Graphics/Descriptors.cpp" 
     "Source/Buffers/UniformBuffers.cpp"
     "Source/Buffers/Buffer.hpp" 
-    "Source/Textures/Texture.cpp")
+    "Source/Textures/Texture.cpp" "Source/Buffers/DepthBuffer.cpp")
 #----------------------------
 #LINK WITH LIBRARYS
 #----------------------------

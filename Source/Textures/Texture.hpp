@@ -13,6 +13,16 @@ namespace cvr
 		Texture(Device* device, Swapchain* swapchain);
 		~Texture();
 
+		static void createImage(
+			Device* device,
+			uint32_t width,
+			uint32_t height,
+			VkFormat format,
+			VkImageTiling tiling,
+			VkImageUsageFlags usage,
+			VkMemoryPropertyFlags properties,
+			VkImage& image,
+			VkDeviceMemory& imageMemory);
 
 		VkSampler getTextureSampler() const { return m_TextureSampler;  }
 		VkImageView getTextureImageView() const { return m_TextureImageView;  }
@@ -27,14 +37,7 @@ namespace cvr
 		std::string TEXTURE_PATH = "Textures/viking_room.png";
 
 		void createTextureImage();
-		void createImage(uint32_t width,
-			uint32_t height,
-			VkFormat format,
-			VkImageTiling tiling,
-			VkImageUsageFlags usage,
-			VkMemoryPropertyFlags properties,
-			VkImage& image,
-			VkDeviceMemory& imageMemory);
+
 		void transitionImageLayout(VkImage image,
 			VkFormat format,
 			VkImageLayout oldLayout,

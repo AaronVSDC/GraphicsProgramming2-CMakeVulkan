@@ -9,6 +9,8 @@
 #include "../Graphics/GraphicsPipeline.hpp"
 #include "../Textures/Texture.hpp"
 #include "../Buffers/UniformBuffers.hpp"
+#include "../Buffers/DepthBuffer.hpp"
+
 //vulkan/glfw
 #include <vulkan/vulkan.h>
 
@@ -16,7 +18,6 @@
 //std
 #include <chrono>
 #include <vector>
-#include <iostream>
 
 
 namespace cvr
@@ -61,18 +62,8 @@ namespace cvr
 	private: 
 		
 
-		void initWindow(); 
-		void createInstance(); 
-		void setupDebugMessenger(); 
-		void createSurface(); 
-		void pickPhysicalDevice(); 
-		void createLogicalDevice(); 
-		void createSwapChain(); 
-		void createImageViews(); 
-		void createRenderPass(); 
-		void createGraphicsPipeline(); 
+
 		void createFrameBuffers(); 
-		void createCommandPool();
 		void createCommandBuffers(); 
 		void createSyncObjects(); 
 			 
@@ -91,6 +82,7 @@ namespace cvr
 		GraphicsPipeline* m_GraphicsPipeline;
 		Texture* m_Texture; 
 		UniformBuffers* m_UniformBuffers;
+		DepthBuffer* m_DepthBuffer; 
 
 
 		//---------------------------------------------
@@ -163,15 +155,6 @@ namespace cvr
 		//---------------
 		// DEPTH BUFFER
 		//---------------
-
-		VkImage m_DepthImage;
-		VkDeviceMemory m_DepthImageMemory;
-		VkImageView m_DepthImageView; 
-
-		void createDepthResources();
-		VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features); 
-		VkFormat findDepthFormat();
-		bool hasStencilComponent(VkFormat format);
 
 
 		//--------------

@@ -49,6 +49,7 @@ namespace cvr
 		stbi_image_free(pixels);
 
 		createImage(
+			m_Device,
 			texWidth,
 			texHeight,
 			VK_FORMAT_R8G8B8A8_SRGB,
@@ -73,6 +74,7 @@ namespace cvr
 	}
 
 	void Texture::createImage(
+		Device* device, 
 		uint32_t width,
 		uint32_t height,
 		VkFormat format,
@@ -97,23 +99,23 @@ namespace cvr
 		imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-		if (vkCreateImage(m_Device->getDevice(), &imageInfo, nullptr, &image) != VK_SUCCESS) {
+		if (vkCreateImage(device->getDevice(), &imageInfo, nullptr, &image) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create image!");
 		}
 
 		VkMemoryRequirements memRequirements;
-		vkGetImageMemoryRequirements(m_Device->getDevice(), image, &memRequirements);
+		vkGetImageMemoryRequirements(device->getDevice(), image, &memRequirements);
 
 		VkMemoryAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 		allocInfo.allocationSize = memRequirements.size;
-		allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
+		allocInfo.memoryTypeIndex = findMemoryType(device, memRequirements.memoryTypeBits, properties);
 
-		if (vkAllocateMemory(m_Device->getDevice(), &allocInfo, nullptr, &imageMemory) != VK_SUCCESS) {
+		if (vkAllocateMemory(device->getDevice(), &allocInfo, nullptr, &imageMemory) != VK_SUCCESS) {
 			throw std::runtime_error("failed to allocate image memory!");
 		}
 
-		vkBindImageMemory(m_Device->getDevice(), image, imageMemory, 0);
+		vkBindImageMemory(device->getDevice(), image, imageMemory, 0);
 	}
 
 	void Texture::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout)

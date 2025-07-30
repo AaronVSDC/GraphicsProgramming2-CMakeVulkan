@@ -5,7 +5,7 @@
 
 namespace cvr
 {
-	class Buffer
+	class Buffer //TODO: instead of inheriting this class we could also make the helper methods static and just use them when we need to
 	{
 	public: 
 
@@ -44,7 +44,7 @@ namespace cvr
 			VkMemoryAllocateInfo allocInfo{};
 			allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 			allocInfo.allocationSize = memRequirements.size;
-			allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
+			allocInfo.memoryTypeIndex = findMemoryType(m_Device, memRequirements.memoryTypeBits, properties);
 
 			if (vkAllocateMemory(m_Device->getDevice(), &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
 				throw std::runtime_error("failed to allocate buffer memory!");
@@ -66,10 +66,10 @@ namespace cvr
 
 
 
-		uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
+		static uint32_t findMemoryType(Device* device, uint32_t typeFilter, VkMemoryPropertyFlags properties)
 		{
 			VkPhysicalDeviceMemoryProperties memProperties;
-			vkGetPhysicalDeviceMemoryProperties(m_Device->getPhysicalDevice(), &memProperties);
+			vkGetPhysicalDeviceMemoryProperties(device->getPhysicalDevice(), &memProperties);
 
 			for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
 			{
