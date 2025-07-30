@@ -5,7 +5,10 @@
 #include "../Utils/Structs.hpp"
 #include "../Core/Device.hpp"
 #include "../Core/Swapchain.hpp"
-
+#include "../Graphics/RenderPass.hpp"
+#include "../Graphics/GraphicsPipeline.hpp"
+#include "../Textures/Texture.hpp"
+#include "../Buffers/UniformBuffers.hpp"
 //vulkan/glfw
 #include <vulkan/vulkan.h>
 
@@ -82,8 +85,12 @@ namespace cvr
 		VulkanInstance* m_Instance; //includes validation layers
 		VulkanSurface* m_Surface;
 		Device* m_Device;
-		Swapchain* m_Swapchain; 
-
+		Swapchain* m_Swapchain;
+		DescriptorManager* m_Descriptors;
+		RenderPass* m_RenderPass; 
+		GraphicsPipeline* m_GraphicsPipeline;
+		Texture* m_Texture; 
+		UniformBuffers* m_UniformBuffers;
 
 
 		//---------------------------------------------
@@ -91,14 +98,10 @@ namespace cvr
 		//---------------------------------------------
 
 		//helper function to load the binary data from the shader file
-		static std::vector<char> readFile(const std::string& filename); 
-		VkShaderModule createShaderModule(const std::vector<char>& code) const;
+
 
 		//Renderpass
-		VkRenderPass m_RenderPass;
-		VkPipelineLayout m_PipelineLayout;
 
-		VkPipeline m_GraphicsPipeline;
 
 		//---------------------------------------------
 		//FRAMEBUFFER
@@ -109,8 +112,6 @@ namespace cvr
 		//---------------------------------------------
 		//COMMANDPOOL AND  COMMANDBUFFER
 		//---------------------------------------------
-
-		VkCommandPool m_CommandPool;
 		std::vector<VkCommandBuffer> m_CommandBuffers;
 
 		VkCommandBuffer beginSingleTimeCommands();
@@ -134,15 +135,13 @@ namespace cvr
 		VkBuffer m_IndexBuffer;
 		VkDeviceMemory m_IndexBufferMemory;
 
-		std::vector<VkBuffer> m_UniformBuffers;
-		std::vector<VkDeviceMemory> m_UniformBuffersMemory;
-		std::vector<void*> m_UniformBuffersMapped;
-		void createUniformBuffers();
-		void updateUniformBuffer(uint32_t currentImage); 
 
 		void createVertexBuffer();
 		void createIndexBuffer(); 
-		uint32_t findMemoryType(uint32_t typefilter, VkMemoryPropertyFlags properties); 
+		uint32_t findMemoryType(uint32_t typefilter, VkMemoryPropertyFlags properties);
+		void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling,
+		                 VkImageUsageFlags usage,
+		                 VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
 		void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory); 
 		void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size); 
 
@@ -151,43 +150,14 @@ namespace cvr
 		//DescriptorSets, DescriptorsetLayout, DescriptorPool
 		//---------------------------------------------------------------------
 
-		VkDescriptorSetLayout m_DescriptorSetLayout;
-		VkDescriptorPool m_DescriptorPool;
-		std::vector<VkDescriptorSet> m_DescriptorSets;
 
-		void createDescriptorSetLayout();
-		void createDescriptorPool();
-		void createDescriptorSets();
 
 
 		//------------------
 		//TEXTURE LOADING 
 		//------------------
 
-		VkImage m_TextureImage;
-		VkDeviceMemory m_TextureImageMemory;
-		VkImageView m_TextureImageView;
-		VkSampler m_TextureSampler;
 
-		void createTextureImage();
-		void createImage(uint32_t width,
-			uint32_t height,
-			VkFormat format,
-			VkImageTiling tiling,
-			VkImageUsageFlags usage,
-			VkMemoryPropertyFlags properties,
-			VkImage& image,
-			VkDeviceMemory& imageMemory);
-		void transitionImageLayout(VkImage image,
-			VkFormat format,
-			VkImageLayout oldLayout,
-			VkImageLayout newLayout);
-		void copyBufferToImage(VkBuffer buffer,
-			VkImage image,
-			uint32_t width,
-			uint32_t height);
-		void createTextureImageView(); 
-		void createTextureSampler(); 
 
 
 		//---------------
@@ -208,7 +178,6 @@ namespace cvr
 		//MODEL LOADING
 		//--------------
 		std::string MODEL_PATH = "Models/viking_room.obj";
-		std::string TEXTURE_PATH = "Textures/viking_room.png";
 		void loadModel(); 
 
 	};

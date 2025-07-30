@@ -5,7 +5,7 @@
 
 #include <vulkan/vulkan.h>
 
-
+//TODO: this could also just own the surface
 namespace cvr
 {
 	class Device final
@@ -25,10 +25,11 @@ namespace cvr
 		QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
 
 
-		VkDevice getDevice() const { return m_Device;  }
-		VkPhysicalDevice getPhysicalDevice() const { return m_PhysicalDevice;  }
-		VkQueue getPresentQueue() const { return m_PresentQueue;  }
-		VkQueue getGraphicsQueue() const { return m_GraphicsQueue;  }
+		VkDevice& getDevice() { return m_Device;  }
+		VkPhysicalDevice& getPhysicalDevice() { return m_PhysicalDevice;  }
+		VkQueue& getPresentQueue() { return m_PresentQueue;  }
+		VkQueue& getGraphicsQueue() { return m_GraphicsQueue;  }
+		VkCommandPool& getCommandPool() { return m_CommandPool;  }
 
 
 	private:
@@ -36,17 +37,16 @@ namespace cvr
 
 		void pickPhysicalDevice();
 		void createLogicalDevice();
-
-		VkPhysicalDevice m_PhysicalDevice = VK_NULL_HANDLE;
+		void createCommandPool();
 		bool isDeviceSuitable(VkPhysicalDevice device);
 
-
+		VkPhysicalDevice m_PhysicalDevice = VK_NULL_HANDLE;
 		VkQueue m_PresentQueue;
 		VkQueue m_GraphicsQueue;
 
 		VkDevice m_Device;
 		const std::vector<const char*> m_DeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
-
+		VkCommandPool m_CommandPool; 
 
 		//handle ref
 		VkInstance m_Instance;

@@ -10,11 +10,13 @@ namespace cvr
 		:m_Instance(instance), m_Surface(surface)
 	{
 		pickPhysicalDevice();
-		createLogicalDevice(); 
+		createLogicalDevice();
+		createCommandPool(); 
 	}
 
 	Device::~Device()
 	{
+		vkDestroyCommandPool(m_Device, m_CommandPool, nullptr);
 		vkDestroyDevice(m_Device, nullptr);
 	}
 
@@ -209,6 +211,21 @@ namespace cvr
 
 		return requiredExtensions.empty();
 	}
+
+	void Device::createCommandPool()
+	{
+		QueueFamilyIndices queueFamilyIndices = findQueueFamilies(m_PhysicalDevice);
+
+		VkCommandPoolCreateInfo poolInfo{};
+		poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+		poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+		poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
+
+		if (vkCreateCommandPool(m_Device, &poolInfo, nullptr, &m_CommandPool) != VK_SUCCESS) {
+			throw std::runtime_error("failed to create command pool!");
+		}
+	}
+
 
 
 

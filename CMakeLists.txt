@@ -68,7 +68,13 @@ add_executable(VulkanApp_GP2_AaronVanSichemDeCombe
     "Source/Core/Device.cpp"
     "Source/Utils/Structs.hpp"
     "Source/Utils/Globals.hpp"
- "Source/Core/Swapchain.cpp")
+    "Source/Core/Swapchain.cpp"
+    "Source/Graphics/GraphicsPipeline.cpp"
+    "Source/Graphics/RenderPass.cpp" 
+    "Source/Graphics/Descriptors.cpp" 
+    "Source/Buffers/UniformBuffers.cpp"
+    "Source/Buffers/Buffer.hpp" 
+    "Source/Textures/Texture.cpp")
 #----------------------------
 #LINK WITH LIBRARYS
 #----------------------------
@@ -107,9 +113,9 @@ file(COPY
 #Shader configuration
 #----------------------------
 
-#####################################################################################################################################
-#Basically all of this stuff is to compile the shader files into .spv binary files so that it can be used in the project (pipeline)
-#####################################################################################################################################
+#########################################################################################################################
+#Basically all of this stuff is to compile the shader files into .spv binary files so that it can be used in the project 
+#########################################################################################################################
 
 # Define directories
 set(SHADER_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Shaders")
