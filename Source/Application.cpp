@@ -33,7 +33,7 @@ void Application::run()
     Camera camera{}; 
     camera.SetViewTarget(glm::vec3(-1.f, -2.f, 2.f), glm::vec3(0.f, 0.f, 2.5f)); 
 
-    auto viewerObject = GameObject::CreateGameObject(); 
+    auto viewerObject = GameObject::CreateGameObject( ); 
     KeyboardMovementController cameraController{}; 
 
     auto currentTime = std::chrono::high_resolution_clock::now(); 
