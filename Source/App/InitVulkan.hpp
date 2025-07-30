@@ -10,6 +10,7 @@
 #include "../Textures/Texture.hpp"
 #include "../Buffers/UniformBuffers.hpp"
 #include "../Buffers/DepthBuffer.hpp"
+#include "../Buffers/FrameBuffer.hpp"
 
 //vulkan/glfw
 #include <vulkan/vulkan.h>
@@ -82,7 +83,8 @@ namespace cvr
 		GraphicsPipeline* m_GraphicsPipeline;
 		Texture* m_Texture; 
 		UniformBuffers* m_UniformBuffers;
-		DepthBuffer* m_DepthBuffer; 
+		DepthBuffer* m_DepthBuffer;
+		FrameBuffer* m_FrameBuffer; 
 
 
 		//---------------------------------------------
@@ -99,7 +101,7 @@ namespace cvr
 		//FRAMEBUFFER
 		//---------------------------------------------
 
-		std::vector<VkFramebuffer> swapChainFramebuffers;
+
 
 		//---------------------------------------------
 		//COMMANDPOOL AND  COMMANDBUFFER

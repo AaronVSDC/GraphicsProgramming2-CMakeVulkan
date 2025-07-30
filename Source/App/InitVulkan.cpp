@@ -31,9 +31,8 @@ namespace cvr {
 		m_Descriptors = new DescriptorManager{ m_Device,m_UniformBuffers, m_Texture };
 		m_GraphicsPipeline = new GraphicsPipeline{ m_Device, m_Swapchain, m_Descriptors, m_RenderPass };
 		m_DepthBuffer = new DepthBuffer{ m_Device, m_Swapchain };
+		m_FrameBuffer = new FrameBuffer{ m_Device, m_RenderPass, m_DepthBuffer, m_Swapchain }; 
 
-
-		createFrameBuffers();
 		loadModel();
 		createVertexBuffer();
 		createIndexBuffer();
@@ -128,33 +127,6 @@ namespace cvr {
 
 #pragma region FRAME_BUFFER
 
-	void InitVulkan::createFrameBuffers()
-	{
-		swapChainFramebuffers.resize(m_Swapchain->getSwapchainImageViews().size());
-
-		for (size_t i = 0; i < m_Swapchain->getSwapchainImageViews().size(); i++)
-		{
-			std::array<VkImageView, 2> attachments = {
-				m_Swapchain->getSwapchainImageViews()[i],
-				m_DepthBuffer->getDepthImageView()
-			};
-
-			VkFramebufferCreateInfo framebufferInfo{};
-			framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-			framebufferInfo.renderPass = m_RenderPass->getRenderPass();
-			framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-			framebufferInfo.pAttachments = attachments.data();
-			framebufferInfo.width = m_Swapchain->getSwapchainExtent().width;
-			framebufferInfo.height = m_Swapchain->getSwapchainExtent().height;
-			framebufferInfo.layers = 1;
-
-			if (vkCreateFramebuffer(m_Device->getDevice(), &framebufferInfo, nullptr, &swapChainFramebuffers[i]) != VK_SUCCESS) {
-				throw std::runtime_error("failed to create framebuffer!");
-			}
-		}
-
-	}
-
 
 #pragma endregion
 
@@ -191,7 +163,7 @@ namespace cvr {
 		VkRenderPassBeginInfo renderPassInfo{};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		renderPassInfo.renderPass = m_RenderPass->getRenderPass();
-		renderPassInfo.framebuffer = swapChainFramebuffers[imageIndex];
+		renderPassInfo.framebuffer = m_FrameBuffer->getSwapchainFrameBuffers()[imageIndex];
 
 		renderPassInfo.renderArea.offset = { 0, 0 };
 		renderPassInfo.renderArea.extent = m_Swapchain->getSwapchainExtent();
