@@ -77,7 +77,9 @@ void Application::LoadGameObjects()
 	//-------------------------------------------------------------------------
 
     std::shared_ptr<Model> vikingRoomModel = Model::CreateModelFromFile(m_Device, "Models/VikingRoom.obj");
-    std::shared_ptr<Texture> vikingRoomTexture = std::make_shared<Texture>(m_Device, "Textures/VikingRoom.png");
+    std::shared_ptr<Texture> vikingRoomTexture = Texture::CreateTextureFromFile(m_Device, "Textures/VikingRoom.png");
+
+
 
     auto gameObj = GameObject::CreateGameObject(); 
     gameObj.m_Model = vikingRoomModel;

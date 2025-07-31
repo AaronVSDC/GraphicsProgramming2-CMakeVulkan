@@ -1,4 +1,6 @@
 #pragma once
+#include <memory>
+
 #include "Device.h"
 #include <string>
 #include <vulkan/vulkan.h>
@@ -17,6 +19,9 @@ namespace cve
         void allocateDescriptorSet(); 
         static void createDescriptorSetLayout(Device& device);
         static void initDescriptors(Device& device, size_t amountOfTextures);
+
+        static std::unique_ptr<Texture> CreateTextureFromFile(Device& device, const std::string& filepath); 
+
 
         // Accessors
         VkImageView getImageView() const { return m_ImageView; }
@@ -37,9 +42,7 @@ namespace cve
         static VkDescriptorSetLayout s_DescriptorSetLayout;
         static VkDescriptorPool s_DescriptorPool;
 
-
-        void SetupDescriptorSets(); 
-        void createTexture(const std::string& filename);
+    	void createTexture(const std::string& filename);
 
         void createImage(
             uint32_t width,

@@ -58,6 +58,8 @@ namespace cve
         
     }
 
+
+
     void Texture::allocateDescriptorSet()
     {
         // allocate one set
@@ -99,6 +101,11 @@ namespace cve
 
 
 #pragma region TEXTURE
+    std::unique_ptr<Texture> Texture::CreateTextureFromFile(Device& device, const std::string& filepath)
+    {
+        return std::make_unique<Texture>(device, filepath);
+    }
+
     void Texture::createTexture(const std::string& filename)
     {
         // 1. Load m_Image pixels with stb_image
