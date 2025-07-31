@@ -8,7 +8,6 @@
 
 //std
 #include <stdexcept>
-#include <array>
 #include <iostream>
 namespace cve {
 

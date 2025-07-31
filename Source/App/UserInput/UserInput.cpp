@@ -19,8 +19,6 @@ namespace cve
 		
 		if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
 		{
-
-
 			if (m_CurrentMouseX >= 0 && m_CurrentMouseX <= width && m_CurrentMouseY >= 0 && m_CurrentMouseY <= height)
 			{
 
@@ -33,9 +31,6 @@ namespace cve
 				m_PreviousMouseY = m_CurrentMouseY;
 				rotate.y += deltaX;
 				rotate.x -= deltaY;
-
-
-
 
 			}
 		}

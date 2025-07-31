@@ -81,6 +81,8 @@ namespace cve {
 	  VkSwapchainKHR swapChain;
 	  std::shared_ptr<SwapChain> oldSwapChain; 
 
+
+
 	  std::vector<VkSemaphore> imageAvailableSemaphores;
 	  std::vector<VkSemaphore> renderFinishedSemaphores;
 	  std::vector<VkFence> inFlightFences;

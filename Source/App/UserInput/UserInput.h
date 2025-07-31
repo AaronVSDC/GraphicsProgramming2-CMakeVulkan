@@ -29,8 +29,8 @@ namespace cve
         void MoveInPlaneXZ(GLFWwindow* window, float dt, GameObject& gameObject); 
 
         KeyMappings m_Keys{}; 
-        float m_MoveSpeed{ 17.f }; 
-        float m_LookSpeed{3.f}; 
+        float m_MoveSpeed{ 10.f }; 
+        float m_LookSpeed{14.f}; 
 		
 	private: 
 
