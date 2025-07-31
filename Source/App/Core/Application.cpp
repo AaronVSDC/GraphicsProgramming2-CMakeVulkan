@@ -28,7 +28,7 @@ Application::~Application()
 void Application::run()
 {
 
-	SimpleRenderSystem simpleRenderSystem = {m_Device, m_Renderer.GetSwapChainRenderPass(), m_Textures };
+	SimpleRenderSystem simpleRenderSystem = {m_Device, m_Renderer.GetSwapChainRenderPass(), m_GameObjects };
     Camera camera{};  
     camera.SetViewTarget(glm::vec3(-1.f, -2.f, 2.f), glm::vec3(0.f, 0.f, 2.5f)); 
 
@@ -76,13 +76,12 @@ void Application::LoadGameObjects()
 	//THIS IS WHERE ALL THE MODELS ARE LOADED (OR HARDCODED BUT PLS DONT) AND PUSHED INSIDE THE MODEL POINTER 
 	//-------------------------------------------------------------------------
 
-    std::shared_ptr<Model> model = Model::CreateModelFromFile(
-        m_Device,
-        "Models/VikingRoom.obj");
-    m_Textures.push_back(std::make_unique<Texture>(m_Device, "Textures/VikingRoom.png"));
+    std::shared_ptr<Model> vikingRoomModel = Model::CreateModelFromFile(m_Device, "Models/VikingRoom.obj");
+    std::shared_ptr<Texture> vikingRoomTexture = std::make_shared<Texture>(m_Device, "Textures/VikingRoom.png");
 
     auto gameObj = GameObject::CreateGameObject(); 
-    gameObj.m_Model = model; 
+    gameObj.m_Model = vikingRoomModel;
+    gameObj.m_Texture = vikingRoomTexture; 
     gameObj.m_Transform.translation = { 0.f,1.f,5.f }; 
     gameObj.m_Transform.scale = glm::vec3(2.f); 
     gameObj.m_Transform.rotation = { glm::radians(90.f), glm::radians(90.f),0.f};

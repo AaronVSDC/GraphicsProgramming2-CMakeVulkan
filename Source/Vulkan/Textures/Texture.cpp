@@ -8,23 +8,113 @@
 
 namespace cve
 {
-    Texture::Texture(Device& device, const std::string& filename)
-        : device(device)
+    VkDescriptorSetLayout Texture::s_DescriptorSetLayout = VK_NULL_HANDLE;
+    VkDescriptorPool     Texture::s_DescriptorPool = VK_NULL_HANDLE;
+
+	Texture::Texture(Device& device, const std::string& filename)
+        : m_Device(device)
     {
-        // 1. Load image pixels with stb_image
+        createTexture(filename);
+    }
+
+    Texture::~Texture()
+    {
+        vkDestroySampler(m_Device.device(), m_Sampler, nullptr);
+        vkDestroyImageView(m_Device.device(), m_ImageView, nullptr);
+        vkDestroyImage(m_Device.device(), m_Image, nullptr);
+        vkFreeMemory(m_Device.device(), m_DeviceMemory, nullptr);
+        vkDestroyDescriptorPool(m_Device.device(), s_DescriptorPool, nullptr);
+        vkDestroyDescriptorSetLayout(m_Device.device(), s_DescriptorSetLayout, nullptr);
+    }
+
+
+#pragma region DESCRIPTORS
+    void Texture::initDescriptors(Device& device, size_t amountOfTextures)
+    {
+        // create one pool for up to `maxTextures` sets
+        VkDescriptorPoolSize poolSize{};
+        poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        poolSize.descriptorCount = static_cast<uint32_t>(amountOfTextures);
+
+        VkDescriptorPoolCreateInfo poolInfo{};
+        poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+        poolInfo.poolSizeCount = 1;
+        poolInfo.pPoolSizes = &poolSize;
+        poolInfo.maxSets = static_cast<uint32_t>(amountOfTextures);
+        vkCreateDescriptorPool(device.device(), &poolInfo, nullptr, &s_DescriptorPool);
+
+        // create one layout for all textures
+        VkDescriptorSetLayoutBinding binding{};
+        binding.binding = 0;
+        binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        binding.descriptorCount = 1;
+        binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        VkDescriptorSetLayoutCreateInfo layoutInfo{};
+        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layoutInfo.bindingCount = 1;
+        layoutInfo.pBindings = &binding;
+        vkCreateDescriptorSetLayout(device.device(), &layoutInfo, nullptr, &s_DescriptorSetLayout);
+        
+    }
+
+    void Texture::allocateDescriptorSet()
+    {
+        // allocate one set
+        VkDescriptorSetAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        allocInfo.descriptorPool = s_DescriptorPool;
+        allocInfo.descriptorSetCount = 1;
+        allocInfo.pSetLayouts = &s_DescriptorSetLayout;
+        vkAllocateDescriptorSets(m_Device.device(), &allocInfo, &m_DescriptorSet);
+
+        // write that set
+        VkDescriptorImageInfo imageInfo{};
+        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfo.imageView = m_ImageView;
+        imageInfo.sampler = m_Sampler;
+
+        VkWriteDescriptorSet write{};
+        write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        write.dstSet = m_DescriptorSet;
+        write.dstBinding = 0;
+        write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        write.descriptorCount = 1;
+        write.pImageInfo = &imageInfo;
+        vkUpdateDescriptorSets(m_Device.device(), 1, &write, 0, nullptr);
+
+    }
+
+    void Texture::bind(VkCommandBuffer& commandBuffer, VkPipelineLayout& pipelineLayout) const 
+    {
+        vkCmdBindDescriptorSets(
+            commandBuffer,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            pipelineLayout,
+            0,              // first set
+            1, &m_DescriptorSet,
+            0, nullptr);
+    }
+#pragma endregion
+
+
+#pragma region TEXTURE
+    void Texture::createTexture(const std::string& filename)
+    {
+        // 1. Load m_Image pixels with stb_image
         int texWidth, texHeight, texChannels;
         stbi_uc* pixels = stbi_load(filename.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
         if (!pixels) {
-            throw std::runtime_error("Failed to load texture image: " + filename);
+            throw std::runtime_error("Failed to load texture m_Image: " + filename);
         }
 
         VkDeviceSize imageSize = static_cast<VkDeviceSize>(texWidth) * texHeight * 4;
-        mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
+        m_MipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
 
         // 2. Create staging buffer and copy pixel data
         VkBuffer stagingBuffer;
         VkDeviceMemory stagingBufferMemory;
-        device.createBuffer(
+        m_Device.createBuffer(
             imageSize,
             VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -32,9 +122,9 @@ namespace cve
             stagingBufferMemory);
 
         void* data;
-        vkMapMemory(device.device(), stagingBufferMemory, 0, imageSize, 0, &data);
+        vkMapMemory(m_Device.device(), stagingBufferMemory, 0, imageSize, 0, &data);
         std::memcpy(data, pixels, static_cast<size_t>(imageSize));
-        vkUnmapMemory(device.device(), stagingBufferMemory);
+        vkUnmapMemory(m_Device.device(), stagingBufferMemory);
 
         stbi_image_free(pixels);
 
@@ -42,26 +132,26 @@ namespace cve
         createImage(
             static_cast<uint32_t>(texWidth),
             static_cast<uint32_t>(texHeight),
-            mipLevels,
+            m_MipLevels,
             VK_FORMAT_R8G8B8A8_SRGB,
             VK_IMAGE_TILING_OPTIMAL,
             VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
         );
 
-        // 4. Transition image to DST for copy
+        // 4. Transition m_Image to DST for copy
         transitionImageLayout(
-            image,
+            m_Image,
             VK_FORMAT_R8G8B8A8_SRGB,
             VK_IMAGE_LAYOUT_UNDEFINED,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            mipLevels
+            m_MipLevels
         );
 
-        // 5. Copy buffer to image
-        device.copyBufferToImage(
+        // 5. Copy buffer to m_Image
+        m_Device.copyBufferToImage(
             stagingBuffer,
-            image,
+            m_Image,
             static_cast<uint32_t>(texWidth),
             static_cast<uint32_t>(texHeight),
             1
@@ -69,27 +159,40 @@ namespace cve
 
         // 6. Generate mipmaps on GPU
         generateMipmaps(
-            image,
+            m_Image,
             VK_FORMAT_R8G8B8A8_SRGB,
             texWidth, texHeight,
-            mipLevels
+            m_MipLevels
         );
 
         // Cleanup staging resources
-        vkDestroyBuffer(device.device(), stagingBuffer, nullptr);
-        vkFreeMemory(device.device(), stagingBufferMemory, nullptr);
+        vkDestroyBuffer(m_Device.device(), stagingBuffer, nullptr);
+        vkFreeMemory(m_Device.device(), stagingBufferMemory, nullptr);
 
-        // 7. Create image view and sampler
-        createImageView(VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
+        // 7. Create m_Image view and m_Sampler
+        createImageView(VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, m_MipLevels);
         createSampler();
     }
 
-    Texture::~Texture()
+
+    void Texture::createDescriptorSetLayout(Device& device)
     {
-        vkDestroySampler(device.device(), sampler, nullptr);
-        vkDestroyImageView(device.device(), view, nullptr);
-        vkDestroyImage(device.device(), image, nullptr);
-        vkFreeMemory(device.device(), memory, nullptr);
+        VkDescriptorSetLayoutBinding samplerLayoutBinding{};
+        samplerLayoutBinding.binding = 0;
+        samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        samplerLayoutBinding.descriptorCount = 1;
+        samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        samplerLayoutBinding.pImmutableSamplers = nullptr;
+
+        VkDescriptorSetLayoutCreateInfo layoutInfo{};
+        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layoutInfo.bindingCount = 1;
+        layoutInfo.pBindings = &samplerLayoutBinding;
+
+        if (vkCreateDescriptorSetLayout(
+            device.device(), &layoutInfo, nullptr, &s_DescriptorSetLayout) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create descriptor set layout!");
+        }
     }
 
     void Texture::createImage(
@@ -116,7 +219,7 @@ namespace cve
         imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
         imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-        device.createImageWithInfo(imageInfo, properties, image, memory);
+        m_Device.createImageWithInfo(imageInfo, properties, m_Image, m_DeviceMemory);
     }
 
     void Texture::createImageView(
@@ -126,7 +229,7 @@ namespace cve
     {
         VkImageViewCreateInfo viewInfo{};
         viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        viewInfo.image = image;
+        viewInfo.image = m_Image;
         viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
         viewInfo.format = format;
         viewInfo.subresourceRange.aspectMask = aspectFlags;
@@ -135,8 +238,8 @@ namespace cve
         viewInfo.subresourceRange.baseArrayLayer = 0;
         viewInfo.subresourceRange.layerCount = 1;
 
-        if (vkCreateImageView(device.device(), &viewInfo, nullptr, &view) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create texture image view!");
+        if (vkCreateImageView(m_Device.device(), &viewInfo, nullptr, &m_ImageView) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create texture m_Image view!");
         }
     }
 
@@ -150,7 +253,7 @@ namespace cve
         samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
         samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
         samplerInfo.anisotropyEnable = VK_TRUE;
-        samplerInfo.maxAnisotropy = device.properties.limits.maxSamplerAnisotropy;
+        samplerInfo.maxAnisotropy = m_Device.properties.limits.maxSamplerAnisotropy;
         samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
         samplerInfo.unnormalizedCoordinates = VK_FALSE;
         samplerInfo.compareEnable = VK_FALSE;
@@ -158,9 +261,9 @@ namespace cve
         samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
         samplerInfo.mipLodBias = 0.0f;
         samplerInfo.minLod = 0.0f;
-        samplerInfo.maxLod = static_cast<float>(mipLevels);
+        samplerInfo.maxLod = static_cast<float>(m_MipLevels);
 
-        if (vkCreateSampler(device.device(), &samplerInfo, nullptr, &sampler) != VK_SUCCESS) {
+        if (vkCreateSampler(m_Device.device(), &samplerInfo, nullptr, &m_Sampler) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create texture sampler!");
         }
     }
@@ -172,7 +275,7 @@ namespace cve
         VkImageLayout newLayout,
         uint32_t mipLevels)
     {
-        VkCommandBuffer cmd = device.beginSingleTimeCommands();
+        VkCommandBuffer cmd = m_Device.beginSingleTimeCommands();
 
         VkImageMemoryBarrier barrier{};
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -217,7 +320,7 @@ namespace cve
             1, &barrier
         );
 
-        device.endSingleTimeCommands(cmd);
+        m_Device.endSingleTimeCommands(cmd);
     }
 
     void Texture::generateMipmaps(
@@ -230,12 +333,12 @@ namespace cve
         // Check support for linear blitting
         VkFormatProperties formatProperties;
         vkGetPhysicalDeviceFormatProperties(
-            device.getPhysicalDevice(), imageFormat, &formatProperties);
+            m_Device.getPhysicalDevice(), imageFormat, &formatProperties);
         if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)) {
-            throw std::runtime_error("Texture image format does not support linear blitting!");
+            throw std::runtime_error("Texture m_Image format does not support linear blitting!");
         }
 
-        VkCommandBuffer cmd = device.beginSingleTimeCommands();
+        VkCommandBuffer cmd = m_Device.beginSingleTimeCommands();
 
         for (uint32_t i = 1; i < mipLevels; i++) {
             VkImageMemoryBarrier barrier{};
@@ -329,6 +432,10 @@ namespace cve
             1, &barrierLast
         );
 
-        device.endSingleTimeCommands(cmd);
+        m_Device.endSingleTimeCommands(cmd);
     }
+#pragma endregion
+
+
+
 }

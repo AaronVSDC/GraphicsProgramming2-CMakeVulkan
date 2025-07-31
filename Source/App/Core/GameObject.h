@@ -1,6 +1,6 @@
 #pragma once
 #include "Model.h"
-
+#include "Texture.h"
 //libs
 #include <glm\gtc\matrix_transform.hpp>
 
@@ -54,7 +54,6 @@ namespace cve
 		}
 	};
 
-
 	class GameObject
 	{
 	public: 
@@ -76,7 +75,8 @@ namespace cve
 
 		id_t GetID() const { return m_ID; }
 
-		std::shared_ptr<Model> m_Model{}; 
+		std::shared_ptr<Model> m_Model{};
+		std::shared_ptr<Texture> m_Texture{}; 
 		glm::vec3 m_Color{}; 
 		TransformComponent m_Transform{}; 
 

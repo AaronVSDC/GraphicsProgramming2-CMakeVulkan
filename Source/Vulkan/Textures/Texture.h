@@ -3,26 +3,44 @@
 #include <string>
 #include <vulkan/vulkan.h>
 
-namespace cve {
-    class Texture {
+namespace cve
+{
+    class Texture final
+	{
     public:
         Texture(Device& device, const std::string& filename);
         ~Texture();
 
+        void bind(VkCommandBuffer& commandBuffer, VkPipelineLayout& pipelineLayout) const;
+
+
+        void allocateDescriptorSet(); 
+        static void createDescriptorSetLayout(Device& device);
+        static void initDescriptors(Device& device, size_t amountOfTextures);
+
         // Accessors
-        VkImageView getImageView() const { return view; }
-        VkSampler   getSampler()   const { return sampler; }
-        uint32_t    getMipLevels() const { return mipLevels; }
+        VkImageView getImageView() const { return m_ImageView; }
+        VkSampler   getSampler()   const { return m_Sampler; }
+        uint32_t    getMipLevels() const { return m_MipLevels; }
+        static VkDescriptorSetLayout& getDescriptorSetLayout() { return s_DescriptorSetLayout; }
+
 
     private:
-        Device&        device;
-        VkImage        image = VK_NULL_HANDLE;
-        VkDeviceMemory memory = VK_NULL_HANDLE;
-        VkImageView    view = VK_NULL_HANDLE;
-        VkSampler      sampler = VK_NULL_HANDLE;
-        uint32_t       mipLevels = 1;
+        Device&        m_Device;
+        VkImage        m_Image = VK_NULL_HANDLE;
+        VkDeviceMemory m_DeviceMemory = VK_NULL_HANDLE;
+        VkImageView    m_ImageView = VK_NULL_HANDLE;
+        VkSampler      m_Sampler = VK_NULL_HANDLE;
+        uint32_t       m_MipLevels = 1;
+        VkDescriptorSet m_DescriptorSet;
 
-        // Helpers for image creation and transitions
+        static VkDescriptorSetLayout s_DescriptorSetLayout;
+        static VkDescriptorPool s_DescriptorPool;
+
+
+        void SetupDescriptorSets(); 
+        void createTexture(const std::string& filename);
+
         void createImage(
             uint32_t width,
             uint32_t height,

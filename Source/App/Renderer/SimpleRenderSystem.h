@@ -14,7 +14,7 @@ namespace cve {
 	class SimpleRenderSystem
 	{
 	public:
-		SimpleRenderSystem(Device& device, VkRenderPass renderPass, const std::vector<std::unique_ptr<Texture>>& textures);
+		SimpleRenderSystem(Device& device, VkRenderPass renderPass, const std::vector<GameObject>& gameObjects);
 		~SimpleRenderSystem();
 
 		SimpleRenderSystem(const SimpleRenderSystem& other) = delete;
@@ -31,9 +31,7 @@ namespace cve {
 		Device& m_Device;
 		std::unique_ptr<Pipeline> m_pPipeline;
 		VkPipelineLayout m_PipelineLayout;
-		VkDescriptorSetLayout m_DescriptorSetLayout = VK_NULL_HANDLE; 
-		VkDescriptorPool m_DescriptorPool = VK_NULL_HANDLE; 
-		std::vector<VkDescriptorSet> m_DescriptorSets; 
+
 	};
 
 }

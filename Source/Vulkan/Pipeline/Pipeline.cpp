@@ -59,9 +59,9 @@ namespace cve
 		CreateShaderModule(vertCode, &m_VertShaderModule);
 		CreateShaderModule(fragCode, &m_FragShaderModule);
 
-
+		const uint8_t amountOfShaders = 2; 
 		//similar to Direct3D you have to set shaderStages and specify a bunch of stuff like the kind of shader (vertex, fragment,...)
-		VkPipelineShaderStageCreateInfo shaderStages[2]; 
+		VkPipelineShaderStageCreateInfo shaderStages[amountOfShaders]; 
 
 		//vertex shader
 		shaderStages[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO; 
@@ -87,8 +87,7 @@ namespace cve
 		//this struct describes how we interpret the vertexbuffer data (initial input) into the graphics pipeline
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo{}; 
 		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO; 
-		//TODO: [SOLVED] this is set to 0 at the moment because the vertex data is hardcoded as of now, this will have to change apparently if i want to load in data i think. 
-		vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size()); 
+		vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());  
 		vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(bindingDescriptions.size());
 		vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data(); 
 		vertexInputInfo.pVertexBindingDescriptions = bindingDescriptions.data(); 
@@ -96,7 +95,7 @@ namespace cve
 		//and about 5 fucking years later create the actual GraphicsPipeline object that uses all the shit that's just initialised
 		VkGraphicsPipelineCreateInfo pipelineInfo{}; 
 		pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO; 
-		pipelineInfo.stageCount = 2; //TODO: stageCount is to set how many shaders are being used
+		pipelineInfo.stageCount = amountOfShaders; 
 		pipelineInfo.pStages = shaderStages; 
 		//wire the configInfo (selfmade) struct to the pipelineInfo 
 		pipelineInfo.pVertexInputState = &vertexInputInfo;
@@ -167,7 +166,7 @@ namespace cve
 		configInfo.rasterizationInfo.rasterizerDiscardEnable = VK_FALSE;
 		configInfo.rasterizationInfo.polygonMode = VK_POLYGON_MODE_FILL; //for specifying which type of triangle (filled in, only edges, etc..)
 		configInfo.rasterizationInfo.lineWidth = 1.0f; 
-		configInfo.rasterizationInfo.cullMode = VK_CULL_MODE_NONE; //TODO: VERY IMPORTANT FOR PERFORMANCE, WHICH TRIAGLE FACE DO YOU WANT TO DISCARD (CULL)
+		configInfo.rasterizationInfo.cullMode = VK_CULL_MODE_FRONT_BIT; //TODO: VERY IMPORTANT FOR PERFORMANCE, WHICH TRIAGLE FACE DO YOU WANT TO DISCARD (CULL)
 		configInfo.rasterizationInfo.frontFace = VK_FRONT_FACE_CLOCKWISE; 
 		configInfo.rasterizationInfo.depthBiasEnable = VK_FALSE; 
 		configInfo.rasterizationInfo.depthBiasConstantFactor = 0.f; //optional
