@@ -33,6 +33,9 @@ namespace cve {
 	SimpleRenderSystem::~SimpleRenderSystem()
 	{
 		vkDestroyPipelineLayout(m_Device.device(), m_PipelineLayout, nullptr);
+		vkDestroyDescriptorPool(m_Device.device(), m_DescriptorPool, nullptr);
+		vkDestroyDescriptorSetLayout(m_Device.device(), m_DescriptorSetLayout, nullptr);
+		
 	}
 
 	void SimpleRenderSystem::CreatePipelineLayout()

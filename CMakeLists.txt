@@ -52,19 +52,19 @@ find_package(Vulkan REQUIRED)
 # Source files
 set(SOURCE_FILES
   source/main.cpp
-  Source/App/Application.cpp
-  Source/App/Window.cpp
-  Source/Vulkan/Pipeline.cpp
-  Source/Vulkan/Device.cpp
-  Source/Vulkan/SwapChain.cpp
-  Source/App/Model.cpp
-  Source/App/GameObject.h
-  Source/App/Renderer.cpp
-  Source/App/SimpleRenderSystem.cpp
-  Source/App/Camera.cpp
-  Source/App/UserInput.cpp
-  Source/App/Utils.h
-  source/Vulkan/Texture.cpp)
+  "Source/App/Core/Application.cpp"
+  "Source/App/Window/Window.cpp"
+  Source/Vulkan/Pipeline/Pipeline.cpp
+  "Source/Vulkan/Device/Device.cpp"
+  "Source/Vulkan/Swapchain/SwapChain.cpp"
+  "Source/App/ModelLoading/Model.cpp"
+  "Source/App/Core/GameObject.h"
+  "Source/App/Renderer/Renderer.cpp"
+  "Source/App/Renderer/SimpleRenderSystem.cpp"
+  "Source/App/Camera/Camera.cpp"
+  "Source/App/UserInput/UserInput.cpp"
+  "Source/App/Utils/Utils.h"
+  source/Vulkan/Textures/Texture.cpp)
 
 # Define executable
 add_executable(${TARGET_NAME} ${SOURCE_FILES})
@@ -138,7 +138,7 @@ source_group("Shaders" FILES ${GLSL_SOURCE_FILES})
 #--------------------------------------------------------------------------------------
 # Copy Models folder next to the executable (portable, no folder-name assumptions)
 #--------------------------------------------------------------------------------------
-set(MODELS_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Models")
+set(MODELS_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Resources/Models")
 add_custom_command(
   TARGET ${TARGET_NAME}
   POST_BUILD
@@ -150,7 +150,7 @@ add_custom_command(
 #--------------------------------------------------------------------------------------
 # Copy Textures folder next to the executable
 #--------------------------------------------------------------------------------------
-set(TEXTURES_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Textures")
+set(TEXTURES_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Resources/Textures")
 add_custom_command(
   TARGET ${TARGET_NAME}
   POST_BUILD
