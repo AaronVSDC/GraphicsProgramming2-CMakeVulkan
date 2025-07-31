@@ -10,6 +10,7 @@
 //std
 #include <cassert>
 #include <cstring>
+#include <filesystem>
 #include <unordered_map>
 #include <iostream>
 
@@ -32,7 +33,7 @@ namespace cve
 {
 
 	Model::Model(Device& device, const Model::Data& data)
-		:m_Device{device}
+		:m_Device{device}, m_Data{data}
 	{
 		CreateVertexBuffers(data.vertices); 
 		CreateIndexBuffers(data.indices); 
@@ -50,11 +51,26 @@ namespace cve
 		}
 	}
 
-	std::unique_ptr<Model> Model::CreateModelFromFile(Device& device, const std::string& filepath)
+
+	std::unique_ptr<Model> Model::CreateModelFromFile(Device& device, const std::string& filepath) 
 	{
+		std::filesystem::path fp{ filepath };        
+		std::string assetDir = fp.parent_path().string() + "/";
+
+		//READ OBJ DATA
 		Data data{}; 
-		data.LoadModel(filepath); 
-		return std::make_unique<Model>(device, data); 
+		data.LoadModel(filepath);
+
+
+		//MAKE TEXTURE FROM DATA 
+		Texture::initBindless(device, data.materials.size()); 
+
+		for (auto& mi : data.materials) {
+			data.textures.emplace_back(device, assetDir + mi.diffuseTex);
+		}
+		Texture::updateBindless(device, data.textures);
+
+		return std::make_unique<Model>(device, data);
 	}
 
 	void Model::Bind(VkCommandBuffer commandBuffer)
@@ -192,35 +208,59 @@ namespace cve
 			throw std::runtime_error("Assimp error: " + std::string(importer.GetErrorString()));
 		}
 
+		materials.resize(scene->mNumMaterials); 
+		for (size_t i = 0; i < scene->mNumMaterials; i++)
+		{
+			aiMaterial* mat = scene->mMaterials[i];
+			aiString path;
+
+			if (mat->GetTextureCount(aiTextureType_DIFFUSE) > 0 and mat->GetTexture(aiTextureType_DIFFUSE, 0, &path) == AI_SUCCESS)
+			{
+				materials[i].diffuseTex = path.C_Str(); 
+			}
+			if (mat->GetTextureCount(aiTextureType_NORMALS) > 0 and mat->GetTexture(aiTextureType_NORMALS, 0, &path) == AI_SUCCESS)
+			{
+				materials[i].normalTex = path.C_Str();
+			}
+			//TODO: add everything you want to read in (every type of texture like the two examples above)
+
+		}
+
 		// Calculate total counts so we can reserve memory only once
 		uint32_t totalVertices = 0;
 		uint32_t totalFaces = 0;
-		for (uint32_t m = 0; m < scene->mNumMeshes; m++) {
+		for (uint32_t m = 0; m < scene->mNumMeshes; m++) 
+		{
 			totalVertices += scene->mMeshes[m]->mNumVertices;
 			totalFaces += scene->mMeshes[m]->mNumFaces;
 		}
 
 		vertices.reserve(totalVertices);
 		indices.reserve(totalFaces * 3);
+		submeshes.reserve(scene->mNumMeshes);
 
+		uint32_t globalVertexOffset = 0; 
+		uint32_t globalIndexOffset = 0;
 		// Iterate over every mesh in the file
-		for (uint32_t m = 0; m < scene->mNumMeshes; m++) {
+		for (uint32_t m = 0; m < scene->mNumMeshes; m++) 
+		{
 			aiMesh* mesh = scene->mMeshes[m];
-			uint32_t vertexStart = static_cast<uint32_t>(vertices.size());
 
-			// **Vertices**
-			for (uint32_t i = 0; i < mesh->mNumVertices; i++) {
+
+			//vertices
+			for (uint32_t i = 0; i < mesh->mNumVertices; i++) 
+			{
 				Vertex v{};
-				// positions
+				
 				v.position = {
 						mesh->mVertices[i].x,
 						mesh->mVertices[i].y,
 						mesh->mVertices[i].z
 				};
-				// colors (optional-OBJ doesn't carry per-vertex color by default)
+
+				// colors (optional, is not always supported apparantly)
 				v.color = { 1.0f, 1.0f, 1.0f };
 
-				// texture coordinates?
 				if (mesh->mTextureCoords[0]) {
 					v.uv = {
 							mesh->mTextureCoords[0][i].x,
@@ -234,13 +274,28 @@ namespace cve
 				vertices.push_back(v);
 			}
 
-			// **Indices** (we told Assimp to triangulate)
-			for (uint32_t f = 0; f < mesh->mNumFaces; f++) {
+			//indices
+			for (uint32_t f = 0; f < mesh->mNumFaces; f++)
+			{
 				const aiFace& face = mesh->mFaces[f];
-				for (uint32_t idx = 0; idx < face.mNumIndices; idx++) {
-					indices.push_back(face.mIndices[idx] + vertexStart);
+				for (uint32_t idx = 0; idx < face.mNumIndices; idx++)
+				{
+					indices.push_back(face.mIndices[idx] + globalVertexOffset);
 				}
 			}
+
+			//record into submesh
+			uint32_t faceCount = mesh->mNumFaces;
+			submeshes.push_back({
+				globalIndexOffset,
+				faceCount * 3,
+				mesh->mMaterialIndex 
+				});
+
+			//bump offsets
+			globalVertexOffset += mesh->mNumVertices;
+			globalIndexOffset += faceCount * 3;
+
 		}
 	}
 }

@@ -8,8 +8,6 @@
 
 namespace cve
 {
-    VkDescriptorSetLayout Texture::s_DescriptorSetLayout = VK_NULL_HANDLE;
-    VkDescriptorPool     Texture::s_DescriptorPool = VK_NULL_HANDLE;
 
 	Texture::Texture(Device& device, const std::string& filename)
         : m_Device(device)
@@ -23,88 +21,117 @@ namespace cve
         vkDestroyImageView(m_Device.device(), m_ImageView, nullptr);
         vkDestroyImage(m_Device.device(), m_Image, nullptr);
         vkFreeMemory(m_Device.device(), m_DeviceMemory, nullptr);
-        vkDestroyDescriptorPool(m_Device.device(), s_DescriptorPool, nullptr);
-        vkDestroyDescriptorSetLayout(m_Device.device(), s_DescriptorSetLayout, nullptr);
+        vkDestroyDescriptorPool(m_Device.device(), s_BindlessPool, nullptr);
+        vkDestroyDescriptorSetLayout(m_Device.device(), s_BindlessSetLayout, nullptr);
     }
 
 
 #pragma region DESCRIPTORS
-    void Texture::initDescriptors(Device& device, size_t amountOfTextures)
+
+    VkDescriptorSetLayout Texture::s_BindlessSetLayout     = VK_NULL_HANDLE;
+    VkDescriptorPool      Texture::s_BindlessPool          = VK_NULL_HANDLE; 
+    VkDescriptorSet       Texture::s_BindlessDescriptorSet = VK_NULL_HANDLE;
+
+    void Texture::updateBindless(Device& device, const std::vector<Texture>& textures)
     {
-        // create one pool for up to `maxTextures` sets
+        uint32_t maxTextures = uint32_t(textures.size());
+        std::vector<VkDescriptorImageInfo> imageInfos(maxTextures);
+        std::vector<VkWriteDescriptorSet>  writes(maxTextures); 
+
+        for (uint32_t i = 0; i < maxTextures; i++) {
+            imageInfos[i].imageView = textures[i].getImageView();
+            imageInfos[i].sampler = textures[i].getSampler();
+            imageInfos[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+            writes[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            writes[i].dstSet = s_BindlessDescriptorSet;
+            writes[i].dstBinding = 0;
+            writes[i].dstArrayElement = i;
+            writes[i].descriptorCount = 1;
+            writes[i].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            writes[i].pImageInfo = &imageInfos[i];
+        }
+
+        vkUpdateDescriptorSets(device.device(),
+            maxTextures,
+            writes.data(),
+            0, nullptr);
+    }
+
+    void Texture::initBindless(Device& device, uint32_t maxTextures)
+    {
+        // 1) ONE binding with an array of `maxTextures` combined-image-samplers:
+        VkDescriptorSetLayoutBinding b{};
+        b.binding = 0;
+        b.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        b.descriptorCount = maxTextures;
+        b.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        // 2) Enable the “variable count” & “update after bind” flags:
+        VkDescriptorBindingFlags bindingFlags =
+            VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT |
+            VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
+            VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT; 
+
+        VkDescriptorSetLayoutBindingFlagsCreateInfo flagsInfo{};
+        flagsInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
+        flagsInfo.bindingCount = 1;
+        flagsInfo.pBindingFlags = &bindingFlags;
+
+        VkDescriptorSetLayoutCreateInfo layoutInfo{};
+        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layoutInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT; 
+        layoutInfo.bindingCount = 1;
+        layoutInfo.pBindings = &b;
+        layoutInfo.pNext = &flagsInfo;
+
+        vkCreateDescriptorSetLayout(device.device(), &layoutInfo, nullptr, &s_BindlessSetLayout);
+
+        // 3) Create a pool big enough for maxTextures descriptors, but only 1 set:
         VkDescriptorPoolSize poolSize{};
         poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        poolSize.descriptorCount = static_cast<uint32_t>(amountOfTextures);
+        poolSize.descriptorCount = maxTextures;
 
         VkDescriptorPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         poolInfo.poolSizeCount = 1;
         poolInfo.pPoolSizes = &poolSize;
-        poolInfo.maxSets = static_cast<uint32_t>(amountOfTextures);
-        vkCreateDescriptorPool(device.device(), &poolInfo, nullptr, &s_DescriptorPool);
+        poolInfo.maxSets = 1;
+        poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
+        vkCreateDescriptorPool(device.device(), &poolInfo, nullptr, &s_BindlessPool);
 
-        // create one layout for all textures
-        VkDescriptorSetLayoutBinding binding{};
-        binding.binding = 0;
-        binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        binding.descriptorCount = 1;
-        binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        // 4) Allocate the single bindless set with `maxTextures` capacity:
+        VkDescriptorSetVariableDescriptorCountAllocateInfo varCountInfo{};
+        varCountInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO;
+        varCountInfo.descriptorSetCount = 1;
+        varCountInfo.pDescriptorCounts = &maxTextures;
 
-        VkDescriptorSetLayoutCreateInfo layoutInfo{};
-        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        layoutInfo.bindingCount = 1;
-        layoutInfo.pBindings = &binding;
-        vkCreateDescriptorSetLayout(device.device(), &layoutInfo, nullptr, &s_DescriptorSetLayout);
-        
-    }
-
-
-
-    void Texture::allocateDescriptorSet()
-    {
-        // allocate one set
         VkDescriptorSetAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        allocInfo.descriptorPool = s_DescriptorPool;
+        allocInfo.descriptorPool = s_BindlessPool;
         allocInfo.descriptorSetCount = 1;
-        allocInfo.pSetLayouts = &s_DescriptorSetLayout;
-        vkAllocateDescriptorSets(m_Device.device(), &allocInfo, &m_DescriptorSet);
+        allocInfo.pSetLayouts = &s_BindlessSetLayout;
+        allocInfo.pNext = &varCountInfo;
 
-        // write that set
-        VkDescriptorImageInfo imageInfo{};
-        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = m_ImageView;
-        imageInfo.sampler = m_Sampler;
+        vkAllocateDescriptorSets(device.device(), &allocInfo, &s_BindlessDescriptorSet);
 
-        VkWriteDescriptorSet write{};
-        write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        write.dstSet = m_DescriptorSet;
-        write.dstBinding = 0;
-        write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        write.descriptorCount = 1;
-        write.pImageInfo = &imageInfo;
-        vkUpdateDescriptorSets(m_Device.device(), 1, &write, 0, nullptr);
 
     }
-
-    void Texture::bind(VkCommandBuffer& commandBuffer, VkPipelineLayout& pipelineLayout) const 
+    void Texture::bind(VkCommandBuffer& commandBuffer, VkPipelineLayout& pipelineLayout) 
     {
         vkCmdBindDescriptorSets(
             commandBuffer,
             VK_PIPELINE_BIND_POINT_GRAPHICS,
             pipelineLayout,
-            0,              // first set
-            1, &m_DescriptorSet,
-            0, nullptr);
+            0, 1,
+            &Texture::s_BindlessDescriptorSet,
+            0, nullptr
+        );
     }
 #pragma endregion
 
 
 #pragma region TEXTURE
-    std::unique_ptr<Texture> Texture::CreateTextureFromFile(Device& device, const std::string& filepath)
-    {
-        return std::make_unique<Texture>(device, filepath);
-    }
 
     void Texture::createTexture(const std::string& filename)
     {
@@ -182,25 +209,7 @@ namespace cve
     }
 
 
-    void Texture::createDescriptorSetLayout(Device& device)
-    {
-        VkDescriptorSetLayoutBinding samplerLayoutBinding{};
-        samplerLayoutBinding.binding = 0;
-        samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        samplerLayoutBinding.descriptorCount = 1;
-        samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-        samplerLayoutBinding.pImmutableSamplers = nullptr;
-
-        VkDescriptorSetLayoutCreateInfo layoutInfo{};
-        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        layoutInfo.bindingCount = 1;
-        layoutInfo.pBindings = &samplerLayoutBinding;
-
-        if (vkCreateDescriptorSetLayout(
-            device.device(), &layoutInfo, nullptr, &s_DescriptorSetLayout) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create descriptor set layout!");
-        }
-    }
+ 
 
     void Texture::createImage(
         uint32_t width,

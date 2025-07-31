@@ -76,14 +76,12 @@ void Application::LoadGameObjects()
 	//THIS IS WHERE ALL THE MODELS ARE LOADED (OR HARDCODED BUT PLS DONT) AND PUSHED INSIDE THE MODEL POINTER 
 	//-------------------------------------------------------------------------
 
-    std::shared_ptr<Model> vikingRoomModel = Model::CreateModelFromFile(m_Device, "Models/VikingRoom.obj");
-    std::shared_ptr<Texture> vikingRoomTexture = Texture::CreateTextureFromFile(m_Device, "Textures/VikingRoom.png");
+    std::shared_ptr<Model> vikingRoomModel = Model::CreateModelFromFile(m_Device, "Resources/SponzaScene/sponza.obj");
 
 
 
     auto gameObj = GameObject::CreateGameObject(); 
     gameObj.m_Model = vikingRoomModel;
-    gameObj.m_Texture = vikingRoomTexture; 
     gameObj.m_Transform.translation = { 0.f,1.f,5.f }; 
     gameObj.m_Transform.scale = glm::vec3(2.f); 
     gameObj.m_Transform.rotation = { glm::radians(90.f), glm::radians(90.f),0.f};

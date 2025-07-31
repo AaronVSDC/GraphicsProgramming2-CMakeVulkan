@@ -8,8 +8,6 @@
 
 int main() 
 {
-	std::cout << "Current working directory: "
-		<< std::filesystem::current_path() << std::endl;
 
 	cve::Application app; 
 

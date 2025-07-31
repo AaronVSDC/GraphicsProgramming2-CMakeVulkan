@@ -138,23 +138,12 @@ source_group("Shaders" FILES ${GLSL_SOURCE_FILES})
 #--------------------------------------------------------------------------------------
 # Copy Models folder next to the executable (portable, no folder-name assumptions)
 #--------------------------------------------------------------------------------------
-set(MODELS_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Resources/Models")
+set(MODELS_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Resources")
 add_custom_command(
   TARGET ${TARGET_NAME}
   POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_directory
     "${MODELS_SOURCE_DIR}"
-    "$<TARGET_FILE_DIR:${TARGET_NAME}>/Models"
+    "$<TARGET_FILE_DIR:${TARGET_NAME}>/Resources"
 )
 
-#--------------------------------------------------------------------------------------
-# Copy Textures folder next to the executable
-#--------------------------------------------------------------------------------------
-set(TEXTURES_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Resources/Textures")
-add_custom_command(
-  TARGET ${TARGET_NAME}
-  POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy_directory
-    "${TEXTURES_SOURCE_DIR}"
-    "$<TARGET_FILE_DIR:${TARGET_NAME}>/Textures"
-)

@@ -1,5 +1,6 @@
 #pragma once
 #include "Device.h"
+#include "Texture.h"
 
 //libs
 #define GLM_FORCE_RADIANS
@@ -33,10 +34,28 @@ namespace cve
 			}
 		};
 
+		struct SubMesh
+		{
+			uint32_t firstIndex;
+			uint32_t indexCount;
+			uint32_t materialIndex; 
+		};
+
+		struct MaterialInfo
+		{
+			std::string diffuseTex;
+			std::string normalTex;
+
+			//TODO: add textureTypes you want to load in
+		};
+
 		struct Data
 		{
 			std::vector<Vertex> vertices{};
 			std::vector<uint32_t> indices{};
+			std::vector<SubMesh> submeshes{};
+			std::vector<MaterialInfo> materials{};
+			std::vector<Texture> textures{};
 
 			void LoadModel(const std::string& filename); 
 		}; 
@@ -52,18 +71,22 @@ namespace cve
 		void Bind(VkCommandBuffer commandBuffer);
 		void Draw(VkCommandBuffer commandBuffer);
 
+		Data& getData() { return m_Data;  };
+
 
 
 	private:
 		Device& m_Device; 
 		VkBuffer m_VertexBuffer; 
 		VkDeviceMemory m_VertexBufferMemory; 
-		uint32_t m_VertexCount; 
+		uint32_t m_VertexCount;
 
 		bool m_HasIndexBuffer = false; 
 		VkBuffer m_IndexBuffer;
 		VkDeviceMemory m_IndexBufferMemory;
 		uint32_t m_IndexCount;
+
+		Data m_Data; 
 
 		void CreateVertexBuffers(const std::vector<Vertex>& vertices); 
 		void CreateIndexBuffers(const std::vector<uint32_t>& indices);

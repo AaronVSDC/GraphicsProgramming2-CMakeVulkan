@@ -1,19 +1,17 @@
 #version 450
+#extension GL_EXT_nonuniform_qualifier : require
 
-// incoming from vertex
-layout(location = 0) in vec3 litColor;
-layout(location = 1) in vec2 fragUV;
+layout(set = 0, binding = 0) uniform sampler2D u_Textures[];
 
-// our texture binding (set 0, binding 0)
-layout(set = 0, binding = 0) uniform sampler2D uTexture;
+layout(push_constant) uniform Push {
+    mat4 transform;     // projection * view * model
+    mat4 modelMatrix;
+    uint materialIndex;
+} push;
 
-// final color output
+layout(location = 0) in vec2 inUV;
 layout(location = 0) out vec4 outColor;
 
 void main() {
-    // fetch texture
-    vec4 tex = texture(uTexture, fragUV);
-
-    // combine texture rgb with your lit color, preserve texture alpha
-    outColor = vec4(litColor * tex.rgb, tex.a);
+    outColor = texture(u_Textures[push.materialIndex], inUV);
 }

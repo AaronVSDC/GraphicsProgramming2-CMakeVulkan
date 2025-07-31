@@ -13,21 +13,17 @@ namespace cve
         Texture(Device& device, const std::string& filename);
         ~Texture();
 
-        void bind(VkCommandBuffer& commandBuffer, VkPipelineLayout& pipelineLayout) const;
+        static void bind(VkCommandBuffer& commandBuffer, VkPipelineLayout& pipelineLayout);
 
-
-        void allocateDescriptorSet(); 
-        static void createDescriptorSetLayout(Device& device);
-        static void initDescriptors(Device& device, size_t amountOfTextures);
-
-        static std::unique_ptr<Texture> CreateTextureFromFile(Device& device, const std::string& filepath); 
-
-
+        static void initBindless(Device& device, uint32_t maxTextures);
+        static void updateBindless(Device& device, const std::vector<Texture>& textures); 
+    	static VkDescriptorSetLayout   s_BindlessSetLayout;
+        static VkDescriptorPool        s_BindlessPool;
+        static VkDescriptorSet         s_BindlessDescriptorSet;
         // Accessors
         VkImageView getImageView() const { return m_ImageView; }
         VkSampler   getSampler()   const { return m_Sampler; }
         uint32_t    getMipLevels() const { return m_MipLevels; }
-        static VkDescriptorSetLayout& getDescriptorSetLayout() { return s_DescriptorSetLayout; }
 
 
     private:
@@ -37,10 +33,8 @@ namespace cve
         VkImageView    m_ImageView = VK_NULL_HANDLE;
         VkSampler      m_Sampler = VK_NULL_HANDLE;
         uint32_t       m_MipLevels = 1;
-        VkDescriptorSet m_DescriptorSet;
 
-        static VkDescriptorSetLayout s_DescriptorSetLayout;
-        static VkDescriptorPool s_DescriptorPool;
+
 
     	void createTexture(const std::string& filename);
 

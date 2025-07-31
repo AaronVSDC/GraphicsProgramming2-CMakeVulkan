@@ -14,21 +14,20 @@ namespace cve {
 
 	struct SimplePushConstantData
 	{
-		glm::mat4 transform{ 1.f };
-		glm::mat4 modelMatrix{ 1.f }; 
+		glm::mat4 transform{ 1.f }; //64B
+		glm::mat4 modelMatrix{ 1.f }; //64B
+		uint32_t materialIndex; //4B
+
+		//pad out to 16 byte multiple
+		uint8_t _pad[12]; 
 	};
 
 	SimpleRenderSystem::SimpleRenderSystem(Device& device, VkRenderPass renderPass, const std::vector<GameObject>& gameObjects) : m_Device{device}
 	{
-		Texture::initDescriptors(device, gameObjects.size());
-
+		std::cout << "max push constant size" << device.properties.limits.maxPushConstantsSize << std::endl;
+		assert(device.properties.limits.maxPushConstantsSize > sizeof(SimplePushConstantData)); 
 		CreatePipelineLayout();
 		CreatePipeline(renderPass);
-
-		for (auto& gameObject : gameObjects)
-		{
-			gameObject.m_Texture->allocateDescriptorSet(); 
-		}
 	}
 	SimpleRenderSystem::~SimpleRenderSystem()
 	{
@@ -43,10 +42,14 @@ namespace cve {
 		pushConstantRange.offset = 0;
 		pushConstantRange.size = sizeof(SimplePushConstantData);
 
+		VkDescriptorSetLayout setLayouts[] = {
+			Texture::s_BindlessSetLayout
+		};
+
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 		pipelineLayoutInfo.setLayoutCount = 1;
-		pipelineLayoutInfo.pSetLayouts = &Texture::getDescriptorSetLayout();
+		pipelineLayoutInfo.pSetLayouts = setLayouts;
 		pipelineLayoutInfo.pushConstantRangeCount = 1;
 		pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 
@@ -75,25 +78,33 @@ namespace cve {
 	{
 
 		m_pPipeline->Bind(commandBuffer);
+		Texture::bind(commandBuffer, m_PipelineLayout); 
+
 
 		auto projectionViewMatrix = camera.GetProjectionMatrix() * camera.GetViewMatrix(); 
 
-		for (size_t i = 0; i < gameObjects.size(); ++i)
+		for (auto& gameObject : gameObjects)
 		{
-			SimplePushConstantData push{};
-			auto modelMatrix = gameObjects[i].m_Transform.mat4();
-			push.transform = projectionViewMatrix * modelMatrix;
-			push.modelMatrix = modelMatrix;
+			for (auto& sm : gameObject.m_Model->getData().submeshes)
+			{
+				SimplePushConstantData push{};
+				auto modelMatrix = gameObject.m_Transform.mat4(); 
+				push.transform = projectionViewMatrix * modelMatrix;
+				push.modelMatrix = modelMatrix;
+				push.materialIndex = sm.materialIndex; 
 
-			vkCmdPushConstants(commandBuffer,
-				m_PipelineLayout,
-				VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-				0, sizeof(SimplePushConstantData),
-				&push);
+				vkCmdPushConstants(
+					commandBuffer,
+					m_PipelineLayout,
+					VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+					0,
+					sizeof(push),
+					&push
+				);
 
-			gameObjects[i].m_Texture->bind(commandBuffer, m_PipelineLayout); 
-			gameObjects[i].m_Model->Bind(commandBuffer);
-			gameObjects[i].m_Model->Draw(commandBuffer);
+				gameObject.m_Model->Bind(commandBuffer);
+				gameObject.m_Model->Draw(commandBuffer);
+			}
 		}
 	}
 
