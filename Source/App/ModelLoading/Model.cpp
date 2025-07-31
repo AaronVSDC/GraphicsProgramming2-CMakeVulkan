@@ -192,47 +192,55 @@ namespace cve
 			throw std::runtime_error("Assimp error: " + std::string(importer.GetErrorString()));
 		}
 
-		aiMesh* mesh = scene->mMeshes[0];  // just load the first mesh
+		// Calculate total counts so we can reserve memory only once
+		uint32_t totalVertices = 0;
+		uint32_t totalFaces = 0;
+		for (uint32_t m = 0; m < scene->mNumMeshes; m++) {
+			totalVertices += scene->mMeshes[m]->mNumVertices;
+			totalFaces += scene->mMeshes[m]->mNumFaces;
+		}
 
-		// Reserve so we don't reallocate
-		vertices.reserve(mesh->mNumVertices);
-		indices.reserve(mesh->mNumFaces * 3);
+		vertices.reserve(totalVertices);
+		indices.reserve(totalFaces * 3);
 
-		// **Vertices**
-		for (uint32_t i = 0; i < mesh->mNumVertices; i++) {
-			Vertex v{};
-			// positions
-			v.position = {
-				mesh->mVertices[i].x,
-				mesh->mVertices[i].y,
-				mesh->mVertices[i].z
-			};
-			// colors (optional-OBJ doesn't carry per-vertex color by default)
-			v.color = { 1.0f, 1.0f, 1.0f };
+		// Iterate over every mesh in the file
+		for (uint32_t m = 0; m < scene->mNumMeshes; m++) {
+			aiMesh* mesh = scene->mMeshes[m];
+			uint32_t vertexStart = static_cast<uint32_t>(vertices.size());
 
-			// texture coordinates?
-			if (mesh->mTextureCoords[0]) {
-				v.uv = {
-					mesh->mTextureCoords[0][i].x,
-					mesh->mTextureCoords[0][i].y
+			// **Vertices**
+			for (uint32_t i = 0; i < mesh->mNumVertices; i++) {
+				Vertex v{};
+				// positions
+				v.position = {
+						mesh->mVertices[i].x,
+						mesh->mVertices[i].y,
+						mesh->mVertices[i].z
 				};
-			}
-			else {
-				v.uv = { 0.0f, 0.0f };
+				// colors (optional-OBJ doesn't carry per-vertex color by default)
+				v.color = { 1.0f, 1.0f, 1.0f };
+
+				// texture coordinates?
+				if (mesh->mTextureCoords[0]) {
+					v.uv = {
+							mesh->mTextureCoords[0][i].x,
+							mesh->mTextureCoords[0][i].y
+					};
+				}
+				else {
+					v.uv = { 0.0f, 0.0f };
+				}
+
+				vertices.push_back(v);
 			}
 
-			vertices.push_back(v);
+			// **Indices** (we told Assimp to triangulate)
+			for (uint32_t f = 0; f < mesh->mNumFaces; f++) {
+				const aiFace& face = mesh->mFaces[f];
+				for (uint32_t idx = 0; idx < face.mNumIndices; idx++) {
+					indices.push_back(face.mIndices[idx] + vertexStart);
+				}
+			}
 		}
-
-		// **Indices** (we told Assimp to triangulate)
-		for (uint32_t f = 0; f < mesh->mNumFaces; f++) {
-			const aiFace& face = mesh->mFaces[f];
-			for (uint32_t idx = 0; idx < face.mNumIndices; idx++) {
-				indices.push_back(face.mIndices[idx]);
-			}
-		}
-
-
-
 	}
 }

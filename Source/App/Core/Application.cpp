@@ -24,7 +24,6 @@ Application::Application()
 }
 Application::~Application()
 {
-
 }
 void Application::run()
 {
