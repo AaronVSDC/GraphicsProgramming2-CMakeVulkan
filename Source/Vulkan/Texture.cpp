@@ -6,7 +6,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-namespace cve {
+namespace cve
+{
     Texture::Texture(Device& device, const std::string& filename)
         : device(device)
     {

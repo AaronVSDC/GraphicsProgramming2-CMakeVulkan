@@ -29,11 +29,6 @@ FetchContent_Declare(glm
 )
 FetchContent_MakeAvailable(glm)
 
-FetchContent_Declare(tinyobjloader
-  GIT_REPOSITORY https://github.com/tinyobjloader/tinyobjloader.git
-  GIT_TAG v2.0.0rc5
-)
-FetchContent_MakeAvailable(tinyobjloader)
 
 FetchContent_Declare(
   stb
@@ -42,47 +37,64 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(stb)
 
+FetchContent_Declare(
+    assimp
+    GIT_REPOSITORY https://github.com/assimp/assimp.git
+    GIT_TAG v6.0.2
+)
+FetchContent_MakeAvailable(assimp) 
+#create interface target
+add_library(stb INTERFACE)
+target_include_directories(stb INTERFACE ${stb_SOURCE_DIR})
+
 find_package(Vulkan REQUIRED)
 
 # Source files
 set(SOURCE_FILES
   source/main.cpp
-  source/Application.cpp
-  source/Application.h
-  source/Window.cpp
-  source/Window.h
-  source/Pipeline.cpp
-  source/Pipeline.h
-  source/Device.cpp
-  source/Device.h
-  source/SwapChain.cpp
-  source/SwapChain.h
-  source/Model.cpp
-  source/Model.h
-  source/GameObject.cpp
-  source/GameObject.h
-  source/Renderer.cpp
-  source/Renderer.h
-  source/SimpleRenderSystem.cpp
-  source/SimpleRenderSystem.h
-  source/Camera.cpp
-  source/Camera.h
-  source/UserInput.cpp
-  source/UserInput.h
-  source/Utils.cpp
-  source/Utils.h
-  source/Texture.h
-  source/Texture.cpp)
+  Source/App/Application.cpp
+  Source/App/Window.cpp
+  Source/Vulkan/Pipeline.cpp
+  Source/Vulkan/Device.cpp
+  Source/Vulkan/SwapChain.cpp
+  Source/App/Model.cpp
+  Source/App/GameObject.h
+  Source/App/Renderer.cpp
+  Source/App/SimpleRenderSystem.cpp
+  Source/App/Camera.cpp
+  Source/App/UserInput.cpp
+  Source/App/Utils.h
+  source/Vulkan/Texture.cpp)
 
 # Define executable
 add_executable(${TARGET_NAME} ${SOURCE_FILES})
 
 # Link libraries
 target_link_libraries(${TARGET_NAME}
-  PRIVATE ${Vulkan_LIBRARIES} glfw tinyobjloader glm
+  PRIVATE ${Vulkan_LIBRARIES}
+  glfw 
+  glm
+  assimp
 )
+#------------------------------------------------------------------------------
+# Auto–collect all subdirectories under source/ that contain .h files
+#------------------------------------------------------------------------------
+file(GLOB_RECURSE HEADER_FILES
+    CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/source/*.h"
+)
+
+set(HEADER_DIRS "")
+foreach(HDR ${HEADER_FILES})
+  get_filename_component(HDR_DIR ${HDR} DIRECTORY)
+  list(APPEND HEADER_DIRS ${HDR_DIR})
+endforeach()
+list(REMOVE_DUPLICATES HEADER_DIRS)
+
+# Tell our target to include _every_ header folder
 target_include_directories(${TARGET_NAME}
-  PRIVATE 
+  PRIVATE
+    ${HEADER_DIRS}
     ${Vulkan_INCLUDE_DIRS}
     ${stb_SOURCE_DIR}
 )

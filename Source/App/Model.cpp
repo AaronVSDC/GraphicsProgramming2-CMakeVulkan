@@ -1,8 +1,9 @@
 #include "Model.h"
 #include "Utils.h"
 //libs
-#define TINYOBJLOADER_IMPLEMENTATION
-#include <tiny_obj_loader.h>
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm\gtx\hash.hpp>
 
@@ -179,66 +180,57 @@ namespace cve
 
 	void Model::Data::LoadModel(const std::string& filepath)
 	{
-		tinyobj::attrib_t attrib; 
-		std::vector<tinyobj::shape_t> shapes; 
-		std::vector<tinyobj::material_t> materials;
-		std::string warn, err; 
+		Assimp::Importer importer;
 
-		if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, filepath.c_str()))
-		{
-			if (!warn.empty())  std::cerr << "tinyobj warning: " << warn << "\n";
-			if (!err.empty())   std::cerr << "tinyobj error:   " << err << "\n";
-			throw std::runtime_error("Failed to load OBJ: " + filepath);
+		const aiScene* scene = importer.ReadFile(
+			filepath,
+			aiProcess_Triangulate        // make sure everything is triangles
+			| aiProcess_FlipUVs            // flip for GL-style UVs
+			| aiProcess_CalcTangentSpace); // if you need normals/tangents
+
+		if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mMeshes) {
+			throw std::runtime_error("Assimp error: " + std::string(importer.GetErrorString()));
 		}
 
-		vertices.clear(); 
-		indices.clear(); 
+		aiMesh* mesh = scene->mMeshes[0];  // just load the first mesh
 
+		// Reserve so we don't reallocate
+		vertices.reserve(mesh->mNumVertices);
+		indices.reserve(mesh->mNumFaces * 3);
 
-		std::unordered_map<Vertex, uint32_t> uniqueVertices{}; 
+		// **Vertices**
+		for (uint32_t i = 0; i < mesh->mNumVertices; i++) {
+			Vertex v{};
+			// positions
+			v.position = {
+				mesh->mVertices[i].x,
+				mesh->mVertices[i].y,
+				mesh->mVertices[i].z
+			};
+			// colors (optional-OBJ doesn't carry per-vertex color by default)
+			v.color = { 1.0f, 1.0f, 1.0f };
 
-		for (const auto& shape : shapes)
-		{
-			for (const auto& index : shape.mesh.indices)
-			{
-				Vertex vertex{}; 
+			// texture coordinates?
+			if (mesh->mTextureCoords[0]) {
+				v.uv = {
+					mesh->mTextureCoords[0][i].x,
+					mesh->mTextureCoords[0][i].y
+				};
+			}
+			else {
+				v.uv = { 0.0f, 0.0f };
+			}
 
-				if (index.vertex_index >= 0)
-				{
-					vertex.position = { attrib.vertices[3 * index.vertex_index + 0],
-										attrib.vertices[3 * index.vertex_index + 1],
-										attrib.vertices[3 * index.vertex_index + 2] }; 
+			vertices.push_back(v);
+		}
 
-					vertex.color = {	attrib.colors[3 * index.vertex_index + 0],
-										attrib.colors[3 * index.vertex_index + 1],
-										attrib.colors[3 * index.vertex_index + 2] };
-
-				}
-
-				if (index.normal_index >= 0)
-				{
-					vertex.normal = { attrib.normals[3 * index.normal_index + 0],
-										attrib.normals[3 * index.normal_index + 1],
-										attrib.normals[3 * index.normal_index + 2] };
-				}
-
-				if (index.texcoord_index >= 0)
-				{
-					vertex.uv = {  attrib.texcoords[2 * index.texcoord_index + 0],
-								   attrib.texcoords[2 * index.texcoord_index + 1]
-					};
-				}
-
-				if (uniqueVertices.count(vertex) == 0)
-				{
-					uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size()); 
-					vertices.push_back(vertex); 
-				}
-
-				indices.push_back(uniqueVertices[vertex]); 
+		// **Indices** (we told Assimp to triangulate)
+		for (uint32_t f = 0; f < mesh->mNumFaces; f++) {
+			const aiFace& face = mesh->mFaces[f];
+			for (uint32_t idx = 0; idx < face.mNumIndices; idx++) {
+				indices.push_back(face.mIndices[idx]);
 			}
 		}
-
 
 
 
