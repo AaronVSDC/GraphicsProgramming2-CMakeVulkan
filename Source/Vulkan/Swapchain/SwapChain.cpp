@@ -214,7 +214,7 @@ void SwapChain::createImageViews() {
     }
   }
 }
-
+//TODO: REMOVE RENDERPASS AND USE DYNAMIC RENDERING (this is easier btw)
 void SwapChain::createRenderPass() {
   VkAttachmentDescription depthAttachment{};
   depthAttachment.format = findDepthFormat();
