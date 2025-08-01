@@ -38,9 +38,9 @@ namespace cve
         // Movement smoothing and speed settings
         glm::vec3 m_CurrentVelocity = glm::vec3(0.0f);
         float m_MoveSpeed = 500.0f;  // base move speed (units/sec)
-        float m_LookSpeed = 5.f;  // camera look sensitivity
+        float m_LookSpeed = 1.f;  // camera look sensitivity
         float m_SprintMultiplier = 2.0f;   // sprint speed multiplier
-        float m_Acceleration = 1000.f;  // acceleration/deceleration (units/sec^2)
+        float m_Acceleration = 950.f;  // acceleration/deceleration (units/sec^2)
 
         // Mouse sensitivity smoothing
         float    m_LowSens = 0.2f;    // sensitivity factor when very slight

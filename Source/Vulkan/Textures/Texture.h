@@ -73,7 +73,6 @@ namespace cve
 
         void generateMipmaps(
             VkImage image,
-            VkFormat imageFormat,
             int32_t texWidth,
             int32_t texHeight,
             uint32_t mipLevels

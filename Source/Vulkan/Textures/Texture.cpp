@@ -209,7 +209,6 @@ namespace cve
         // 6. Generate mipmaps on GPU
         generateMipmaps(
             m_Image,
-            VK_FORMAT_R8G8B8A8_SRGB,
             texWidth, texHeight,
             m_MipLevels
         );
@@ -357,7 +356,6 @@ namespace cve
 
     void Texture::generateMipmaps(
         VkImage image,
-        VkFormat imageFormat,
         int32_t texWidth,
         int32_t texHeight,
         uint32_t mipLevels)
