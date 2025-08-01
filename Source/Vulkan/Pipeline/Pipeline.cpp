@@ -48,10 +48,8 @@ namespace cve
 		const std::string& vertFilePath,
 		const std::string& fragFilePath)
 	{
-		assert(configInfo.pipelineLayout != VK_NULL_HANDLE && 
+		assert(configInfo.pipelineLayout != VK_NULL_HANDLE &&
 			"Cannot create graphics pipeline: no pipelineLayout provided in configInfo");
-		assert(configInfo.renderPass != VK_NULL_HANDLE &&
-			"Cannot create graphics pipeline: no renderPass provided in configInfo");
 
 		std::vector<char> vertCode = readFile(vertFilePath); 
 		std::vector<char> fragCode = readFile(fragFilePath); 
@@ -107,9 +105,14 @@ namespace cve
 		pipelineInfo.pDepthStencilState = &configInfo.depthStencilInfo; 
 		pipelineInfo.pDynamicState = &configInfo.dynamicStateInfo; 
 
-		pipelineInfo.layout = configInfo.pipelineLayout; 
-		pipelineInfo.renderPass = configInfo.renderPass; 
-		pipelineInfo.subpass = configInfo.subpass; 
+		pipelineInfo.layout = configInfo.pipelineLayout;
+		VkPipelineRenderingCreateInfo renderingInfo = configInfo.renderingInfo;
+		renderingInfo.colorAttachmentCount = static_cast<uint32_t>(configInfo.colorAttachmentFormats.size());
+		renderingInfo.pColorAttachmentFormats = configInfo.colorAttachmentFormats.data();
+		renderingInfo.depthAttachmentFormat = configInfo.depthAttachmentFormat;
+		pipelineInfo.pNext = &renderingInfo;
+		pipelineInfo.renderPass = VK_NULL_HANDLE;
+		pipelineInfo.subpass = 0;
 
 		//Apparently its sometimes more optimized if the gpu uses multiple pipelines, if you want to enable you have to derive from other pipelines and such. Its disabled now but its something over here
 		pipelineInfo.basePipelineIndex = -1; 
@@ -215,14 +218,21 @@ namespace cve
 		configInfo.depthStencilInfo.minDepthBounds = 0.f; //optional
 		configInfo.depthStencilInfo.maxDepthBounds = 1.f; //optional
 		configInfo.depthStencilInfo.stencilTestEnable = VK_FALSE; 
-		configInfo.depthStencilInfo.front = {}; //optional
+		configInfo.depthStencilInfo.front = {}; //optional 
 		configInfo.depthStencilInfo.back = {}; //optional
 		 
 		configInfo.dynamicStateEnables = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR }; 
 		configInfo.dynamicStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO; 
 		configInfo.dynamicStateInfo.pDynamicStates = configInfo.dynamicStateEnables.data(); 
-		configInfo.dynamicStateInfo.dynamicStateCount = static_cast<uint32_t>(configInfo.dynamicStateEnables.size()); 
-		configInfo.dynamicStateInfo.flags = 0; 
+		configInfo.dynamicStateInfo.dynamicStateCount = static_cast<uint32_t>(configInfo.dynamicStateEnables.size());
+		configInfo.dynamicStateInfo.flags = 0;
+
+		configInfo.renderingInfo = {};
+		configInfo.renderingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
+		configInfo.renderingInfo.colorAttachmentCount = 1;
+		configInfo.renderingInfo.pColorAttachmentFormats = nullptr;
+		configInfo.renderingInfo.depthAttachmentFormat = VK_FORMAT_UNDEFINED;
+		configInfo.renderingInfo.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
 	}
 	void Pipeline::Bind(VkCommandBuffer commandBuffer)
 	{

@@ -24,6 +24,10 @@ struct PipelineConfigInfo
 	VkPipelineLayout pipelineLayout = nullptr;
 	VkRenderPass renderPass = nullptr;
 	uint32_t subpass = 0;
+
+	std::vector<VkFormat> colorAttachmentFormats{};
+	VkFormat depthAttachmentFormat = VK_FORMAT_UNDEFINED;
+	VkPipelineRenderingCreateInfo renderingInfo{};
 };
 
 class Pipeline

@@ -14,7 +14,7 @@ namespace cve {
 	class SimpleRenderSystem
 	{
 	public:
-		SimpleRenderSystem(Device& device, VkRenderPass renderPass, const std::vector<GameObject>& gameObjects);
+		SimpleRenderSystem(Device& device, VkFormat swapChainImageFormat, VkFormat depthFormat, const std::vector<GameObject>& gameObjects);
 		~SimpleRenderSystem();
 
 		SimpleRenderSystem(const SimpleRenderSystem& other) = delete;
@@ -25,8 +25,7 @@ namespace cve {
 
 	private:
 		void CreatePipelineLayout();
-		void CreatePipeline(VkRenderPass renderPass);
-		void SetupDescriptorSets(const std::vector<Texture*>& textures);
+		void CreatePipeline(VkFormat colorFormat, VkFormat depthFormat); 
 
 		Device& m_Device;
 		std::unique_ptr<Pipeline> m_pPipeline;

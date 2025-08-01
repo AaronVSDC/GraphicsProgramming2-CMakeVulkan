@@ -168,11 +168,15 @@ namespace cve
 		indexingFeatures.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
 		indexingFeatures.descriptorBindingPartiallyBound = VK_TRUE;
 
+		VkPhysicalDeviceDynamicRenderingFeatures dynamicRenderingFeatures{};
+		dynamicRenderingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES;
+		dynamicRenderingFeatures.dynamicRendering = VK_TRUE;
+		dynamicRenderingFeatures.pNext = &indexingFeatures;
 
 		VkPhysicalDeviceFeatures2 features2{};
 		features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-		features2.pNext = &indexingFeatures;
-		features2.features = {};
+		features2.pNext = &dynamicRenderingFeatures;
+		features2.features = {}; 
 		features2.features.samplerAnisotropy = VK_TRUE;
 
 

@@ -129,22 +129,32 @@ namespace cve {
 		assert(commandBuffer == GetCurrentCommandBuffer() && "Can't begin render pass on command buffer from a different frame"); 
 
 
-		VkRenderPassBeginInfo renderPassInfo{};
-		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		renderPassInfo.renderPass = m_SwapChain->getRenderPass();
-		renderPassInfo.framebuffer = m_SwapChain->getFrameBuffer(m_CurrentImageIndex);
+		VkRenderingAttachmentInfo colorAttachment{};
+		colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+		colorAttachment.imageView = m_SwapChain->getImageView(m_CurrentImageIndex);
+		colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		colorAttachment.clearValue.color = { 0.01f,0.01f,0.01f,1.f };
 
-		renderPassInfo.renderArea.offset = { 0,0 };
-		renderPassInfo.renderArea.extent = m_SwapChain->getSwapChainExtent();
+		VkRenderingAttachmentInfo depthAttachment{};
+		depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+		depthAttachment.imageView = m_SwapChain->getDepthImageView(m_CurrentImageIndex);
+		depthAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		depthAttachment.clearValue.depthStencil = { 1.f,0 };
 
-		std::array<VkClearValue, 2> clearValues{};
-		clearValues[0].color = { 0.01f,0.01f,0.01f,1.f }; //background color
-		clearValues[1].depthStencil = { 1.f,0 };
-		renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-		renderPassInfo.pClearValues = clearValues.data();
+		VkRenderingInfo renderingInfo{};
+		renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+		renderingInfo.renderArea.offset = { 0,0 };
+		renderingInfo.renderArea.extent = m_SwapChain->getSwapChainExtent();
+		renderingInfo.layerCount = 1;
+		renderingInfo.colorAttachmentCount = 1;
+		renderingInfo.pColorAttachments = &colorAttachment;
+		renderingInfo.pDepthAttachment = &depthAttachment;
 
-
-		vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+		vkCmdBeginRendering(commandBuffer, &renderingInfo);
 
 		VkViewport viewport{};
 		viewport.x = 0.f;
@@ -166,7 +176,7 @@ namespace cve {
 		assert(m_IsFrameStarted && "Cant call EndSwapChainRenderPass while frame is not in progress");
 		assert(commandBuffer == GetCurrentCommandBuffer() && "Can't end render pass on command buffer from a different frame");
 
-		vkCmdEndRenderPass(commandBuffer);
+		vkCmdEndRendering(commandBuffer);
 
 	}
 }

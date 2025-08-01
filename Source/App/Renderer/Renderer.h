@@ -27,8 +27,9 @@ namespace cve {
 
 
 
-		VkRenderPass GetSwapChainRenderPass() const { return m_SwapChain->getRenderPass(); }
-		float GetAspectRatio() const { return m_SwapChain->extentAspectRatio();  }
+		VkRenderPass GetSwapChainRenderPass() const { return m_SwapChain->getRenderPass(); } //TODO: dont need it anymore? 
+		VkFormat GetSwapChainImageFormat() const { return m_SwapChain->getSwapChainImageFormat(); }
+		VkFormat GetDepthFormat() const { return m_SwapChain->findDepthFormat(); }		float GetAspectRatio() const { return m_SwapChain->extentAspectRatio();  } 
 
 		bool IsFrameInProgress() const { return m_IsFrameStarted; }
 		VkCommandBuffer GetCurrentCommandBuffer() const

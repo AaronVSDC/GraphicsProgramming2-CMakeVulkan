@@ -22,12 +22,13 @@ namespace cve {
 		uint8_t _pad[12]; 
 	};
 
-	SimpleRenderSystem::SimpleRenderSystem(Device& device, VkRenderPass renderPass, const std::vector<GameObject>& gameObjects) : m_Device{device}
+	SimpleRenderSystem::SimpleRenderSystem(Device& device, VkFormat swapChainImageFormat, VkFormat depthFormat, const std::vector<GameObject>& gameObjects)
+	: m_Device{ device }
 	{
 		std::cout << "max push constant size" << device.properties.limits.maxPushConstantsSize << std::endl;
 		assert(device.properties.limits.maxPushConstantsSize > sizeof(SimplePushConstantData)); 
 		CreatePipelineLayout();
-		CreatePipeline(renderPass);
+		CreatePipeline(swapChainImageFormat, depthFormat);
 	}
 	SimpleRenderSystem::~SimpleRenderSystem()
 	{
@@ -59,14 +60,17 @@ namespace cve {
 			throw std::runtime_error("failed to create pipeline layout");
 		}
 	}
-	void SimpleRenderSystem::CreatePipeline(VkRenderPass renderPass)
+	void SimpleRenderSystem::CreatePipeline(VkFormat colorFormat, VkFormat depthFormat)
 	{
 		assert(m_PipelineLayout != nullptr && "Cannot create pipeline before pipeline layout");
 
 		PipelineConfigInfo pipelineConfig{};
 		Pipeline::DefaultPipelineConfigInfo(pipelineConfig);
-		pipelineConfig.renderPass = renderPass;
+		pipelineConfig.renderPass = VK_NULL_HANDLE;
+		pipelineConfig.colorAttachmentFormats = { colorFormat };
+		pipelineConfig.depthAttachmentFormat = depthFormat;
 		pipelineConfig.pipelineLayout = m_PipelineLayout;
+
 		m_pPipeline = std::make_unique<Pipeline>(
 			m_Device,
 			pipelineConfig,
