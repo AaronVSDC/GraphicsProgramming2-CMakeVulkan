@@ -23,8 +23,6 @@ namespace cve {
 		SwapChain(const SwapChain&) = delete;
 		SwapChain& operator=(const SwapChain&) = delete;
 
-		VkFramebuffer getFrameBuffer(size_t index) { return swapChainFramebuffers[index]; }
-		VkRenderPass getRenderPass() const { return renderPass; }
 		VkImageView getImageView(int index) { return swapChainImageViews[index]; }
 		VkImageView getDepthImageView(int index) { return depthImageViews[index]; }
 		size_t imageCount() { return swapChainImages.size(); }
@@ -52,8 +50,6 @@ namespace cve {
 		void createSwapChain();
 		void createImageViews();
 		void createDepthResources();
-		void createRenderPass();
-		void createFramebuffers();
 		void createSyncObjects();
 
 		// Helper functions
@@ -67,9 +63,6 @@ namespace cve {
 		VkFormat swapChainDepthFormat;
 		VkExtent2D swapChainExtent;
 
-		std::vector<VkFramebuffer> swapChainFramebuffers;
-		VkRenderPass renderPass;
-
 		std::vector<VkImage> depthImages;
 		std::vector<VkDeviceMemory> depthImageMemorys;
 		std::vector<VkImageView> depthImageViews;
@@ -81,8 +74,6 @@ namespace cve {
 
 		VkSwapchainKHR swapChain;
 		std::shared_ptr<SwapChain> oldSwapChain;
-
-
 
 		std::vector<VkSemaphore> imageAvailableSemaphores;
 		std::vector<VkSemaphore> renderFinishedSemaphores;
