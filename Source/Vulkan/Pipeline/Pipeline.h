@@ -1,5 +1,7 @@
 #pragma once
 
+#include <optional>
+
 #include "Device.h"
 #include <string>
 #include <vector>
@@ -37,7 +39,7 @@ public:
 	Pipeline(Device& device, 
 			 const PipelineConfigInfo& configInfo,
 			 const std::string& vertFilePath ,
-			 const std::string& fragFilePath); 
+			 std::optional<const std::string> fragFilePath); 
 
 	~Pipeline();
 
@@ -55,13 +57,15 @@ private:
 	static std::vector<char> readFile(const std::string& filePath); 
 	void CreateGraphicsPipeline(const PipelineConfigInfo& configInfo, 
 								const std::string& verFilePath, 
-								const std::string& fragFilePath); 
+								std::optional<const std::string> fragFilePath); 
 	void CreateShaderModule(const std::vector<char>& code, VkShaderModule* shaderModule); 
 
 	Device& m_Device; //agregation, be carefull not to create a dangling pointer
 	VkPipeline m_GraphicsPipeline; 
 	VkShaderModule m_VertShaderModule; 
-	VkShaderModule m_FragShaderModule; 
+	VkShaderModule m_FragShaderModule;
+	bool m_HasFragShader = false; 
+
 
 
 };

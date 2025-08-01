@@ -64,10 +64,11 @@ set(SOURCE_FILES
   "Source/App/Camera/Camera.cpp"
   "Source/App/UserInput/UserInput.cpp"
   "Source/App/Utils/Utils.h"
+  "Source/App/Renderer/DepthPrepassRenderSystem.cpp"
   source/Vulkan/Textures/Texture.cpp)
 
 # Define executable
-add_executable(${TARGET_NAME} ${SOURCE_FILES})
+add_executable(${TARGET_NAME} ${SOURCE_FILES} )
 
 # Link libraries
 target_link_libraries(${TARGET_NAME}

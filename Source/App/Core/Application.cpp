@@ -2,7 +2,7 @@
 #include "SimpleRenderSystem.h"
 #include "Camera.h"
 #include "UserInput.h"
-
+#include "DepthPrepassRenderSystem.h"
 //libs
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -28,10 +28,13 @@ Application::~Application()
 void Application::run()
 {
 
-    SimpleRenderSystem simpleRenderSystem = { m_Device,
-                                            m_Renderer.GetSwapChainImageFormat(),
-                                            m_Renderer.GetDepthFormat(),
-                                            m_GameObjects };
+    SimpleRenderSystem simpleRenderSystem{ m_Device,
+                                           m_Renderer.GetSwapChainImageFormat(),
+                                           m_Renderer.GetDepthFormat(),
+                                           m_GameObjects };
+    DepthPrepassSystem depthPrepassSystem{ m_Device,
+                                           m_Renderer.GetSwapChainImageFormat(), 
+                                           m_Renderer.GetDepthFormat() };
 	Camera camera{};
     camera.SetViewTarget(glm::vec3(-1.f, -2.f, 2.f), glm::vec3(0.f, 0.f, 2.5f)); 
 
@@ -65,11 +68,12 @@ void Application::run()
 
 		if (auto commandBuffer = m_Renderer.BeginFrame())
 		{
-			m_Renderer.BeginSwapChainRenderPass(commandBuffer); 
-			simpleRenderSystem.RenderGameObjects(commandBuffer,m_GameObjects, camera); 
-            simpleRenderSystem.UpdateGameObjects(m_GameObjects, elapsedSec); 
-			m_Renderer.EndSwapChainRenderPass(commandBuffer); 
-			m_Renderer.EndFrame(); 
+            m_Renderer.BeginSwapChainRenderPass(commandBuffer);
+            depthPrepassSystem.RenderGameObjects(commandBuffer, m_GameObjects, camera);
+            simpleRenderSystem.RenderGameObjects(commandBuffer, m_GameObjects, camera); 
+            simpleRenderSystem.UpdateGameObjects(m_GameObjects, elapsedSec);
+            m_Renderer.EndSwapChainRenderPass(commandBuffer);
+            m_Renderer.EndFrame();
 		}
 
 

@@ -4,12 +4,13 @@
 #include <fstream>
 #include <iostream>
 #include <cassert>
+
 namespace cve
 {
 	Pipeline::Pipeline(	Device& device,
 						const PipelineConfigInfo& configInfo,
 						const std::string& vertFilePath,
-						const std::string& fragFilePath)
+						std::optional<const std::string> fragFilePath)
 		:m_Device{device}
 	{
 		CreateGraphicsPipeline(configInfo, vertFilePath, fragFilePath); 
@@ -17,8 +18,11 @@ namespace cve
 	Pipeline::~Pipeline()
 	{
 		vkDestroyShaderModule(m_Device.device(), m_VertShaderModule, nullptr); 
-		vkDestroyShaderModule(m_Device.device(), m_FragShaderModule, nullptr); 
-		vkDestroyPipeline(m_Device.device(), m_GraphicsPipeline, nullptr); 
+		if (m_HasFragShader)
+		{
+			vkDestroyShaderModule(m_Device.device(), m_FragShaderModule, nullptr);
+		}
+		vkDestroyPipeline(m_Device.device(), m_GraphicsPipeline, nullptr);
 
 
 
@@ -46,39 +50,52 @@ namespace cve
 	}
 	void Pipeline::CreateGraphicsPipeline(const PipelineConfigInfo& configInfo,
 		const std::string& vertFilePath,
-		const std::string& fragFilePath)
+		std::optional<const std::string> fragFilePath)
 	{
 		assert(configInfo.pipelineLayout != VK_NULL_HANDLE &&
 			"Cannot create graphics pipeline: no pipelineLayout provided in configInfo");
 
-		std::vector<char> vertCode = readFile(vertFilePath); 
-		std::vector<char> fragCode = readFile(fragFilePath); 
 
-		CreateShaderModule(vertCode, &m_VertShaderModule);
-		CreateShaderModule(fragCode, &m_FragShaderModule);
+		std::vector<char> vertCode = readFile(vertFilePath);
+		CreateShaderModule(vertCode, &m_VertShaderModule); 
 
-		const uint8_t amountOfShaders = 2; 
-		//similar to Direct3D you have to set shaderStages and specify a bunch of stuff like the kind of shader (vertex, fragment,...)
-		VkPipelineShaderStageCreateInfo shaderStages[amountOfShaders]; 
+		if (fragFilePath)
+		{
+			std::vector<char> fragCode = readFile(*fragFilePath);
+			CreateShaderModule(fragCode, &m_FragShaderModule);
+			m_HasFragShader = true; 
+		}
+		
+		std::vector<VkPipelineShaderStageCreateInfo> shaderStages; 
+
+		// vertex
+		VkPipelineShaderStageCreateInfo vertStage{};
+
 
 		//vertex shader
-		shaderStages[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO; 
-		shaderStages[0].stage = VK_SHADER_STAGE_VERTEX_BIT; 
-		shaderStages[0].module = m_VertShaderModule; 
-		shaderStages[0].pName = "main"; //name to the entry function of the shader (I guess it can be changed then if you change both the function and this name?)
-		shaderStages[0].flags = 0; 
-		shaderStages[0].pNext = nullptr; 
-		shaderStages[0].pSpecializationInfo = nullptr; 
+		vertStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO; 
+		vertStage.stage = VK_SHADER_STAGE_VERTEX_BIT; 
+		vertStage.module = m_VertShaderModule; 
+		vertStage.pName = "main"; //name to the entry function of the shader (I guess it can be changed then if you change both the function and this name?)
+		vertStage.flags = 0; 
+		vertStage.pNext = nullptr; 
+		vertStage.pSpecializationInfo = nullptr;
 
-		//fragment shader
-		shaderStages[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-		shaderStages[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-		shaderStages[1].module = m_FragShaderModule;
-		shaderStages[1].pName = "main"; //name to the entry function of the shader (I guess it can be changed then if you change both the function and this name?)
-		shaderStages[1].flags = 0;
-		shaderStages[1].pNext = nullptr;
-		shaderStages[1].pSpecializationInfo = nullptr;
+		shaderStages.push_back(vertStage);
 
+		if (m_HasFragShader)
+		{
+			VkPipelineShaderStageCreateInfo fragStage{}; 
+			//fragment shader
+			fragStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+			fragStage.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+			fragStage.module = m_FragShaderModule;
+			fragStage.pName = "main"; //name to the entry function of the shader (I guess it can be changed then if you change both the function and this name?)
+			fragStage.flags = 0;
+			fragStage.pNext = nullptr;
+			fragStage.pSpecializationInfo = nullptr;
+			shaderStages.push_back(fragStage); 
+		}
 
 		auto bindingDescriptions = Model::Vertex::GetBindingDescriptions(); 
 		auto attributeDescriptions = Model::Vertex::GetAttributeDescriptions();
@@ -93,8 +110,8 @@ namespace cve
 		//and about 5 fucking years later create the actual GraphicsPipeline object that uses all the shit that's just initialised
 		VkGraphicsPipelineCreateInfo pipelineInfo{}; 
 		pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO; 
-		pipelineInfo.stageCount = amountOfShaders; 
-		pipelineInfo.pStages = shaderStages; 
+		pipelineInfo.stageCount = shaderStages.size(); 
+		pipelineInfo.pStages = shaderStages.data(); 
 		//wire the configInfo (selfmade) struct to the pipelineInfo 
 		pipelineInfo.pVertexInputState = &vertexInputInfo;
 		pipelineInfo.pInputAssemblyState = &configInfo.inputAssemblyInfo; 
