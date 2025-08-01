@@ -58,7 +58,7 @@ void Application::run()
 
 
         float aspectRatio = m_Renderer.GetAspectRatio(); 
-        camera.SetPerspectiveProjection(glm::radians(50.f), aspectRatio, 0.1f, 4000.f); // near and far plane 
+        camera.SetPerspectiveProjection(glm::radians(50.f), aspectRatio, 100.f, 3000.f); // near and far plane 
 
 		if (auto commandBuffer = m_Renderer.BeginFrame())
 		{
