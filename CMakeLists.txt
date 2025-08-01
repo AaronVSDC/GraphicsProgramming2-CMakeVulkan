@@ -51,7 +51,7 @@ find_package(Vulkan REQUIRED)
 
 # Source files
 set(SOURCE_FILES
-  "source/main.cpp"
+  "Source/main.cpp"
   "Source/App/Core/Application.cpp"
   "Source/App/Window/Window.cpp"
   "Source/Vulkan/Pipeline/Pipeline.cpp"
@@ -65,7 +65,7 @@ set(SOURCE_FILES
   "Source/App/UserInput/UserInput.cpp"
   "Source/App/Utils/Utils.h"
   "Source/App/Renderer/RenderSystems/DepthPrepass/DepthPrepassRenderSystem.cpp"
-  "source/Vulkan/Textures/Texture.cpp"
+  "Source/Vulkan/Textures/Texture.cpp"
   "Source/App/Renderer/RenderSystems/GBuffer/GBufferRenderSystem.cpp"
 )
 

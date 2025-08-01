@@ -167,7 +167,7 @@ namespace cve {
 		depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
 		depthAttachment.imageView = m_SwapChain->getDepthImageView(m_CurrentImageIndex);
 		depthAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-		depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
 		depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		depthAttachment.clearValue.depthStencil = { 1.f,0 };
 
