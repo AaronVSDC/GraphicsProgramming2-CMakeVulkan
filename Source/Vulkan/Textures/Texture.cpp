@@ -308,8 +308,8 @@ namespace cve
     {
         VkCommandBuffer cmd = m_Device.beginSingleTimeCommands();
 
-        VkImageMemoryBarrier barrier{};
-        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        VkImageMemoryBarrier2 barrier{};
+        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
         barrier.oldLayout = oldLayout;
         barrier.newLayout = newLayout;
         barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -321,35 +321,36 @@ namespace cve
         barrier.subresourceRange.baseArrayLayer = 0;
         barrier.subresourceRange.layerCount = 1;
 
-        VkPipelineStageFlags srcStage;
-        VkPipelineStageFlags dstStage;
+        VkPipelineStageFlags2 srcStage;
+        VkPipelineStageFlags2 dstStage;
 
         if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
             newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
             barrier.srcAccessMask = 0;
             barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-            srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-            dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+            srcStage = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT; 
+            dstStage = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
         }
         else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
             newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
             barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
             barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-            srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-            dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+            srcStage = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+            dstStage = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
         }
         else {
             throw std::invalid_argument("Unsupported layout transition!");
         }
 
-        vkCmdPipelineBarrier(
-            cmd,
-            srcStage, dstStage,
-            0,
-            0, nullptr,
-            0, nullptr,
-            1, &barrier
-        );
+        barrier.srcStageMask = srcStage;
+        barrier.dstStageMask = dstStage;
+
+        VkDependencyInfo depInfo{};
+        depInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+        depInfo.imageMemoryBarrierCount = 1;
+        depInfo.pImageMemoryBarriers = &barrier;
+
+        vkCmdPipelineBarrier2(cmd, &depInfo);
 
         m_Device.endSingleTimeCommands(cmd);
     }
@@ -361,19 +362,12 @@ namespace cve
         int32_t texHeight,
         uint32_t mipLevels)
     {
-        // Check support for linear blitting
-        VkFormatProperties formatProperties;
-        vkGetPhysicalDeviceFormatProperties(
-            m_Device.getPhysicalDevice(), imageFormat, &formatProperties);
-        if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)) {
-            throw std::runtime_error("Texture m_Image format does not support linear blitting!");
-        }
 
         VkCommandBuffer cmd = m_Device.beginSingleTimeCommands();
 
         for (uint32_t i = 1; i < mipLevels; i++) {
-            VkImageMemoryBarrier barrier{};
-            barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            VkImageMemoryBarrier2 barrier{};
+            barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
             barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
             barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
             barrier.image = image;
@@ -389,14 +383,15 @@ namespace cve
             barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
             barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 
-            vkCmdPipelineBarrier(
-                cmd,
-                VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                0,
-                0, nullptr,
-                0, nullptr,
-                1, &barrier
-            );
+            barrier.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+            barrier.dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+
+            VkDependencyInfo depInfo{};
+            depInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+            depInfo.imageMemoryBarrierCount = 1;
+            depInfo.pImageMemoryBarriers = &barrier;
+
+            vkCmdPipelineBarrier2(cmd, &depInfo);
 
             // Blit from level i-1 to level i
             VkImageBlit blit{};
@@ -428,19 +423,20 @@ namespace cve
             barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
             barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
-            vkCmdPipelineBarrier(
-                cmd,
-                VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-                0,
-                0, nullptr,
-                0, nullptr,
-                1, &barrier
-            );
+            barrier.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+            barrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+
+            VkDependencyInfo depInfo2{};
+            depInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+            depInfo.imageMemoryBarrierCount = 1;
+            depInfo.pImageMemoryBarriers = &barrier;
+             
+            vkCmdPipelineBarrier2(cmd, &depInfo2);
         }
 
         // Transition last mip level to SHADER_READ_ONLY
-        VkImageMemoryBarrier barrierLast{};
-        barrierLast.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        VkImageMemoryBarrier2 barrierLast{};
+        barrierLast.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
         barrierLast.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
         barrierLast.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         barrierLast.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -454,14 +450,15 @@ namespace cve
         barrierLast.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
         barrierLast.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
-        vkCmdPipelineBarrier(
-            cmd,
-            VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-            0,
-            0, nullptr,
-            0, nullptr,
-            1, &barrierLast
-        );
+        barrierLast.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+        barrierLast.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+
+        VkDependencyInfo depInfoLast{};
+        depInfoLast.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+        depInfoLast.imageMemoryBarrierCount = 1;
+        depInfoLast.pImageMemoryBarriers = &barrierLast;
+
+        vkCmdPipelineBarrier2(cmd, &depInfoLast);
 
         m_Device.endSingleTimeCommands(cmd);
     }

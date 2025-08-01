@@ -35,8 +35,21 @@ namespace cve
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         }
 
+
+
+        // 2) compute magnitude of the 2D mouse delta
+        float deltaMag = glm::length(rotate);
+
+        // 3) pick a scale in [m_LowSens…m_HighSens]
+        float sensScale = (deltaMag < m_ThresholdPx)
+            ? glm::mix(m_LowSens, m_HighSens, deltaMag / m_ThresholdPx)
+            : m_HighSens;
+
+
         if (glm::dot(rotate, rotate) > std::numeric_limits<float>::epsilon()) {
-            gameObject.m_Transform.rotation += m_LookSpeed * elapsedSec * glm::normalize(glm::vec3(rotate, 0.0f));
+            // 4) apply scaled rotation
+            glm::vec3 deltaRot = glm::vec3(rotate * sensScale, 0.0f);
+            gameObject.m_Transform.rotation += m_LookSpeed * elapsedSec * deltaRot;
         }
 
         // Clamp pitch (x) and wrap yaw (y)

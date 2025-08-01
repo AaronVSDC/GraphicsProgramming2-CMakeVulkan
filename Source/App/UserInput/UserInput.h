@@ -42,7 +42,12 @@ namespace cve
         float m_SprintMultiplier = 2.0f;   // sprint speed multiplier
         float m_Acceleration = 1000.f;  // acceleration/deceleration (units/sec^2)
 
-        // Key mapping structure
+        // Mouse sensitivity smoothing
+        float    m_LowSens = 0.2f;    // sensitivity factor when very slight
+        float    m_HighSens = 1.0f;    // full sensitivity beyond threshold
+        float    m_ThresholdPx = 2.0f;    // how many pixels before we hit full sens
+
+        
         KeyMappings m_Keys;
 
 
