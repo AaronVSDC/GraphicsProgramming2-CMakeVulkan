@@ -22,11 +22,13 @@ namespace cve
         CreatePipeline(colorFormats, depthFormat);
     }
 
-    GBufferRenderSystem::~GBufferRenderSystem() {
+    GBufferRenderSystem::~GBufferRenderSystem()
+	{
         vkDestroyPipelineLayout(m_Device.device(), m_PipelineLayout, nullptr);
     }
 
-    void GBufferRenderSystem::CreatePipelineLayout() {
+    void GBufferRenderSystem::CreatePipelineLayout()
+	{
         VkPushConstantRange pushConstantRange{};
         pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
         pushConstantRange.offset = 0;

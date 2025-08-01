@@ -45,6 +45,7 @@ namespace cve {
 
 		m_ImageInitialized = std::vector<bool>(m_SwapChain->imageCount(), false);
 		m_DepthInitialized = std::vector<bool>(m_SwapChain->imageCount(), false);
+		m_GBufferInitialized = std::vector<bool>(m_SwapChain->imageCount(), false);
 	}
 	void Renderer::CreateCommandBuffers()
 	{
@@ -127,7 +128,7 @@ namespace cve {
 	}
 
 	void Renderer::BeginDynamicRendering(VkCommandBuffer commandBuffer)
-	{
+	{ 
 		assert(m_IsFrameStarted && "Cant call BeginDynamicRendering while frame is not in progress");
 		assert(commandBuffer == GetCurrentCommandBuffer() && "Can't begin render pass on command buffer from a different frame"); 
 
@@ -152,6 +153,7 @@ namespace cve {
 				VK_IMAGE_ASPECT_DEPTH_BIT);
 			m_DepthInitialized[m_CurrentImageIndex] = true;
 		}
+
 
 		VkRenderingAttachmentInfo colorAttachment{};
 		colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
@@ -211,6 +213,109 @@ namespace cve {
 		m_ImageInitialized[m_CurrentImageIndex] = true;
 
 	}
+
+	void Renderer::BeginGBufferRendering(VkCommandBuffer commandBuffer)
+	{
+		assert(m_IsFrameStarted && "Cant call BeginGBufferRenderPass while frame is not in progress");
+		assert(commandBuffer == GetCurrentCommandBuffer() && "Can't begin render pass on command buffer from a different frame");
+
+		VkImageLayout oldAlbedo = m_GBufferInitialized[m_CurrentImageIndex]
+			? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+			: VK_IMAGE_LAYOUT_UNDEFINED;
+		VkImageLayout oldNormal = oldAlbedo;
+
+		TransitionImageLayout(
+			commandBuffer,
+			m_SwapChain->getAlbedoImage(m_CurrentImageIndex),
+			oldAlbedo,
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			VK_IMAGE_ASPECT_COLOR_BIT);
+
+		TransitionImageLayout(
+			commandBuffer,
+			m_SwapChain->getNormalImage(m_CurrentImageIndex),
+			oldNormal,
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			VK_IMAGE_ASPECT_COLOR_BIT);
+
+		if (!m_DepthInitialized[m_CurrentImageIndex])
+		{
+			TransitionImageLayout(
+				commandBuffer,
+				m_SwapChain->getDepthImage(m_CurrentImageIndex),
+				VK_IMAGE_LAYOUT_UNDEFINED,
+				VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+				VK_IMAGE_ASPECT_DEPTH_BIT);
+			m_DepthInitialized[m_CurrentImageIndex] = true;
+		}
+
+		VkRenderingAttachmentInfo colorAttachments[2]{};
+		colorAttachments[0].sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+		colorAttachments[0].imageView = m_SwapChain->getAlbedoImageView(m_CurrentImageIndex);
+		colorAttachments[0].imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		colorAttachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		colorAttachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		colorAttachments[0].clearValue.color = { 0.f, 0.f, 0.f, 1.f };
+
+		colorAttachments[1] = colorAttachments[0];
+		colorAttachments[1].imageView = m_SwapChain->getNormalImageView(m_CurrentImageIndex);
+
+		VkRenderingAttachmentInfo depthAttachment{};
+		depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+		depthAttachment.imageView = m_SwapChain->getDepthImageView(m_CurrentImageIndex);
+		depthAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		depthAttachment.clearValue.depthStencil = { 1.f,0 };
+
+		VkRenderingInfo renderingInfo{};
+		renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+		renderingInfo.renderArea.offset = { 0,0 };
+		renderingInfo.renderArea.extent = m_SwapChain->getSwapChainExtent();
+		renderingInfo.layerCount = 1;
+		renderingInfo.colorAttachmentCount = 2;
+		renderingInfo.pColorAttachments = colorAttachments;
+		renderingInfo.pDepthAttachment = &depthAttachment;
+
+		vkCmdBeginRendering(commandBuffer, &renderingInfo);
+
+		VkViewport viewport{};
+		viewport.x = 0.f;
+		viewport.y = 0.f;
+		viewport.width = static_cast<float>(m_SwapChain->getSwapChainExtent().width);
+		viewport.height = static_cast<float>(m_SwapChain->getSwapChainExtent().height);
+		viewport.minDepth = 0.f;
+		viewport.maxDepth = 1.f;
+		VkRect2D scissor{ {0,0}, m_SwapChain->getSwapChainExtent() };
+		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+
+	}
+
+	void Renderer::EndGBufferRendering(VkCommandBuffer commandBuffer)
+	{
+		assert(m_IsFrameStarted && "Cant call EndGBufferRenderPass while frame is not in progress");
+		assert(commandBuffer == GetCurrentCommandBuffer() && "Can't end render pass on command buffer from a different frame");
+
+		vkCmdEndRendering(commandBuffer);
+
+		TransitionImageLayout(
+			commandBuffer,
+			m_SwapChain->getAlbedoImage(m_CurrentImageIndex),
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			VK_IMAGE_ASPECT_COLOR_BIT);
+
+		TransitionImageLayout(
+			commandBuffer,
+			m_SwapChain->getNormalImage(m_CurrentImageIndex),
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			VK_IMAGE_ASPECT_COLOR_BIT);
+		m_GBufferInitialized[m_CurrentImageIndex] = true;
+	}
+
+
 
 	void Renderer::TransitionImageLayout(
 		VkCommandBuffer commandBuffer,

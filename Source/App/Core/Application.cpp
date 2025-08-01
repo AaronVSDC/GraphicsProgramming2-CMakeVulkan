@@ -3,6 +3,7 @@
 #include "Camera.h"
 #include "UserInput.h"
 #include "DepthPrepassRenderSystem.h"
+#include "GBufferRenderSystem.h"
 //libs
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -32,6 +33,12 @@ void Application::run()
                                            m_Renderer.GetSwapChainImageFormat(),
                                            m_Renderer.GetDepthFormat(),
                                            m_GameObjects };
+
+    std::vector<VkFormat> gBufferFormats = { VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_R16G16B16A16_SFLOAT };
+    GBufferRenderSystem gBufferSystem{ m_Device,
+                                       gBufferFormats,
+                                       m_Renderer.GetDepthFormat() };
+
     DepthPrepassSystem depthPrepassSystem{ m_Device,
                                            m_Renderer.GetSwapChainImageFormat(), 
                                            m_Renderer.GetDepthFormat() };
@@ -68,8 +75,12 @@ void Application::run()
 
 		if (auto commandBuffer = m_Renderer.BeginFrame())
 		{
-            m_Renderer.BeginDynamicRendering(commandBuffer);
+            m_Renderer.BeginGBufferRendering(commandBuffer);
             depthPrepassSystem.RenderGameObjects(commandBuffer, m_GameObjects, camera);
+            gBufferSystem.RenderGameObjects(commandBuffer, m_GameObjects, camera); 
+            m_Renderer.EndGBufferRendering(commandBuffer);
+
+            m_Renderer.BeginDynamicRendering(commandBuffer);
             simpleRenderSystem.RenderGameObjects(commandBuffer, m_GameObjects, camera); 
             simpleRenderSystem.UpdateGameObjects(m_GameObjects, elapsedSec);
             m_Renderer.EndDynamicRendering(commandBuffer);

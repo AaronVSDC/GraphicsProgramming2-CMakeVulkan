@@ -24,6 +24,8 @@ namespace cve {
 		void EndFrame(); 
 		void BeginDynamicRendering(VkCommandBuffer commandBuffer);
 		void EndDynamicRendering(VkCommandBuffer commandBuffer);
+		void BeginGBufferRendering(VkCommandBuffer commandBuffer);
+		void EndGBufferRendering(VkCommandBuffer commandBuffer);
 
 
 
@@ -65,6 +67,7 @@ namespace cve {
 		bool m_IsFrameStarted = false;
 		std::vector<bool> m_ImageInitialized;
 		std::vector<bool> m_DepthInitialized;
+		std::vector<bool> m_GBufferInitialized;
 	};
 
 }

@@ -25,8 +25,12 @@ namespace cve {
 
 		VkImageView getImageView(int index) { return swapChainImageViews[index]; }
 		VkImageView getDepthImageView(int index) { return depthImageViews[index]; }
+		VkImageView getAlbedoImageView(int index) { return gAlbedoImageViews[index]; }
+		VkImageView getNormalImageView(int index) { return gNormalImageViews[index]; }
 		VkImage getImage(int index) { return swapChainImages[index]; }
 		VkImage getDepthImage(int index) { return depthImages[index]; }
+		VkImage getAlbedoImage(int index) { return gAlbedoImages[index]; }
+		VkImage getNormalImage(int index) { return gNormalImages[index]; }
 		size_t imageCount() { return swapChainImages.size(); } 
 		VkFormat getSwapChainImageFormat() const { return swapChainImageFormat; }
 		VkExtent2D getSwapChainExtent() const { return swapChainExtent; }
@@ -52,6 +56,7 @@ namespace cve {
 		void createSwapChain();
 		void createImageViews();
 		void createDepthResources();
+		void createGBufferResources();
 		void createSyncObjects();
 
 		// Helper functions
@@ -70,6 +75,12 @@ namespace cve {
 		std::vector<VkImageView> depthImageViews;
 		std::vector<VkImage> swapChainImages;
 		std::vector<VkImageView> swapChainImageViews;
+		std::vector<VkImage> gAlbedoImages;
+		std::vector<VkDeviceMemory> gAlbedoImageMemorys;
+		std::vector<VkImageView> gAlbedoImageViews;
+		std::vector<VkImage> gNormalImages;
+		std::vector<VkDeviceMemory> gNormalImageMemorys;
+		std::vector<VkImageView> gNormalImageViews; 
 
 		Device& device;
 		VkExtent2D windowExtent;

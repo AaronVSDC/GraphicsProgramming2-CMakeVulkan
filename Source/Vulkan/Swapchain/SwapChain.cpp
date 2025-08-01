@@ -30,6 +30,7 @@ namespace cve {
 		createSwapChain();
 		createImageViews();
 		createDepthResources();
+		createGBufferResources(); 
 		createSyncObjects();
 	}
 
@@ -38,6 +39,12 @@ namespace cve {
 			vkDestroyImageView(device.device(), imageView, nullptr);
 		}
 		swapChainImageViews.clear();
+		gAlbedoImageViews.clear();
+		gAlbedoImages.clear();
+		gAlbedoImageMemorys.clear();
+		gNormalImageViews.clear();
+		gNormalImages.clear();
+		gNormalImageMemorys.clear();
 
 		if (swapChain != nullptr) {
 			vkDestroySwapchainKHR(device.device(), swapChain, nullptr);
@@ -48,6 +55,12 @@ namespace cve {
 			vkDestroyImageView(device.device(), depthImageViews[i], nullptr);
 			vkDestroyImage(device.device(), depthImages[i], nullptr);
 			vkFreeMemory(device.device(), depthImageMemorys[i], nullptr);
+			vkDestroyImageView(device.device(), gAlbedoImageViews[i], nullptr);
+			vkDestroyImage(device.device(), gAlbedoImages[i], nullptr);
+			vkFreeMemory(device.device(), gAlbedoImageMemorys[i], nullptr);
+			vkDestroyImageView(device.device(), gNormalImageViews[i], nullptr);
+			vkDestroyImage(device.device(), gNormalImages[i], nullptr);
+			vkFreeMemory(device.device(), gNormalImageMemorys[i], nullptr);
 		}
 
 		// cleanup synchronization objects
@@ -215,6 +228,69 @@ namespace cve {
 		}
 	}
 
+	void SwapChain::createGBufferResources()
+	{
+		VkExtent2D swapChainExtent = getSwapChainExtent();
+		VkFormat albedoFormat = VK_FORMAT_R8G8B8A8_UNORM;
+		VkFormat normalFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
+
+		gAlbedoImages.resize(imageCount());
+		gAlbedoImageMemorys.resize(imageCount());
+		gAlbedoImageViews.resize(imageCount());
+		gNormalImages.resize(imageCount());
+		gNormalImageMemorys.resize(imageCount());
+		gNormalImageViews.resize(imageCount());
+
+		for (int i = 0; i < imageCount(); i++) {
+			VkImageCreateInfo imageInfo{};
+			imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+			imageInfo.imageType = VK_IMAGE_TYPE_2D;
+			imageInfo.extent.width = swapChainExtent.width;
+			imageInfo.extent.height = swapChainExtent.height;
+			imageInfo.extent.depth = 1;
+			imageInfo.mipLevels = 1;
+			imageInfo.arrayLayers = 1;
+			imageInfo.format = albedoFormat;
+			imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+			imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			imageInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+			imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+			imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+			device.createImageWithInfo(
+				imageInfo,
+				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+				gAlbedoImages[i],
+				gAlbedoImageMemorys[i]);
+
+			VkImageViewCreateInfo viewInfo{};
+			viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+			viewInfo.image = gAlbedoImages[i];
+			viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+			viewInfo.format = albedoFormat;
+			viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			viewInfo.subresourceRange.baseMipLevel = 0;
+			viewInfo.subresourceRange.levelCount = 1;
+			viewInfo.subresourceRange.baseArrayLayer = 0;
+			viewInfo.subresourceRange.layerCount = 1;
+			if (vkCreateImageView(device.device(), &viewInfo, nullptr, &gAlbedoImageViews[i]) != VK_SUCCESS) {
+				throw std::runtime_error("failed to create gbuffer albedo image view");
+			}
+
+			imageInfo.format = normalFormat;
+			device.createImageWithInfo(
+				imageInfo,
+				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+				gNormalImages[i],
+				gNormalImageMemorys[i]);
+
+			viewInfo.image = gNormalImages[i];
+			viewInfo.format = normalFormat;
+			if (vkCreateImageView(device.device(), &viewInfo, nullptr, &gNormalImageViews[i]) != VK_SUCCESS) {
+				throw std::runtime_error("failed to create gbuffer normal image view");
+			}
+		}
+	}
 
 	void SwapChain::createDepthResources() {
 		VkFormat depthFormat = findDepthFormat();
