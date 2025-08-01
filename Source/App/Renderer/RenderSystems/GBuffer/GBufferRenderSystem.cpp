@@ -56,6 +56,13 @@ namespace cve
         Pipeline::DefaultPipelineConfigInfo(config);
         config.renderPass = VK_NULL_HANDLE;
         config.colorAttachmentFormats = colorFormats;
+        std::vector<VkPipelineColorBlendAttachmentState> blendAttachments(colorFormats.size());
+        for (auto& ba : blendAttachments)
+        {
+            ba = config.colorBlendAttachment;
+        }
+        config.colorBlendInfo.attachmentCount = static_cast<uint32_t>(blendAttachments.size()); 
+        config.colorBlendInfo.pAttachments = blendAttachments.data();
         config.depthAttachmentFormat = depthFormat;
         config.depthStencilInfo.depthCompareOp = VK_COMPARE_OP_EQUAL;
         config.depthStencilInfo.depthWriteEnable = VK_FALSE;
