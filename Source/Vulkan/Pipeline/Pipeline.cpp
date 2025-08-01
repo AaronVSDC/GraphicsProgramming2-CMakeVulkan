@@ -97,6 +97,7 @@ namespace cve
 			shaderStages.push_back(fragStage); 
 		}
 
+
 		auto bindingDescriptions = Model::Vertex::GetBindingDescriptions(); 
 		auto attributeDescriptions = Model::Vertex::GetAttributeDescriptions();
 		//this struct describes how we interpret the vertexbuffer data (initial input) into the graphics pipeline

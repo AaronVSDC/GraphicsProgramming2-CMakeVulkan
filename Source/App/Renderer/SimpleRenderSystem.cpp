@@ -65,11 +65,15 @@ namespace cve {
 		assert(m_PipelineLayout != nullptr && "Cannot create pipeline before pipeline layout");
 
 		PipelineConfigInfo pipelineConfig{};
-		Pipeline::DefaultPipelineConfigInfo(pipelineConfig);
-		pipelineConfig.renderPass = VK_NULL_HANDLE;
-		pipelineConfig.colorAttachmentFormats = { colorFormat };
-		pipelineConfig.depthAttachmentFormat = depthFormat;
-		pipelineConfig.pipelineLayout = m_PipelineLayout;
+        Pipeline::DefaultPipelineConfigInfo(pipelineConfig);
+        pipelineConfig.renderPass = VK_NULL_HANDLE;
+        pipelineConfig.colorAttachmentFormats = { colorFormat };
+        pipelineConfig.depthAttachmentFormat = depthFormat;
+        // Depth pre-pass fills the depth buffer, so only draw fragments that
+        // match the existing depth values and avoid writing depth again
+        pipelineConfig.depthStencilInfo.depthCompareOp = VK_COMPARE_OP_EQUAL;
+        pipelineConfig.depthStencilInfo.depthWriteEnable = VK_FALSE;
+        pipelineConfig.pipelineLayout = m_PipelineLayout;
 
 		m_pPipeline = std::make_unique<Pipeline>(
 			m_Device,
