@@ -104,7 +104,7 @@ namespace cve {
 				);
 
 				gameObject.m_Model->Bind(commandBuffer);
-				gameObject.m_Model->Draw(commandBuffer);
+				gameObject.m_Model->Draw(commandBuffer, sm.indexCount, sm.firstIndex); 
 			}
 		}
 	}

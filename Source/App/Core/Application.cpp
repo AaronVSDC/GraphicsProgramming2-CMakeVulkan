@@ -73,18 +73,15 @@ void Application::run()
         //fps
         ++frameCount;
         fpsTimer += elapsedSec;
-
-        // once a second has passed, print & reset
-        if (fpsTimer >= 1.0f) {
+		if (fpsTimer >= 1.0f) {
             float fps = frameCount / fpsTimer;
             std::cout
                 << "\rFPS: "
                 << std::fixed << std::setprecision(1)
                 << fps
-                << "   "          // padding to clear leftover chars
+                << "   "         
                 << std::flush;
 
-            // subtract exactly one second (carry over any extra)
             fpsTimer -= 1.0f;
             frameCount = 0;
         }

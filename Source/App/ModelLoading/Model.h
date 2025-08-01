@@ -69,7 +69,7 @@ namespace cve
 		static std::unique_ptr<Model> CreateModelFromFile(Device& device, const std::string& filepath); 
 
 		void Bind(VkCommandBuffer commandBuffer);
-		void Draw(VkCommandBuffer commandBuffer);
+		void Draw(VkCommandBuffer commandBuffer, uint32_t indexCount, uint32_t firstIndex);
 
 		Data& getData() { return m_Data;  };
 

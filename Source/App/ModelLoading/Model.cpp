@@ -88,15 +88,15 @@ namespace cve
 
 	}
 
-	void Model::Draw(VkCommandBuffer commandBuffer)
+	void Model::Draw(VkCommandBuffer commandBuffer, uint32_t indexCount, uint32_t firstIndex)
 	{
 		if (m_HasIndexBuffer)
 		{
-			vkCmdDrawIndexed(commandBuffer, m_IndexCount, 1, 0, 0, 0); 
+			vkCmdDrawIndexed(commandBuffer, indexCount, 1, firstIndex, 0, 0);
 		}
 		else
 		{
-			vkCmdDraw(commandBuffer, m_VertexCount, 1, 0, 0);
+			vkCmdDraw(commandBuffer, indexCount, 1, firstIndex, 0);
 		}
 	}
 
@@ -225,10 +225,10 @@ namespace cve
 				
 				materials[i].diffuseTex = "Missing_Texture.png";
 			}
-			if (mat->GetTextureCount(aiTextureType_NORMALS) > 0 and mat->GetTexture(aiTextureType_NORMALS, 0, &path) == AI_SUCCESS)
-			{
-				materials[i].normalTex = path.C_Str();
-			}
+			//if (mat->GetTextureCount(aiTextureType_NORMALS) > 0 and mat->GetTexture(aiTextureType_NORMALS, 0, &path) == AI_SUCCESS)
+			//{
+			//	materials[i].normalTex = path.C_Str();
+			//}
 			//TODO: add everything you want to read in (every type of texture like the two examples above)
 
 		}
