@@ -11,7 +11,7 @@ layout(location = 1) out vec2 fragUV;     // new: carry UV
 layout(push_constant) uniform Push {
     mat4 transform;     // projection * view * model
     mat4 modelMatrix;
-    uint materialIndex;
+    uint materialIndex; 
 } push;
 
 const vec3 DIRECTION_TO_LIGHT = normalize(vec3(1.0, -3.0, -1.0));

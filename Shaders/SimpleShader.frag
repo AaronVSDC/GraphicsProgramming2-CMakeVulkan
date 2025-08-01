@@ -1,6 +1,6 @@
 #version 450
 #extension GL_EXT_nonuniform_qualifier : require
-
+ 
 layout(set = 0, binding = 0) uniform sampler2D u_Textures[];
 
 layout(push_constant) uniform Push {
@@ -9,11 +9,10 @@ layout(push_constant) uniform Push {
     uint materialIndex;
 } push;
 
-// **Match both outputs from the VS**:
-layout(location = 0) in vec3 litColor;
-layout(location = 1) in vec2 fragUV;
+// **READ BOTH varyings** at the same locations you wrote them:
+layout(location = 0) in  vec3  litColor;
+layout(location = 1) in  vec2  fragUV;
 
-// Single color output
 layout(location = 0) out vec4 outColor;
 
 void main() {

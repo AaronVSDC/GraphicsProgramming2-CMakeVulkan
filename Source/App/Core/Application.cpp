@@ -37,6 +37,9 @@ void Application::run()
 
     auto currentTime = std::chrono::high_resolution_clock::now(); 
 
+    float fpsTimer = 0.0f;
+    int   frameCount = 0;
+
     //main loop
 	while (!m_Window.ShouldClose())
 	{
@@ -55,7 +58,7 @@ void Application::run()
 
 
         float aspectRatio = m_Renderer.GetAspectRatio(); 
-        camera.SetPerspectiveProjection(glm::radians(50.f), aspectRatio, 0.1f, 1000.f); // near and far plane 
+        camera.SetPerspectiveProjection(glm::radians(50.f), aspectRatio, 0.1f, 4000.f); // near and far plane 
 
 		if (auto commandBuffer = m_Renderer.BeginFrame())
 		{
@@ -65,6 +68,26 @@ void Application::run()
 			m_Renderer.EndSwapChainRenderPass(commandBuffer); 
 			m_Renderer.EndFrame(); 
 		}
+
+
+        //fps
+        ++frameCount;
+        fpsTimer += elapsedSec;
+
+        // once a second has passed, print & reset
+        if (fpsTimer >= 1.0f) {
+            float fps = frameCount / fpsTimer;
+            std::cout
+                << "\rFPS: "
+                << std::fixed << std::setprecision(1)
+                << fps
+                << "   "          // padding to clear leftover chars
+                << std::flush;
+
+            // subtract exactly one second (carry over any extra)
+            fpsTimer -= 1.0f;
+            frameCount = 0;
+        }
 	}
 
 	vkDeviceWaitIdle(m_Device.device());
@@ -84,7 +107,7 @@ void Application::LoadGameObjects()
     gameObj.m_Model = vikingRoomModel;
     gameObj.m_Transform.translation = { 0.f,100.f,0.f }; 
     gameObj.m_Transform.scale = glm::vec3(1.f); 
-    gameObj.m_Transform.rotation = { 0.f, 0.f,glm::radians(180.f) };
+    gameObj.m_Transform.rotation = { 0.f, glm::radians(-90.f),glm::radians(180.f) };
 
     m_GameObjects.push_back(std::move(gameObj)); 
 
