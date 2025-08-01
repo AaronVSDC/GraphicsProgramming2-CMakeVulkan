@@ -25,7 +25,9 @@ namespace cve {
 
 		VkImageView getImageView(int index) { return swapChainImageViews[index]; }
 		VkImageView getDepthImageView(int index) { return depthImageViews[index]; }
-		size_t imageCount() { return swapChainImages.size(); }
+		VkImage getImage(int index) { return swapChainImages[index]; }
+		VkImage getDepthImage(int index) { return depthImages[index]; }
+		size_t imageCount() { return swapChainImages.size(); } 
 		VkFormat getSwapChainImageFormat() const { return swapChainImageFormat; }
 		VkExtent2D getSwapChainExtent() const { return swapChainExtent; }
 		uint32_t width() const { return swapChainExtent.width; }

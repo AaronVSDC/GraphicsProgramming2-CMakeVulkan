@@ -28,7 +28,8 @@ namespace cve {
 
 
 		VkFormat GetSwapChainImageFormat() const { return m_SwapChain->getSwapChainImageFormat(); }
-		VkFormat GetDepthFormat() const { return m_SwapChain->findDepthFormat(); }		float GetAspectRatio() const { return m_SwapChain->extentAspectRatio();  } 
+		VkFormat GetDepthFormat() const { return m_SwapChain->findDepthFormat(); }
+		float GetAspectRatio() const { return m_SwapChain->extentAspectRatio();  } 
 
 		bool IsFrameInProgress() const { return m_IsFrameStarted; }
 		VkCommandBuffer GetCurrentCommandBuffer() const
@@ -45,6 +46,12 @@ namespace cve {
 		void CreateCommandBuffers();
 		void FreeCommandBuffers();
 		void RecreateSwapChain();
+		void TransitionImageLayout(
+			VkCommandBuffer commandBuffer,
+			VkImage image,
+			VkImageLayout oldLayout,
+			VkImageLayout newLayout,
+			VkImageAspectFlags aspectMask);
 
 
 		Window& m_Window;
@@ -53,9 +60,11 @@ namespace cve {
 		std::vector<VkCommandBuffer> m_CommandBuffers;
 
 
-		uint32_t m_CurrentImageIndex; 
-		int m_CurrentFrameIndex = 0; 
+		uint32_t m_CurrentImageIndex;
+		int m_CurrentFrameIndex = 0;
 		bool m_IsFrameStarted = false;
+		std::vector<bool> m_ImageInitialized;
+		std::vector<bool> m_DepthInitialized;
 	};
 
 }

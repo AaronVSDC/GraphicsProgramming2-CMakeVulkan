@@ -34,7 +34,7 @@ namespace cve {
 		}
 		else
 		{
-			std::shared_ptr<SwapChain> oldSwapChain = std::move(m_SwapChain); 
+			std::shared_ptr<SwapChain> oldSwapChain = std::move(m_SwapChain);
 			m_SwapChain = std::make_unique<SwapChain>(m_Device, extent, oldSwapChain);
 
 			if (!oldSwapChain->compareSwapFormats(*m_SwapChain.get()))
@@ -42,6 +42,9 @@ namespace cve {
 				throw std::runtime_error("Swap chain image or depth has changed :)");
 			}
 		}
+
+		m_ImageInitialized = std::vector<bool>(m_SwapChain->imageCount(), false);
+		m_DepthInitialized = std::vector<bool>(m_SwapChain->imageCount(), false);
 	}
 	void Renderer::CreateCommandBuffers()
 	{
@@ -129,6 +132,27 @@ namespace cve {
 		assert(commandBuffer == GetCurrentCommandBuffer() && "Can't begin render pass on command buffer from a different frame"); 
 
 
+		VkImageLayout oldLayout = m_ImageInitialized[m_CurrentImageIndex]
+			? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+			: VK_IMAGE_LAYOUT_UNDEFINED;
+		TransitionImageLayout(
+			commandBuffer,
+			m_SwapChain->getImage(m_CurrentImageIndex),
+			oldLayout,
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			VK_IMAGE_ASPECT_COLOR_BIT);
+
+		if (!m_DepthInitialized[m_CurrentImageIndex])
+		{
+			TransitionImageLayout(
+				commandBuffer,
+				m_SwapChain->getDepthImage(m_CurrentImageIndex),
+				VK_IMAGE_LAYOUT_UNDEFINED,
+				VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+				VK_IMAGE_ASPECT_DEPTH_BIT);
+			m_DepthInitialized[m_CurrentImageIndex] = true;
+		}
+
 		VkRenderingAttachmentInfo colorAttachment{};
 		colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
 		colorAttachment.imageView = m_SwapChain->getImageView(m_CurrentImageIndex);
@@ -178,5 +202,79 @@ namespace cve {
 
 		vkCmdEndRendering(commandBuffer);
 
+		TransitionImageLayout(
+			commandBuffer,
+			m_SwapChain->getImage(m_CurrentImageIndex),
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+			VK_IMAGE_ASPECT_COLOR_BIT);
+		m_ImageInitialized[m_CurrentImageIndex] = true;
+
 	}
+
+	void Renderer::TransitionImageLayout(
+		VkCommandBuffer commandBuffer,
+		VkImage image,
+		VkImageLayout oldLayout,
+		VkImageLayout newLayout,
+		VkImageAspectFlags aspectMask)
+	{
+		VkImageMemoryBarrier barrier{};
+		barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		barrier.oldLayout = oldLayout;
+		barrier.newLayout = newLayout;
+		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		barrier.image = image;
+		barrier.subresourceRange.aspectMask = aspectMask;
+		barrier.subresourceRange.baseMipLevel = 0;
+		barrier.subresourceRange.levelCount = 1;
+		barrier.subresourceRange.baseArrayLayer = 0;
+		barrier.subresourceRange.layerCount = 1;
+
+		VkPipelineStageFlags srcStage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+		VkPipelineStageFlags dstStage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+		barrier.srcAccessMask = 0;
+		barrier.dstAccessMask = 0;
+
+		if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+		{
+			barrier.srcAccessMask = 0;
+			barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+			dstStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		}
+		else if (oldLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR && newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+		{
+			barrier.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+			barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			srcStage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+			dstStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		}
+		else if (oldLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
+		{
+			barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+			srcStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			dstStage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+		}
+		else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
+		{
+			barrier.srcAccessMask = 0;
+			barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+			srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+			dstStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+		}
+
+		vkCmdPipelineBarrier(
+			commandBuffer,
+			srcStage,
+			dstStage,
+			0,
+			0, nullptr,
+			0, nullptr,
+			1, &barrier);
+	}
+
+	
 }
