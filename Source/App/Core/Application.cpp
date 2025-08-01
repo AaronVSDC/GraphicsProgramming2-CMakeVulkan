@@ -40,8 +40,8 @@ void Application::run()
                                        m_Renderer.GetDepthFormat() };
 
     DepthPrepassSystem depthPrepassSystem{ m_Device,
-                                           m_Renderer.GetSwapChainImageFormat(), 
-                                           m_Renderer.GetDepthFormat() };
+                                            gBufferFormats,
+                                            m_Renderer.GetDepthFormat() };
 	Camera camera{};
     camera.SetViewTarget(glm::vec3(-1.f, -2.f, 2.f), glm::vec3(0.f, 0.f, 2.5f)); 
 

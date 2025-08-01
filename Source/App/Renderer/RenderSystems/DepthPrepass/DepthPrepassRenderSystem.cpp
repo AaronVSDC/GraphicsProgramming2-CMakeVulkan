@@ -13,11 +13,11 @@ namespace cve
         glm::mat4 transform{ 1.f }; 
     };
 
-    DepthPrepassSystem::DepthPrepassSystem(Device& device, VkFormat colorFormat, VkFormat depthFormat) 
-        : m_Device{ device }
+    DepthPrepassSystem::DepthPrepassSystem(Device& device, const std::vector<VkFormat>& colorFormats, VkFormat depthFormat)
+	: m_Device{ device }
     {
         CreatePipelineLayout();
-        CreatePipeline(colorFormat, depthFormat); 
+        CreatePipeline(colorFormats, depthFormat); 
     }
 
     DepthPrepassSystem::~DepthPrepassSystem()
@@ -44,15 +44,20 @@ namespace cve
         }
     }
 
-    void DepthPrepassSystem::CreatePipeline(VkFormat colorFormat, VkFormat depthFormat)
-    {
+    void DepthPrepassSystem::CreatePipeline(const std::vector<VkFormat>& colorFormats, VkFormat depthFormat)
+	{
         assert(m_PipelineLayout != VK_NULL_HANDLE && "Cannot create pipeline before layout");
         PipelineConfigInfo config{};
         Pipeline::DefaultPipelineConfigInfo(config);
-        config.colorAttachmentFormats = { colorFormat };
-        config.colorBlendAttachment.colorWriteMask = 0;
-        config.colorBlendInfo.attachmentCount = 1;
-        config.colorBlendInfo.pAttachments = &config.colorBlendAttachment;
+        config.colorAttachmentFormats = colorFormats;
+        std::vector<VkPipelineColorBlendAttachmentState> blendAttachments(colorFormats.size());
+        for (auto& ba : blendAttachments) 
+        {
+            ba = config.colorBlendAttachment;
+            ba.colorWriteMask = 0;
+        }
+        config.colorBlendInfo.attachmentCount = static_cast<uint32_t>(blendAttachments.size());
+        config.colorBlendInfo.pAttachments = blendAttachments.data();
         config.depthAttachmentFormat = depthFormat;
         config.pipelineLayout = m_PipelineLayout;
 

@@ -9,8 +9,10 @@ namespace cve
     class DepthPrepassSystem final
     {
     public:
-        DepthPrepassSystem(Device& device, VkFormat colorFormat, VkFormat depthFormat);
-        ~DepthPrepassSystem();
+        DepthPrepassSystem(Device& device,
+            const std::vector<VkFormat>& colorFormats,
+            VkFormat depthFormat);
+    	~DepthPrepassSystem();
 
         DepthPrepassSystem(const DepthPrepassSystem&) = delete;
         DepthPrepassSystem& operator=(const DepthPrepassSystem&) = delete;
@@ -18,7 +20,7 @@ namespace cve
         void RenderGameObjects(VkCommandBuffer commandBuffer, std::vector<GameObject>& gameObjects, const Camera& camera);
     private:
         void CreatePipelineLayout();
-        void CreatePipeline(VkFormat colorFormat, VkFormat depthFormat);
+        void CreatePipeline(const std::vector<VkFormat>& colorFormats, VkFormat depthFormat);
 
         Device& m_Device;
         std::unique_ptr<Pipeline> m_pPipeline;
