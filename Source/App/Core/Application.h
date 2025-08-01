@@ -27,7 +27,7 @@ private:
 	static constexpr int m_WIDTH = 1080; 
 	static constexpr int m_HEIGHT = 720; 
 
-	Window m_Window{"Graphics_Programming_2_VulkanRenderer", m_WIDTH, m_HEIGHT};
+	Window m_Window{"Graphics_Programming_2_VulkanRenderer"};
 	Device m_Device{m_Window}; 
 	Renderer m_Renderer{ m_Window, m_Device }; 
 	std::vector<GameObject> m_GameObjects;

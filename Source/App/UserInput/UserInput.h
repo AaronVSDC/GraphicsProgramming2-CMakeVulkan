@@ -28,14 +28,24 @@ namespace cve
 
         void MoveInPlaneXZ(GLFWwindow* window, float dt, GameObject& gameObject); 
 
-        KeyMappings m_Keys{}; 
-        float m_MoveSpeed{ 120.f }; 
-        float m_LookSpeed{5.f}; 
 		
-	private: 
+	private:
 
-        double m_CurrentMouseX, m_CurrentMouseY;
-        double m_PreviousMouseX{}, m_PreviousMouseY{}; 
+        // Mouse capture state
+        bool m_MouseCaptured = false;
+        double m_PreviousMouseX = 0.0, m_PreviousMouseY = 0.0;
+
+        // Movement smoothing and speed settings
+        glm::vec3 m_CurrentVelocity = glm::vec3(0.0f);
+        float m_MoveSpeed = 500.0f;  // base move speed (units/sec)
+        float m_LookSpeed = 5.f;  // camera look sensitivity
+        float m_SprintMultiplier = 2.0f;   // sprint speed multiplier
+        float m_Acceleration = 1000.f;  // acceleration/deceleration (units/sec^2)
+
+        // Key mapping structure
+        KeyMappings m_Keys;
+
+
 
 	};
 

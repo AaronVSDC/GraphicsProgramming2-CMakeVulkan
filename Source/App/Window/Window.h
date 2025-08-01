@@ -11,7 +11,7 @@ namespace cve
 	class Window
 	{
 	public:
-		Window(std::string windowName, int width, int height);
+		Window(std::string windowName);
 		Window(Window& other) = delete;
 		Window(Window&& other) = delete;
 		Window& operator=(Window& rhs) = delete;
@@ -33,8 +33,8 @@ namespace cve
 		static void FrameBufferResizeCallback(GLFWwindow* window, int width, int height); 
 		void InitWindow(); 
 
-		int m_Width; 
-		int m_Height; 
+		int m_Width = 1080; 
+		int m_Height = 720; 
 		bool m_FrameBufferResized = false; 
 
 		std::string m_WindowName; 
