@@ -32,6 +32,7 @@ namespace cve {
 	SimpleRenderSystem::~SimpleRenderSystem()
 	{
 		vkDestroyPipelineLayout(m_Device.device(), m_PipelineLayout, nullptr);
+		Texture::cleanupBindless(m_Device);
 	}
 
 	void SimpleRenderSystem::CreatePipelineLayout()

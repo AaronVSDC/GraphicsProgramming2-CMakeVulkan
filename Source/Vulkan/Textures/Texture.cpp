@@ -17,12 +17,11 @@ namespace cve
 
     Texture::~Texture()
     {
-        vkDestroySampler(m_Device.device(), m_Sampler, nullptr);
-        vkDestroyImageView(m_Device.device(), m_ImageView, nullptr);
-        vkDestroyImage(m_Device.device(), m_Image, nullptr);
-        vkFreeMemory(m_Device.device(), m_DeviceMemory, nullptr);
-        vkDestroyDescriptorPool(m_Device.device(), s_BindlessPool, nullptr);
-        vkDestroyDescriptorSetLayout(m_Device.device(), s_BindlessSetLayout, nullptr);
+        if (m_Sampler != VK_NULL_HANDLE) vkDestroySampler(m_Device.device(), m_Sampler, nullptr);
+        if (m_ImageView != VK_NULL_HANDLE) vkDestroyImageView(m_Device.device(), m_ImageView, nullptr);
+        if (m_Image != VK_NULL_HANDLE) vkDestroyImage(m_Device.device(), m_Image, nullptr);
+        if (m_DeviceMemory != VK_NULL_HANDLE) vkFreeMemory(m_Device.device(), m_DeviceMemory, nullptr);
+
     }
 
 
@@ -32,15 +31,15 @@ namespace cve
     VkDescriptorPool      Texture::s_BindlessPool          = VK_NULL_HANDLE; 
     VkDescriptorSet       Texture::s_BindlessDescriptorSet = VK_NULL_HANDLE;
 
-    void Texture::updateBindless(Device& device, const std::vector<Texture>& textures)
+    void Texture::updateBindless(Device& device, const std::vector<std::unique_ptr<Texture>>& textures)
     {
         uint32_t maxTextures = uint32_t(textures.size());
         std::vector<VkDescriptorImageInfo> imageInfos(maxTextures);
         std::vector<VkWriteDescriptorSet>  writes(maxTextures); 
 
         for (uint32_t i = 0; i < maxTextures; i++) {
-            imageInfos[i].imageView = textures[i].getImageView();
-            imageInfos[i].sampler = textures[i].getSampler();
+            imageInfos[i].imageView = textures[i]->getImageView();
+            imageInfos[i].sampler = textures[i]->getSampler();
             imageInfos[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
             writes[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -94,10 +93,10 @@ namespace cve
 
         VkDescriptorPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+        poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
         poolInfo.poolSizeCount = 1;
         poolInfo.pPoolSizes = &poolSize;
         poolInfo.maxSets = 1;
-        poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
         vkCreateDescriptorPool(device.device(), &poolInfo, nullptr, &s_BindlessPool);
 
         // 4) Allocate the single bindless set with `maxTextures` capacity:
@@ -116,6 +115,22 @@ namespace cve
         vkAllocateDescriptorSets(device.device(), &allocInfo, &s_BindlessDescriptorSet);
 
 
+    }
+    void Texture::cleanupBindless(Device& device)
+    {
+        if (s_BindlessDescriptorSet != VK_NULL_HANDLE) {
+            s_BindlessDescriptorSet = VK_NULL_HANDLE;
+        }
+        if (s_BindlessPool != VK_NULL_HANDLE) {
+            vkDestroyDescriptorPool(device.device(), s_BindlessPool, nullptr);
+            s_BindlessPool = VK_NULL_HANDLE;
+        }
+        if (s_BindlessSetLayout != VK_NULL_HANDLE) {
+            vkDestroyDescriptorSetLayout(device.device(),
+                s_BindlessSetLayout,
+                nullptr);
+            s_BindlessSetLayout = VK_NULL_HANDLE;
+        }
     }
     void Texture::bind(VkCommandBuffer& commandBuffer, VkPipelineLayout& pipelineLayout) 
     {

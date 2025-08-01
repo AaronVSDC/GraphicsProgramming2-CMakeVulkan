@@ -9,10 +9,10 @@
 int main() 
 {
 
-	cve::Application app; 
 
 	try 
 	{
+		cve::Application app;
 		app.run();
 	}
 	catch (const std::exception& e)

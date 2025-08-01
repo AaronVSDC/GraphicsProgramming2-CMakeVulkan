@@ -32,11 +32,11 @@ namespace std
 namespace cve
 {
 
-	Model::Model(Device& device, const Model::Data& data)
-		:m_Device{device}, m_Data{data}
+	Model::Model(Device& device, Model::Data&& data)
+		:m_Device{device}, m_Data{std::move(data)}
 	{
-		CreateVertexBuffers(data.vertices); 
-		CreateIndexBuffers(data.indices); 
+		CreateVertexBuffers(m_Data.vertices); 
+		CreateIndexBuffers(m_Data.indices); 
 	}
 
 	Model::~Model()
@@ -66,11 +66,13 @@ namespace cve
 		Texture::initBindless(device, data.materials.size()); 
 
 		for (auto& mi : data.materials) {
-			data.textures.emplace_back(device, assetDir + mi.diffuseTex);
+			data.textures.emplace_back(
+				std::make_unique<Texture>(device, assetDir + mi.diffuseTex) 
+			);
 		}
 		Texture::updateBindless(device, data.textures);
 
-		return std::make_unique<Model>(device, data);
+		return std::make_unique<Model>(device, std::move(data));
 	}
 
 	void Model::Bind(VkCommandBuffer commandBuffer)
@@ -217,6 +219,11 @@ namespace cve
 			if (mat->GetTextureCount(aiTextureType_DIFFUSE) > 0 and mat->GetTexture(aiTextureType_DIFFUSE, 0, &path) == AI_SUCCESS)
 			{
 				materials[i].diffuseTex = path.C_Str(); 
+			}
+			else 
+			{
+				
+				materials[i].diffuseTex = "Missing_Texture.png";
 			}
 			if (mat->GetTextureCount(aiTextureType_NORMALS) > 0 and mat->GetTexture(aiTextureType_NORMALS, 0, &path) == AI_SUCCESS)
 			{

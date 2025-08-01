@@ -82,9 +82,9 @@ void Application::LoadGameObjects()
 
     auto gameObj = GameObject::CreateGameObject(); 
     gameObj.m_Model = vikingRoomModel;
-    gameObj.m_Transform.translation = { 0.f,1.f,5.f }; 
-    gameObj.m_Transform.scale = glm::vec3(2.f); 
-    gameObj.m_Transform.rotation = { glm::radians(90.f), glm::radians(90.f),0.f};
+    gameObj.m_Transform.translation = { 0.f,100.f,0.f }; 
+    gameObj.m_Transform.scale = glm::vec3(1.f); 
+    gameObj.m_Transform.rotation = { 0.f, 0.f,glm::radians(180.f) };
 
     m_GameObjects.push_back(std::move(gameObj)); 
 

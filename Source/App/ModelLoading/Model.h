@@ -55,12 +55,12 @@ namespace cve
 			std::vector<uint32_t> indices{};
 			std::vector<SubMesh> submeshes{};
 			std::vector<MaterialInfo> materials{};
-			std::vector<Texture> textures{};
+			std::vector<std::unique_ptr<Texture>> textures;
 
 			void LoadModel(const std::string& filename); 
 		}; 
 
-		Model(Device& device, const Model::Data& data);
+		explicit Model(Device& device, Model::Data&& data);
 		~Model();
 
 		Model(const Model&) = delete;
