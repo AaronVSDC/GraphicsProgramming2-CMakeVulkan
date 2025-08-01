@@ -427,9 +427,9 @@ namespace cve
             barrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
 
             VkDependencyInfo depInfo2{};
-            depInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
-            depInfo.imageMemoryBarrierCount = 1;
-            depInfo.pImageMemoryBarriers = &barrier;
+            depInfo2.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+            depInfo2.imageMemoryBarrierCount = 1;
+            depInfo2.pImageMemoryBarriers = &barrier;
              
             vkCmdPipelineBarrier2(cmd, &depInfo2);
         }
