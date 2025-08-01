@@ -68,11 +68,11 @@ void Application::run()
 
 		if (auto commandBuffer = m_Renderer.BeginFrame())
 		{
-            m_Renderer.BeginSwapChainRenderPass(commandBuffer);
+            m_Renderer.BeginDynamicRendering(commandBuffer);
             depthPrepassSystem.RenderGameObjects(commandBuffer, m_GameObjects, camera);
             simpleRenderSystem.RenderGameObjects(commandBuffer, m_GameObjects, camera); 
             simpleRenderSystem.UpdateGameObjects(m_GameObjects, elapsedSec);
-            m_Renderer.EndSwapChainRenderPass(commandBuffer);
+            m_Renderer.EndDynamicRendering(commandBuffer);
             m_Renderer.EndFrame();
 		}
 

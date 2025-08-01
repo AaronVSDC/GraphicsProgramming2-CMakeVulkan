@@ -51,24 +51,26 @@ find_package(Vulkan REQUIRED)
 
 # Source files
 set(SOURCE_FILES
-  source/main.cpp
+  "source/main.cpp"
   "Source/App/Core/Application.cpp"
   "Source/App/Window/Window.cpp"
-  Source/Vulkan/Pipeline/Pipeline.cpp
+  "Source/Vulkan/Pipeline/Pipeline.cpp"
   "Source/Vulkan/Device/Device.cpp"
   "Source/Vulkan/Swapchain/SwapChain.cpp"
   "Source/App/ModelLoading/Model.cpp"
   "Source/App/Core/GameObject.h"
   "Source/App/Renderer/Renderer.cpp"
-  "Source/App/Renderer/SimpleRenderSystem.cpp"
+  "Source/App/Renderer/RenderSystems/SimpleRenderSystem.cpp"
   "Source/App/Camera/Camera.cpp"
   "Source/App/UserInput/UserInput.cpp"
   "Source/App/Utils/Utils.h"
-  "Source/App/Renderer/DepthPrepassRenderSystem.cpp"
-  source/Vulkan/Textures/Texture.cpp)
+  "Source/App/Renderer/RenderSystems/DepthPrepass/DepthPrepassRenderSystem.cpp"
+  "source/Vulkan/Textures/Texture.cpp"
+  "Source/App/Renderer/RenderSystems/GBuffer/GBufferRenderSystem.cpp"
+)
 
 # Define executable
-add_executable(${TARGET_NAME} ${SOURCE_FILES} )
+add_executable(${TARGET_NAME} ${SOURCE_FILES}  )
 
 # Link libraries
 target_link_libraries(${TARGET_NAME}

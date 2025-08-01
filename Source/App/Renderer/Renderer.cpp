@@ -126,9 +126,9 @@ namespace cve {
 		m_CurrentFrameIndex = (m_CurrentFrameIndex + 1) % SwapChain::MAX_FRAMES_IN_FLIGHT; 
 	}
 
-	void Renderer::BeginSwapChainRenderPass(VkCommandBuffer commandBuffer)
+	void Renderer::BeginDynamicRendering(VkCommandBuffer commandBuffer)
 	{
-		assert(m_IsFrameStarted && "Cant call BeginSwapChainRenderPass while frame is not in progress");
+		assert(m_IsFrameStarted && "Cant call BeginDynamicRendering while frame is not in progress");
 		assert(commandBuffer == GetCurrentCommandBuffer() && "Can't begin render pass on command buffer from a different frame"); 
 
 
@@ -195,9 +195,9 @@ namespace cve {
 
 	}
 
-	void Renderer::EndSwapChainRenderPass(VkCommandBuffer commandBuffer)
+	void Renderer::EndDynamicRendering(VkCommandBuffer commandBuffer)
 	{
-		assert(m_IsFrameStarted && "Cant call EndSwapChainRenderPass while frame is not in progress");
+		assert(m_IsFrameStarted && "Cant call EndDynamicRendering while frame is not in progress");
 		assert(commandBuffer == GetCurrentCommandBuffer() && "Can't end render pass on command buffer from a different frame");
 
 		vkCmdEndRendering(commandBuffer);

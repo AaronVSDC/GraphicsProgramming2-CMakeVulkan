@@ -22,8 +22,8 @@ namespace cve {
 
 		VkCommandBuffer BeginFrame(); 
 		void EndFrame(); 
-		void BeginSwapChainRenderPass(VkCommandBuffer commandBuffer);
-		void EndSwapChainRenderPass(VkCommandBuffer commandBuffer);
+		void BeginDynamicRendering(VkCommandBuffer commandBuffer);
+		void EndDynamicRendering(VkCommandBuffer commandBuffer);
 
 
 

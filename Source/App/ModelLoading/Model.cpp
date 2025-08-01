@@ -222,7 +222,7 @@ namespace cve
 			}
 			else 
 			{
-				
+				std::cerr << "could not load texture file: " << path.C_Str() << std::endl;
 				materials[i].diffuseTex = "Missing_Texture.png";
 			}
 			//if (mat->GetTextureCount(aiTextureType_NORMALS) > 0 and mat->GetTexture(aiTextureType_NORMALS, 0, &path) == AI_SUCCESS)
