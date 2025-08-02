@@ -49,6 +49,8 @@ namespace cve
         assert(m_PipelineLayout != VK_NULL_HANDLE && "Cannot create pipeline before layout");
         PipelineConfigInfo config{};
         Pipeline::DefaultPipelineConfigInfo(config);
+        auto attributeDescriptions = Model::Vertex::GetAttributeDescriptions();
+        config.attributeDescriptions = { attributeDescriptions[0] };
         config.colorAttachmentFormats = colorFormats;
         std::vector<VkPipelineColorBlendAttachmentState> blendAttachments(colorFormats.size());
         for (auto& ba : blendAttachments) 

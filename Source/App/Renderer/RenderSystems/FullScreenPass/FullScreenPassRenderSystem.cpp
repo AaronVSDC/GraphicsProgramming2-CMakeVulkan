@@ -4,14 +4,16 @@
 
 namespace cve {
 
-    FullScreenRenderSystem::FullScreenRenderSystem(Device& device, SwapChain& swapChain, VkFormat colorFormat)
-        : m_Device{ device }
+    FullScreenRenderSystem::FullScreenRenderSystem(Device& device, SwapChain& swapChain, VkFormat colorFormat, VkFormat depthFormat)
+	: m_Device{ device }
 	{
         createDescriptorSetLayout();
         createDescriptorPool(static_cast<uint32_t>(swapChain.imageCount()));
         createDescriptorSets(swapChain, static_cast<uint32_t>(swapChain.imageCount()));
         createPipelineLayout();
-        createPipeline(colorFormat);
+        createPipeline(colorFormat, depthFormat);
+
+
     }
 
     FullScreenRenderSystem::~FullScreenRenderSystem()
@@ -123,13 +125,17 @@ namespace cve {
         }
     }
 
-    void FullScreenRenderSystem::createPipeline(VkFormat colorFormat) {
+    void FullScreenRenderSystem::createPipeline(VkFormat colorFormat, VkFormat depthFormat)
+	{
         PipelineConfigInfo config{};
         Pipeline::DefaultPipelineConfigInfo(config);
         config.renderPass = VK_NULL_HANDLE;
         config.colorAttachmentFormats = { colorFormat };
-        config.depthAttachmentFormat = VK_FORMAT_UNDEFINED;
+        config.depthAttachmentFormat = depthFormat;
         config.rasterizationInfo.cullMode = VK_CULL_MODE_NONE;
+        config.bindingDescriptions.clear();
+        config.attributeDescriptions.clear();
+
         config.pipelineLayout = m_PipelineLayout;
         m_pPipeline = std::make_unique<Pipeline>(
             m_Device,

@@ -21,11 +21,14 @@ struct PipelineConfigInfo
 	VkPipelineColorBlendAttachmentState colorBlendAttachment;
 	VkPipelineColorBlendStateCreateInfo colorBlendInfo;
 	VkPipelineDepthStencilStateCreateInfo depthStencilInfo;
-	std::vector<VkDynamicState> dynamicStateEnables; 
+	std::vector<VkDynamicState> dynamicStateEnables;
 	VkPipelineDynamicStateCreateInfo dynamicStateInfo;
 	VkPipelineLayout pipelineLayout = nullptr;
 	VkRenderPass renderPass = nullptr;
 	uint32_t subpass = 0;
+
+	std::vector<VkVertexInputBindingDescription> bindingDescriptions{};
+	std::vector<VkVertexInputAttributeDescription> attributeDescriptions{};
 
 	std::vector<VkFormat> colorAttachmentFormats{};
 	VkFormat depthAttachmentFormat = VK_FORMAT_UNDEFINED;

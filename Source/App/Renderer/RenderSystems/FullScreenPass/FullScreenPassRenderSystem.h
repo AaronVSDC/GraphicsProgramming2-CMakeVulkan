@@ -9,8 +9,8 @@ namespace cve
     class FullScreenRenderSystem
 	{
     public:
-        FullScreenRenderSystem(Device& device, SwapChain& swapChain, VkFormat colorFormat);
-        ~FullScreenRenderSystem();
+        FullScreenRenderSystem(Device& device, SwapChain& swapChain, VkFormat colorFormat, VkFormat depthFormat);
+    	~FullScreenRenderSystem();
         FullScreenRenderSystem(const FullScreenRenderSystem&) = delete;
         FullScreenRenderSystem& operator=(const FullScreenRenderSystem&) = delete;
 
@@ -21,7 +21,7 @@ namespace cve
         void createDescriptorPool(uint32_t frameCount);
         void createDescriptorSets(SwapChain& swapChain, uint32_t frameCount);
         void createPipelineLayout();
-        void createPipeline(VkFormat colorFormat);
+        void createPipeline(VkFormat colorFormat, VkFormat depthFormat);
 
         Device& m_Device;
         VkDescriptorSetLayout m_DescriptorSetLayout{ VK_NULL_HANDLE };

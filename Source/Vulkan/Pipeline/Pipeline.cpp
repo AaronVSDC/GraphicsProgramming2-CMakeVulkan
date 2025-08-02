@@ -98,15 +98,13 @@ namespace cve
 		}
 
 
-		auto bindingDescriptions = Model::Vertex::GetBindingDescriptions(); 
-		auto attributeDescriptions = Model::Vertex::GetAttributeDescriptions();
 		//this struct describes how we interpret the vertexbuffer data (initial input) into the graphics pipeline
-		VkPipelineVertexInputStateCreateInfo vertexInputInfo{}; 
-		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO; 
-		vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());  
-		vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(bindingDescriptions.size());
-		vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data(); 
-		vertexInputInfo.pVertexBindingDescriptions = bindingDescriptions.data(); 
+		VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
+		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+		vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(configInfo.attributeDescriptions.size());
+		vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(configInfo.bindingDescriptions.size());
+		vertexInputInfo.pVertexAttributeDescriptions = configInfo.attributeDescriptions.empty() ? nullptr : configInfo.attributeDescriptions.data();
+		vertexInputInfo.pVertexBindingDescriptions = configInfo.bindingDescriptions.empty() ? nullptr : configInfo.bindingDescriptions.data();
 
 		//and about 5 fucking years later create the actual GraphicsPipeline object that uses all the shit that's just initialised
 		VkGraphicsPipelineCreateInfo pipelineInfo{}; 
@@ -160,7 +158,8 @@ namespace cve
 
 	void Pipeline::DefaultPipelineConfigInfo(PipelineConfigInfo& configInfo)
 	{
-
+		configInfo.bindingDescriptions = Model::Vertex::GetBindingDescriptions();
+		configInfo.attributeDescriptions = Model::Vertex::GetAttributeDescriptions();
 		//----------------------------------------------------------------------
 		//INPUT ASSEMBLY STAGE
 		//----------------------------------------------------------------------

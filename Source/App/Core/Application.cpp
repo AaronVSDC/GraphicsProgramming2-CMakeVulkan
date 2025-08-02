@@ -28,12 +28,15 @@ Application::Application()
 }
 Application::~Application()
 {
+    m_GameObjects.clear();
+    Texture::cleanupBindless(m_Device);
 }
 void Application::run()
 {
     FullScreenRenderSystem fullScreenPassSystem{ m_Device,
                                          m_Renderer.GetSwapChain(),
-                                         m_Renderer.GetSwapChainImageFormat() };
+                                         m_Renderer.GetSwapChainImageFormat(),
+                                         m_Renderer.GetDepthFormat() };
 
     std::vector<VkFormat> gBufferFormats = { VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_R16G16B16A16_SFLOAT };
     GBufferRenderSystem gBufferSystem{ m_Device,
