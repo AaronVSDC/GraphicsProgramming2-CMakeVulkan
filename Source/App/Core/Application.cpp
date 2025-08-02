@@ -4,6 +4,8 @@
 #include "UserInput.h"
 #include "DepthPrepassRenderSystem.h"
 #include "GBufferRenderSystem.h"
+#include "FullScreenPassRenderSystem.h"
+
 //libs
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -15,6 +17,7 @@
 #include <array>
 #include <iostream>
 #include <chrono>
+
 
 namespace cve {
 
@@ -28,11 +31,9 @@ Application::~Application()
 }
 void Application::run()
 {
-
-    SimpleRenderSystem simpleRenderSystem{ m_Device,
-                                           m_Renderer.GetSwapChainImageFormat(),
-                                           m_Renderer.GetDepthFormat(),
-                                           m_GameObjects };
+    FullScreenRenderSystem fullScreenPassSystem{ m_Device,
+                                         m_Renderer.GetSwapChain(),
+                                         m_Renderer.GetSwapChainImageFormat() };
 
     std::vector<VkFormat> gBufferFormats = { VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_R16G16B16A16_SFLOAT };
     GBufferRenderSystem gBufferSystem{ m_Device,
@@ -81,8 +82,7 @@ void Application::run()
             m_Renderer.EndGBufferRendering(commandBuffer);
 
             m_Renderer.BeginDynamicRendering(commandBuffer);
-            simpleRenderSystem.RenderGameObjects(commandBuffer, m_GameObjects, camera); 
-            simpleRenderSystem.UpdateGameObjects(m_GameObjects, elapsedSec);
+            fullScreenPassSystem.Render(commandBuffer, m_Renderer.GetFrameIndex());
             m_Renderer.EndDynamicRendering(commandBuffer);
             m_Renderer.EndFrame();
 		}

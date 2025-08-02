@@ -168,7 +168,7 @@ namespace cve {
 		depthAttachment.imageView = m_SwapChain->getDepthImageView(m_CurrentImageIndex);
 		depthAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 		depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-		depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 		depthAttachment.clearValue.depthStencil = { 1.f,0 };
 
 		VkRenderingInfo renderingInfo{};
@@ -254,7 +254,7 @@ namespace cve {
 		colorAttachments[0].imageView = m_SwapChain->getAlbedoImageView(m_CurrentImageIndex);
 		colorAttachments[0].imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 		colorAttachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		colorAttachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		colorAttachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE; //TODO: this was set to DONT_CARE
 		colorAttachments[0].clearValue.color = { 0.f, 0.f, 0.f, 1.f };
 
 		colorAttachments[1] = colorAttachments[0];

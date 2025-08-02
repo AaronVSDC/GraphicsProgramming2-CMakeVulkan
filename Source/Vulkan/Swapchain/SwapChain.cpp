@@ -38,30 +38,36 @@ namespace cve {
 		for (auto imageView : swapChainImageViews) {
 			vkDestroyImageView(device.device(), imageView, nullptr);
 		}
-		swapChainImageViews.clear();
-		gAlbedoImageViews.clear();
-		gAlbedoImages.clear();
-		gAlbedoImageMemorys.clear();
-		gNormalImageViews.clear();
-		gNormalImages.clear();
-		gNormalImageMemorys.clear();
 
 		if (swapChain != nullptr) {
 			vkDestroySwapchainKHR(device.device(), swapChain, nullptr);
 			swapChain = nullptr;
 		}
 
-		for (int i = 0; i < depthImages.size(); i++) {
+		for (size_t i = 0; i < depthImages.size(); i++) {
 			vkDestroyImageView(device.device(), depthImageViews[i], nullptr);
 			vkDestroyImage(device.device(), depthImages[i], nullptr);
 			vkFreeMemory(device.device(), depthImageMemorys[i], nullptr);
+
 			vkDestroyImageView(device.device(), gAlbedoImageViews[i], nullptr);
 			vkDestroyImage(device.device(), gAlbedoImages[i], nullptr);
 			vkFreeMemory(device.device(), gAlbedoImageMemorys[i], nullptr);
+
 			vkDestroyImageView(device.device(), gNormalImageViews[i], nullptr);
 			vkDestroyImage(device.device(), gNormalImages[i], nullptr);
 			vkFreeMemory(device.device(), gNormalImageMemorys[i], nullptr);
 		}
+
+		swapChainImageViews.clear();
+		depthImageViews.clear();
+		depthImages.clear();
+		depthImageMemorys.clear();
+		gAlbedoImageViews.clear();
+		gAlbedoImages.clear();
+		gAlbedoImageMemorys.clear();
+		gNormalImageViews.clear();
+		gNormalImages.clear();
+		gNormalImageMemorys.clear();
 
 		// cleanup synchronization objects
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {

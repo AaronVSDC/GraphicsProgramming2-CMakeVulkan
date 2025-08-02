@@ -31,7 +31,11 @@ namespace cve {
 
 		VkFormat GetSwapChainImageFormat() const { return m_SwapChain->getSwapChainImageFormat(); }
 		VkFormat GetDepthFormat() const { return m_SwapChain->findDepthFormat(); }
-		float GetAspectRatio() const { return m_SwapChain->extentAspectRatio();  } 
+		float GetAspectRatio() const { return m_SwapChain->extentAspectRatio(); }
+		uint32_t GetImageCount() const { return static_cast<uint32_t>(m_SwapChain->imageCount()); }
+		VkImageView GetAlbedoImageView(uint32_t index) { return m_SwapChain->getAlbedoImageView(index); }
+		VkImageView GetNormalImageView(uint32_t index) { return m_SwapChain->getNormalImageView(index); }
+		SwapChain& GetSwapChain() { return *m_SwapChain; } 
 
 		bool IsFrameInProgress() const { return m_IsFrameStarted; }
 		VkCommandBuffer GetCurrentCommandBuffer() const

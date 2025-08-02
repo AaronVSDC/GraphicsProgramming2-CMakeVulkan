@@ -67,10 +67,11 @@ set(SOURCE_FILES
   "Source/App/Renderer/RenderSystems/DepthPrepass/DepthPrepassRenderSystem.cpp"
   "Source/Vulkan/Textures/Texture.cpp"
   "Source/App/Renderer/RenderSystems/GBuffer/GBufferRenderSystem.cpp"
+  "Source/App/Renderer/RenderSystems/FullScreenPass/FullScreenPassRenderSystem.cpp"
 )
 
 # Define executable
-add_executable(${TARGET_NAME} ${SOURCE_FILES}  )
+add_executable(${TARGET_NAME} ${SOURCE_FILES}   )
 
 # Link libraries
 target_link_libraries(${TARGET_NAME}
@@ -113,7 +114,7 @@ endif()
 set(SHADER_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Shaders")
 set(SHADER_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/Shaders")
 
-file(GLOB_RECURSE GLSL_SOURCE_FILES
+file(GLOB_RECURSE GLSL_SOURCE_FILES 
   "${SHADER_SOURCE_DIR}/*.vert"
   "${SHADER_SOURCE_DIR}/*.frag"
 )
