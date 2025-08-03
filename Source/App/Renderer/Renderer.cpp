@@ -126,9 +126,9 @@ namespace cve {
 		m_CurrentFrameIndex = (m_CurrentFrameIndex + 1) % SwapChain::MAX_FRAMES_IN_FLIGHT; 
 	}
 
-	void Renderer::BeginSwapChainRenderPass(VkCommandBuffer commandBuffer)
+	void Renderer::BeginRenderingLighting(VkCommandBuffer commandBuffer)
 	{
-		assert(m_IsFrameStarted && "Cant call BeginSwapChainRenderPass while frame is not in progress");
+		assert(m_IsFrameStarted && "Cant call BeginRenderingLighting while frame is not in progress");
 		assert(commandBuffer == GetCurrentCommandBuffer() && "Can't begin render pass on command buffer from a different frame"); 
 
 
@@ -142,16 +142,6 @@ namespace cve {
 			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 			VK_IMAGE_ASPECT_COLOR_BIT);
 
-		if (!m_DepthInitialized[m_CurrentImageIndex])
-		{
-			TransitionImageLayout(
-				commandBuffer,
-				m_SwapChain->getDepthImage(m_CurrentImageIndex),
-				VK_IMAGE_LAYOUT_UNDEFINED,
-				VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-				VK_IMAGE_ASPECT_DEPTH_BIT);
-			m_DepthInitialized[m_CurrentImageIndex] = true;
-		}
 
 		VkRenderingAttachmentInfo colorAttachment{};
 		colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
@@ -161,13 +151,6 @@ namespace cve {
 		colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 		colorAttachment.clearValue.color = { 0.01f,0.01f,0.01f,1.f };
 
-		VkRenderingAttachmentInfo depthAttachment{};
-		depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-		depthAttachment.imageView = m_SwapChain->getDepthImageView(m_CurrentImageIndex);
-		depthAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-		depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		depthAttachment.clearValue.depthStencil = { 1.f,0 };
 
 		VkRenderingInfo renderingInfo{};
 		renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
@@ -176,28 +159,18 @@ namespace cve {
 		renderingInfo.layerCount = 1;
 		renderingInfo.colorAttachmentCount = 1;
 		renderingInfo.pColorAttachments = &colorAttachment;
-		renderingInfo.pDepthAttachment = &depthAttachment;
+		renderingInfo.pDepthAttachment = nullptr;
 
 		vkCmdBeginRendering(commandBuffer, &renderingInfo);
-
-		VkViewport viewport{};
-		viewport.x = 0.f;
-		viewport.y = 0.f;
-		viewport.width = static_cast<float>(m_SwapChain->getSwapChainExtent().width);
-		viewport.height = static_cast<float>(m_SwapChain->getSwapChainExtent().height);
-		viewport.minDepth = 0.f;
-		viewport.maxDepth = 1.f;
-		VkRect2D scissor{ {0,0}, m_SwapChain->getSwapChainExtent() };
-		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+		SetViewportAndScissor(commandBuffer); 
 
 
 
 	}
 
-	void Renderer::EndSwapChainRenderPass(VkCommandBuffer commandBuffer)
+	void Renderer::EndRenderingLighting(VkCommandBuffer commandBuffer)
 	{
-		assert(m_IsFrameStarted && "Cant call EndSwapChainRenderPass while frame is not in progress");
+		assert(m_IsFrameStarted && "Cant call EndRenderingLighting while frame is not in progress");
 		assert(commandBuffer == GetCurrentCommandBuffer() && "Can't end render pass on command buffer from a different frame");
 
 		vkCmdEndRendering(commandBuffer);
@@ -209,6 +182,126 @@ namespace cve {
 			VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
 			VK_IMAGE_ASPECT_COLOR_BIT);
 		m_ImageInitialized[m_CurrentImageIndex] = true;
+
+	}
+
+	void Renderer::BeginRenderingGeometry(VkCommandBuffer commandBuffer, GBuffer& gBuffer)
+	{
+		// 1) Set up the three G-Buffer color attachments (pos, normal, albedo):
+		VkRenderingAttachmentInfo cols[3]{};
+		// 0) Transition all 3 G-Buffer color targets from UNDEFINED ? COLOR_ATTACHMENT_OPTIMAL:
+		TransitionImageLayout(
+			commandBuffer,
+			gBuffer.getPositionImage(),              // your helper
+			VK_IMAGE_LAYOUT_UNDEFINED,
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			VK_IMAGE_ASPECT_COLOR_BIT
+		);
+		TransitionImageLayout(
+			commandBuffer,
+			gBuffer.getNormalImage(),
+			VK_IMAGE_LAYOUT_UNDEFINED,
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			VK_IMAGE_ASPECT_COLOR_BIT
+		);
+		TransitionImageLayout(
+			commandBuffer,
+			gBuffer.getAlbedoSpecImage(),
+			VK_IMAGE_LAYOUT_UNDEFINED,
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			VK_IMAGE_ASPECT_COLOR_BIT
+		);
+
+		// 1) Transition depth from UNDEFINED ? DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+		TransitionImageLayout(
+			commandBuffer,
+			gBuffer.getDepthImage(),
+			VK_IMAGE_LAYOUT_UNDEFINED,
+			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+			VK_IMAGE_ASPECT_DEPTH_BIT
+		);
+
+		// Position (RGBA16F)
+		cols[0].sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+		cols[0].pNext = nullptr;
+		cols[0].imageView = gBuffer.getPositionView();
+		cols[0].imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		cols[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		cols[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		cols[0].clearValue.color = { {0.0f, 0.0f, 0.0f, 1.0f} };
+
+		// Normal (RGBA16F)
+		cols[1].sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+		cols[1].pNext = nullptr;
+		cols[1].imageView = gBuffer.getNormalView();
+		cols[1].imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		cols[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		cols[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		cols[1].clearValue.color = { {0.0f, 0.0f, 0.0f, 1.0f} };
+
+		// Albedo + Spec (RGBA8)
+		cols[2].sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+		cols[2].pNext = nullptr;
+		cols[2].imageView = gBuffer.getAlbedoSpecView();
+		cols[2].imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		cols[2].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		cols[2].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		cols[2].clearValue.color = { {0.0f, 0.0f, 0.0f, 1.0f} };
+
+		// 2) Depth attachment
+		VkRenderingAttachmentInfo depth{};
+		depth.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+		depth.pNext = nullptr;
+		depth.imageView = gBuffer.getDepthView();
+		depth.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		depth.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		depth.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		depth.clearValue.depthStencil = { 1.0f, 0 };
+
+		// 3) The VkRenderingInfo itself
+		VkRenderingInfo info{};
+		info.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+		info.pNext = nullptr;
+		info.renderArea.offset = { 0, 0 };
+		info.renderArea.extent = m_Window.GetExtent();
+		info.layerCount = 1;
+		info.colorAttachmentCount = 3;
+		info.pColorAttachments = cols;
+		info.pDepthAttachment = &depth;
+		info.pStencilAttachment = nullptr;  // not using separate stencil
+
+		// 4) Kick off the geometry pass
+		vkCmdBeginRendering(commandBuffer, &info);
+
+		SetViewportAndScissor(commandBuffer); 
+	}
+
+	void Renderer::EndRenderingGeometry(VkCommandBuffer commandBuffer, GBuffer& gBuffer)
+	{
+		vkCmdEndRendering(commandBuffer);
+
+		  // Transition all three G-Buffer attachments into shader-read layout
+			TransitionImageLayout(
+				commandBuffer,
+				gBuffer.getPositionImage(),
+				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+				VK_IMAGE_ASPECT_COLOR_BIT
+				 );
+		TransitionImageLayout(
+			commandBuffer,
+			gBuffer.getNormalImage(),
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			VK_IMAGE_ASPECT_COLOR_BIT
+			 );
+		TransitionImageLayout(
+			commandBuffer,
+			gBuffer.getAlbedoSpecImage(),
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			VK_IMAGE_ASPECT_COLOR_BIT
+			 );
 
 	}
 
@@ -277,5 +370,19 @@ namespace cve {
 		vkCmdPipelineBarrier2(commandBuffer, &depInfo);
 	
 
+	}
+
+	void Renderer::SetViewportAndScissor(VkCommandBuffer commandBuffer)
+	{
+		VkViewport viewport{};
+		viewport.x = 0.f;
+		viewport.y = 0.f;
+		viewport.width = static_cast<float>(m_SwapChain->getSwapChainExtent().width);
+		viewport.height = static_cast<float>(m_SwapChain->getSwapChainExtent().height);
+		viewport.minDepth = 0.f;
+		viewport.maxDepth = 1.f;
+		VkRect2D scissor{ {0,0}, m_SwapChain->getSwapChainExtent() };
+		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 	}
 }

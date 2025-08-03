@@ -11,7 +11,16 @@ namespace cve
 	{
     public:
         Texture(Device& device, const std::string& filename);
-        ~Texture();
+
+        //ctor for render target / G buffer attachments
+        Texture(Device& device,
+            uint32_t width,
+            uint32_t height,
+            VkFormat format,
+            VkImageUsageFlags usage,
+            VkImageAspectFlags aspectMask,
+            bool createSampler = true);
+    	~Texture();
 
         Texture(Texture&&) noexcept = default;
         Texture& operator=(Texture&&) noexcept = default;
@@ -29,6 +38,7 @@ namespace cve
         static VkDescriptorSet         s_BindlessDescriptorSet;
         // Accessors
         VkImageView getImageView() const { return m_ImageView; }
+        VkImage getImage() const { return m_Image;  }
         VkSampler   getSampler()   const { return m_Sampler; }
         uint32_t    getMipLevels() const { return m_MipLevels; }
 

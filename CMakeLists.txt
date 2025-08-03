@@ -60,7 +60,7 @@ set(SOURCE_FILES
   "Source/App/ModelLoading/Model.cpp"
   "Source/App/Core/GameObject.h"
   "Source/App/Renderer/Renderer.cpp"
-  "Source/App/Renderer/SimpleRenderSystem.cpp"
+  "Source/App/Renderer/DeferredRenderSystem.cpp"
   "Source/App/Camera/Camera.cpp"
   "Source/App/UserInput/UserInput.cpp"
   "Source/App/Utils/Utils.h"
@@ -69,7 +69,7 @@ set(SOURCE_FILES
 )
 
 # Define executable
-add_executable(${TARGET_NAME} ${SOURCE_FILES} "Source/App/GBuffer/GBuffer.cpp")
+add_executable(${TARGET_NAME} ${SOURCE_FILES})
 
 # Link libraries
 target_link_libraries(${TARGET_NAME}
@@ -130,7 +130,7 @@ foreach(GLSL ${GLSL_SOURCE_FILES})
   )
   list(APPEND SPIRV_BINARY_FILES ${SPIRV})
 endforeach()
-
+ 
 add_custom_target(Shaders DEPENDS ${SPIRV_BINARY_FILES})
 add_dependencies(${TARGET_NAME} Shaders)
 target_sources(${TARGET_NAME} PRIVATE ${GLSL_SOURCE_FILES})

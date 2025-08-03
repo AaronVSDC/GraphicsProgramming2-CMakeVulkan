@@ -1,5 +1,5 @@
 #include "Application.h"
-#include "SimpleRenderSystem.h"
+#include "DeferredRenderSystem.h"
 #include "Camera.h"
 #include "UserInput.h"
 
@@ -28,10 +28,7 @@ Application::~Application()
 void Application::run()
 {
 
-    SimpleRenderSystem simpleRenderSystem = { m_Device,
-                                            m_Renderer.GetSwapChainImageFormat(),
-                                            m_Renderer.GetDepthFormat(),
-                                            m_GameObjects };
+    DeferredRenderSystem DeferredRenderSystem = { m_Device, m_Window.GetExtent(), m_Renderer.GetSwapChainImageFormat() };
 	Camera camera{};
     camera.SetViewTarget(glm::vec3(-1.f, -2.f, 2.f), glm::vec3(0.f, 0.f, 2.5f)); 
 
@@ -65,10 +62,15 @@ void Application::run()
 
 		if (auto commandBuffer = m_Renderer.BeginFrame())
 		{
-			m_Renderer.BeginSwapChainRenderPass(commandBuffer); 
-			simpleRenderSystem.RenderGameObjects(commandBuffer,m_GameObjects, camera); 
-            simpleRenderSystem.UpdateGameObjects(m_GameObjects, elapsedSec); 
-			m_Renderer.EndSwapChainRenderPass(commandBuffer); 
+			m_Renderer.BeginRenderingGeometry(commandBuffer,DeferredRenderSystem.GetGBuffer() ); 
+			DeferredRenderSystem.RenderGeometry(commandBuffer,m_GameObjects, camera); 
+            DeferredRenderSystem.UpdateGeometry(m_GameObjects, elapsedSec); 
+			m_Renderer.EndRenderingGeometry(commandBuffer, DeferredRenderSystem.GetGBuffer());
+
+
+            m_Renderer.BeginRenderingLighting(commandBuffer);
+            DeferredRenderSystem.RenderLighting(commandBuffer, camera);
+            m_Renderer.EndRenderingLighting(commandBuffer); 
 			m_Renderer.EndFrame(); 
 		}
 

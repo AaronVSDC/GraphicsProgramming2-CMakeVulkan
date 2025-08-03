@@ -3,6 +3,7 @@
 #include "Device.h"
 #include "SwapChain.h"
 #include "Model.h"
+#include "GBuffer.h"
 
 //std 
 #include <memory>
@@ -22,8 +23,10 @@ namespace cve {
 
 		VkCommandBuffer BeginFrame(); 
 		void EndFrame(); 
-		void BeginSwapChainRenderPass(VkCommandBuffer commandBuffer);
-		void EndSwapChainRenderPass(VkCommandBuffer commandBuffer);
+		void BeginRenderingLighting(VkCommandBuffer commandBuffer);
+		void EndRenderingLighting(VkCommandBuffer commandBuffer);
+		void BeginRenderingGeometry(VkCommandBuffer commandBuffer, GBuffer& gBuffer);
+		void EndRenderingGeometry(VkCommandBuffer commandBuffer, GBuffer& gBuffer); 
 
 
 
@@ -52,6 +55,8 @@ namespace cve {
 			VkImageLayout oldLayout,
 			VkImageLayout newLayout,
 			VkImageAspectFlags aspectMask);
+
+		void SetViewportAndScissor(VkCommandBuffer commandBuffer);
 
 
 		Window& m_Window;

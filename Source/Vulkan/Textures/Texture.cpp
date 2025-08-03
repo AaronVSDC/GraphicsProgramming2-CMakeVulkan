@@ -15,7 +15,63 @@ namespace cve
         createTexture(filename);
     }
 
-    Texture::~Texture()
+    Texture::Texture(Device& device, uint32_t width, uint32_t height, VkFormat format, VkImageUsageFlags usage,
+        VkImageAspectFlags aspectMask, bool createSampler)
+        :m_Device{device}
+	{
+
+        VkImageCreateInfo imageInfo{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
+        imageInfo.imageType = VK_IMAGE_TYPE_2D;
+        imageInfo.extent = { width, height, 1 };
+        imageInfo.mipLevels = 1;
+        imageInfo.arrayLayers = 1;
+        imageInfo.format = format;
+        imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+        imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        imageInfo.usage = usage;
+        imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+        imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+        m_Device.createImageWithInfo(
+            imageInfo,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            m_Image,
+            m_DeviceMemory
+        ); 
+
+        VkImageViewCreateInfo viewInfo{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
+        viewInfo.image = m_Image;
+        viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        viewInfo.format = format;
+        viewInfo.subresourceRange = { aspectMask, 0, 1, 0, 1 };
+
+        if (vkCreateImageView(m_Device.device(), &viewInfo , nullptr, &m_ImageView) != VK_SUCCESS)
+        {
+            throw std::runtime_error("Failed to create offscreen texture view"); 
+        }
+
+        //optionally create nearest-filter sampler
+        if (createSampler) {
+            VkSamplerCreateInfo sampInfo{ VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
+            sampInfo.magFilter = VK_FILTER_NEAREST;
+            sampInfo.minFilter = VK_FILTER_NEAREST;
+            sampInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+            sampInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+            sampInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+            sampInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+            sampInfo.maxLod = 1.0f;
+            sampInfo.anisotropyEnable = VK_FALSE;
+            sampInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+            sampInfo.unnormalizedCoordinates = VK_FALSE;
+
+
+            if (vkCreateSampler(m_Device.device(), &sampInfo, nullptr, &m_Sampler) != VK_SUCCESS) {
+                throw std::runtime_error("Failed to create offscreen texture sampler");
+            }
+        }
+	}
+
+	Texture::~Texture()
     {
         if (m_Sampler != VK_NULL_HANDLE) vkDestroySampler(m_Device.device(), m_Sampler, nullptr);
         if (m_ImageView != VK_NULL_HANDLE) vkDestroyImageView(m_Device.device(), m_ImageView, nullptr);

@@ -80,8 +80,8 @@ namespace cve
 		shaderStages[1].pSpecializationInfo = nullptr;
 
 
-		auto bindingDescriptions = Model::Vertex::GetBindingDescriptions(); 
-		auto attributeDescriptions = Model::Vertex::GetAttributeDescriptions();
+		const auto & bindingDescriptions = configInfo.vertexBindings;
+		const auto & attributeDescriptions = configInfo.vertexAttributes;
 		//this struct describes how we interpret the vertexbuffer data (initial input) into the graphics pipeline
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo{}; 
 		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO; 

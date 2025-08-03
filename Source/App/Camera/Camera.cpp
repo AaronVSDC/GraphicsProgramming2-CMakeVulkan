@@ -32,6 +32,9 @@ namespace cve
 
     void Camera::SetViewDirection(glm::vec3 position, glm::vec3 direction, glm::vec3 up)
     {
+        //extract camera position
+        m_Position = position;
+
         const glm::vec3 w{ glm::normalize(direction) };
         const glm::vec3 u{ glm::normalize(glm::cross(w, up)) };
         const glm::vec3 v{ glm::cross(w, u) };
@@ -53,11 +56,15 @@ namespace cve
 
     void Camera::SetViewTarget(glm::vec3 position, glm::vec3 target, glm::vec3 up) 
     {
+        //extract camera position
+        m_Position = position;
         SetViewDirection(position, target - position, up);
     }
 
     void Camera::SetViewYXZ(glm::vec3 position, glm::vec3 rotation) 
     {
+        //extract camera position
+        m_Position = position; 
         const float c3 = glm::cos(rotation.z);
         const float s3 = glm::sin(rotation.z);
         const float c2 = glm::cos(rotation.x);
