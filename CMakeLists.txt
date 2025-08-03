@@ -54,7 +54,7 @@ set(SOURCE_FILES
   source/main.cpp
   "Source/App/Core/Application.cpp"
   "Source/App/Window/Window.cpp"
-  Source/Vulkan/Pipeline/Pipeline.cpp
+  "Source/Vulkan/Pipeline/Pipeline.cpp"
   "Source/Vulkan/Device/Device.cpp"
   "Source/Vulkan/Swapchain/SwapChain.cpp"
   "Source/App/ModelLoading/Model.cpp"
@@ -64,10 +64,12 @@ set(SOURCE_FILES
   "Source/App/Camera/Camera.cpp"
   "Source/App/UserInput/UserInput.cpp"
   "Source/App/Utils/Utils.h"
-  source/Vulkan/Textures/Texture.cpp)
+  "Source/Vulkan/Textures/Texture.cpp"
+  "Source/App/GBuffer/GBuffer.cpp"
+)
 
 # Define executable
-add_executable(${TARGET_NAME} ${SOURCE_FILES})
+add_executable(${TARGET_NAME} ${SOURCE_FILES} "Source/App/GBuffer/GBuffer.cpp")
 
 # Link libraries
 target_link_libraries(${TARGET_NAME}

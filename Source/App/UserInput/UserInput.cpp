@@ -8,7 +8,7 @@ namespace cve
         glm::vec2 rotate{ 0.0f };
 
         // --- Mouse capture and look-around ---
-        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS && !m_MouseCaptured) {
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS and !m_MouseCaptured) {
             m_MouseCaptured = true;
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
             int width, height;
@@ -30,7 +30,7 @@ namespace cve
             rotate.x += static_cast<float>(-dy);
         }
 
-        if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS && m_MouseCaptured) {
+        if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS and m_MouseCaptured) {
             m_MouseCaptured = false;
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         }
@@ -63,14 +63,14 @@ namespace cve
         // Compute raw direction based on camera orientation
         glm::vec3 dir{
             cos(pitch) * sin(yaw),
-			 -sin(pitch),             
+             -sin(pitch),
             cos(pitch) * cos(yaw)
         };
         // Use dir directly as forward, so pressing forward moves into view direction
         glm::vec3 forwardDir = glm::normalize(dir);
-        glm::vec3 upDir = glm::vec3(0.0f, 1.0f, 0.0f);
+        glm::vec3 upDir = glm::vec3(0.0f, -1.0f, 0.0f);
         // Right vector is cross(up, forward)
-        glm::vec3 rightDir = glm::normalize(glm::cross(upDir, forwardDir));
+        glm::vec3 rightDir = -glm::normalize(glm::cross(upDir, forwardDir));
 
 
         // Gather input
@@ -106,7 +106,7 @@ namespace cve
 
         // Apply movement
         gameObject.m_Transform.translation += m_CurrentVelocity * elapsedSec;
-    
+
     }
 
 }

@@ -36,7 +36,7 @@ namespace cve
 		:m_Device{device}, m_Data{std::move(data)}
 	{
 		CreateVertexBuffers(m_Data.vertices); 
-		CreateIndexBuffers(m_Data.indices); 
+		CreateIndexBuffers(m_Data.indices);
 	}
 
 	Model::~Model()
@@ -49,6 +49,8 @@ namespace cve
 			vkDestroyBuffer(m_Device.device(), m_IndexBuffer, nullptr);
 			vkFreeMemory(m_Device.device(), m_IndexBufferMemory, nullptr);
 		}
+		Texture::cleanupBindless(m_Device);
+
 	}
 
 
@@ -65,10 +67,21 @@ namespace cve
 		//MAKE TEXTURE FROM DATA 
 		Texture::initBindless(device, data.materials.size()); 
 
-		for (auto& mi : data.materials) {
-			data.textures.emplace_back(
-				std::make_unique<Texture>(device, assetDir + mi.diffuseTex) 
-			);
+		for (auto& mi : data.materials) 
+		{
+			if (!(mi.diffuseTex == "NULL"))
+			{
+				data.textures.emplace_back(
+					std::make_unique<Texture>(device, assetDir + mi.diffuseTex)
+				);
+			}
+			else
+			{
+				data.textures.emplace_back(
+					std::make_unique<Texture>(device, "Resources/Missing_Texture.png")
+					); 
+			}
+
 		}
 		Texture::updateBindless(device, data.textures);
 
@@ -223,7 +236,7 @@ namespace cve
 			else 
 			{
 				
-				materials[i].diffuseTex = "Missing_Texture.png";
+				materials[i].diffuseTex = "NULL";
 			}
 			//if (mat->GetTextureCount(aiTextureType_NORMALS) > 0 and mat->GetTexture(aiTextureType_NORMALS, 0, &path) == AI_SUCCESS)
 			//{

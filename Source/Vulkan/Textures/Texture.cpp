@@ -59,6 +59,8 @@ namespace cve
 
     void Texture::initBindless(Device& device, uint32_t maxTextures)
     {
+        if (s_BindlessPool != VK_NULL_HANDLE) return;
+        
         // 1) ONE binding with an array of `maxTextures` combined-image-samplers:
         VkDescriptorSetLayoutBinding b{};
         b.binding = 0;
@@ -118,19 +120,18 @@ namespace cve
     }
     void Texture::cleanupBindless(Device& device)
     {
-        if (s_BindlessDescriptorSet != VK_NULL_HANDLE) {
-            s_BindlessDescriptorSet = VK_NULL_HANDLE;
-        }
-        if (s_BindlessPool != VK_NULL_HANDLE) {
+        
+        if (s_BindlessPool != VK_NULL_HANDLE)
+        {
             vkDestroyDescriptorPool(device.device(), s_BindlessPool, nullptr);
             s_BindlessPool = VK_NULL_HANDLE;
         }
         if (s_BindlessSetLayout != VK_NULL_HANDLE) {
-            vkDestroyDescriptorSetLayout(device.device(),
-                s_BindlessSetLayout,
-                nullptr);
+            vkDestroyDescriptorSetLayout(device.device(), s_BindlessSetLayout, nullptr);
             s_BindlessSetLayout = VK_NULL_HANDLE;
         }
+        s_BindlessDescriptorSet = VK_NULL_HANDLE;
+
     }
     void Texture::bind(VkCommandBuffer& commandBuffer, VkPipelineLayout& pipelineLayout) 
     {

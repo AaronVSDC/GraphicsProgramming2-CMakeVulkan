@@ -99,17 +99,25 @@ void Application::LoadGameObjects()
 	//THIS IS WHERE ALL THE MODELS ARE LOADED (OR HARDCODED BUT PLS DONT) AND PUSHED INSIDE THE MODEL POINTER 
 	//-------------------------------------------------------------------------
 
-    std::shared_ptr<Model> vikingRoomModel = Model::CreateModelFromFile(m_Device, "Resources/SponzaScene/sponza.obj");
+    std::shared_ptr<Model> sponza = Model::CreateModelFromFile(m_Device, "Resources/SponzaScene/sponza.obj");
+    //std::shared_ptr<Model> erato = Model::CreateModelFromFile(m_Device, "Resources/Erato/erato.obj");
 
 
 
     auto gameObj = GameObject::CreateGameObject(); 
-    gameObj.m_Model = vikingRoomModel;
+    gameObj.m_Model = sponza;
     gameObj.m_Transform.translation = { 0.f,100.f,0.f }; 
     gameObj.m_Transform.scale = glm::vec3(1.f); 
     gameObj.m_Transform.rotation = { 0.f, glm::radians(-90.f),glm::radians(180.f) };
 
+    //auto gameObj2 = GameObject::CreateGameObject();
+    //gameObj2.m_Model = erato;
+    //gameObj2.m_Transform.translation = { 0.f,100.f,0.f };
+    //gameObj2.m_Transform.scale = glm::vec3(2.3f);
+    //gameObj2.m_Transform.rotation = { 0.f, glm::radians(-90.f),glm::radians(180.f) };
+
     m_GameObjects.push_back(std::move(gameObj)); 
+    //m_GameObjects.push_back(std::move(gameObj2)); 
 
 }
 
