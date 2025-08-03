@@ -563,7 +563,7 @@ namespace cve
 	void  Device::createImageWithInfo(
 		const VkImageCreateInfo& imageInfo,
 		VkMemoryPropertyFlags properties,
-		VkImage& image,
+		VkImage& image,  
 		VkDeviceMemory& imageMemory) {
 		if (vkCreateImage(device_, &imageInfo, nullptr, &image) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create image!");

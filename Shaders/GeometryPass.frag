@@ -3,9 +3,9 @@
 
 // match the locations you wrote out from the vertex shader:
 layout(location = 0) in vec3 fsWorldPos;
-layout(location = 1) in vec3 fsNormal;
-layout(location = 2) in vec2 fsUV;
-layout(location = 3) in vec3 fsColor;
+layout(location = 1) in vec3 fsColor;
+layout(location = 2) in vec3 fsNormal;
+layout(location = 3) in vec2 fsUV;
 layout(location = 4) flat in uint fsMaterialIndex;
 
 // bindless descriptor set 0, binding 0 is your array of samplers:
