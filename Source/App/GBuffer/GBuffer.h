@@ -28,12 +28,19 @@ namespace cve
 		VkSampler getPositionSampler()   const { return m_PositionImage->getSampler(); }
 		VkSampler getNormalSampler()     const { return m_NormalImage->getSampler(); } 
 		VkSampler getAlbedoSpecSampler() const { return m_AlbedoImage->getSampler(); }
+
+		VkImageLayout m_PositionLayout;
+		VkImageLayout m_NormalLayout;
+		VkImageLayout m_AlbedoLayout;
+		VkImageLayout m_DepthLayout;
 	private:
 
 		std::unique_ptr<Texture> m_PositionImage;
 		std::unique_ptr<Texture> m_NormalImage;
 		std::unique_ptr<Texture> m_AlbedoImage;
-		std::unique_ptr<Texture> m_DepthImage; 
+		std::unique_ptr<Texture> m_DepthImage;
+
+
 
 
 	};

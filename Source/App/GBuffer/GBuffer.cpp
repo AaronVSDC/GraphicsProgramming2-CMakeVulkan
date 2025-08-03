@@ -1,5 +1,7 @@
 #include "GBuffer.h"
 
+#include "SwapChain.h"
+
 namespace cve
 {
 	void GBuffer::create(Device& device, uint32_t width, uint32_t height)
@@ -29,6 +31,11 @@ namespace cve
             VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
             VK_IMAGE_ASPECT_DEPTH_BIT,
             false);
+
+        m_PositionLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        m_NormalLayout = VK_IMAGE_LAYOUT_UNDEFINED; 
+        m_AlbedoLayout = VK_IMAGE_LAYOUT_UNDEFINED; 
+        m_DepthLayout =  VK_IMAGE_LAYOUT_UNDEFINED; 
 
 	}
 }

@@ -43,8 +43,10 @@ namespace cve {
 			}
 		}
 
-		m_ImageInitialized = std::vector<bool>(m_SwapChain->imageCount(), false);
-		m_DepthInitialized = std::vector<bool>(m_SwapChain->imageCount(), false);
+		m_SwapchainImageLayouts = std::vector<VkImageLayout>(
+			m_SwapChain->imageCount(),
+			VK_IMAGE_LAYOUT_UNDEFINED 
+		);
 	}
 	void Renderer::CreateCommandBuffers()
 	{
@@ -132,16 +134,18 @@ namespace cve {
 		assert(commandBuffer == GetCurrentCommandBuffer() && "Can't begin render pass on command buffer from a different frame"); 
 
 
-		VkImageLayout oldLayout = m_ImageInitialized[m_CurrentImageIndex]
-			? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
-			: VK_IMAGE_LAYOUT_UNDEFINED;
-		TransitionImageLayout(
-			commandBuffer,
-			m_SwapChain->getImage(m_CurrentImageIndex),
-			oldLayout,
-			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			VK_IMAGE_ASPECT_COLOR_BIT);
-
+		VkImageLayout& layout = m_SwapchainImageLayouts[m_CurrentImageIndex];
+		VkImageLayout desired = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		if (layout != desired)
+		{
+			TransitionImageLayout(
+				commandBuffer,
+				m_SwapChain->getImage(m_CurrentImageIndex),
+				layout,
+				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+				VK_IMAGE_ASPECT_COLOR_BIT);
+			layout = desired; 
+		}
 
 		VkRenderingAttachmentInfo colorAttachment{};
 		colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
@@ -175,14 +179,18 @@ namespace cve {
 
 		vkCmdEndRendering(commandBuffer);
 
-		TransitionImageLayout(
-			commandBuffer,
-			m_SwapChain->getImage(m_CurrentImageIndex),
-			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-			VK_IMAGE_ASPECT_COLOR_BIT);
-		m_ImageInitialized[m_CurrentImageIndex] = true;
-
+		VkImageLayout& layout = m_SwapchainImageLayouts[m_CurrentImageIndex];
+		VkImageLayout desired = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+		if (layout != desired)
+		{
+			TransitionImageLayout(
+				commandBuffer,
+				m_SwapChain->getImage(m_CurrentImageIndex),
+				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+				VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+				VK_IMAGE_ASPECT_COLOR_BIT);
+			layout = desired; 
+		}
 	}
 
 	void Renderer::BeginRenderingGeometry(VkCommandBuffer commandBuffer, GBuffer& gBuffer)
@@ -190,37 +198,62 @@ namespace cve {
 		// 1) Set up the three G-Buffer color attachments (pos, normal, albedo):
 		VkRenderingAttachmentInfo cols[3]{};
 		// 0) Transition all 3 G-Buffer color targets from UNDEFINED ? COLOR_ATTACHMENT_OPTIMAL:
-		TransitionImageLayout(
-			commandBuffer,
-			gBuffer.getPositionImage(),              // your helper
-			VK_IMAGE_LAYOUT_UNDEFINED,
-			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			VK_IMAGE_ASPECT_COLOR_BIT
-		);
-		TransitionImageLayout(
-			commandBuffer,
-			gBuffer.getNormalImage(),
-			VK_IMAGE_LAYOUT_UNDEFINED,
-			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			VK_IMAGE_ASPECT_COLOR_BIT
-		);
-		TransitionImageLayout(
-			commandBuffer,
-			gBuffer.getAlbedoSpecImage(),
-			VK_IMAGE_LAYOUT_UNDEFINED,
-			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			VK_IMAGE_ASPECT_COLOR_BIT
-		);
 
-		// 1) Transition depth from UNDEFINED ? DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
-		TransitionImageLayout(
-			commandBuffer,
-			gBuffer.getDepthImage(),
-			VK_IMAGE_LAYOUT_UNDEFINED,
-			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-			VK_IMAGE_ASPECT_DEPTH_BIT
-		);
+		VkImageLayout& layoutPos = gBuffer.m_PositionLayout;
+		VkImageLayout desiredPos = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		if (layoutPos != desiredPos)
+		{
+			TransitionImageLayout(
+				commandBuffer,
+				gBuffer.getPositionImage(),              // your helper
+				VK_IMAGE_LAYOUT_UNDEFINED,
+				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+				VK_IMAGE_ASPECT_COLOR_BIT
+			);
+			layoutPos = desiredPos;
+		}
 
+		VkImageLayout& layoutNormal = gBuffer.m_NormalLayout;
+		VkImageLayout desiredNormal = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		if (layoutNormal != desiredNormal)
+		{
+			TransitionImageLayout(
+				commandBuffer,
+				gBuffer.getNormalImage(),
+				VK_IMAGE_LAYOUT_UNDEFINED,
+				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+				VK_IMAGE_ASPECT_COLOR_BIT
+			);
+			layoutNormal = desiredNormal; 
+		}
+
+		VkImageLayout& layoutAlbedo = gBuffer.m_AlbedoLayout;
+		VkImageLayout desiredAlbedo = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		if (layoutAlbedo != desiredAlbedo)
+		{
+			TransitionImageLayout(
+				commandBuffer,
+				gBuffer.getAlbedoSpecImage(),
+				VK_IMAGE_LAYOUT_UNDEFINED,
+				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+				VK_IMAGE_ASPECT_COLOR_BIT
+			);
+			layoutAlbedo = desiredAlbedo; 
+		}
+
+		VkImageLayout& layoutDepth = gBuffer.m_AlbedoLayout;
+		VkImageLayout desiredDepth = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		if (layoutDepth != desiredDepth)
+		{
+			TransitionImageLayout(
+				commandBuffer,
+				gBuffer.getDepthImage(),
+				VK_IMAGE_LAYOUT_UNDEFINED,
+				VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+				VK_IMAGE_ASPECT_DEPTH_BIT
+			);
+			layoutDepth = desiredDepth;  
+		}
 		// Position (RGBA16F)
 		cols[0].sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
 		cols[0].pNext = nullptr;
@@ -239,7 +272,7 @@ namespace cve {
 		cols[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 		cols[1].clearValue.color = { {0.0f, 0.0f, 0.0f, 1.0f} };
 
-		// Albedo + Spec (RGBA8)
+		// Albedo(RGBA8)
 		cols[2].sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
 		cols[2].pNext = nullptr;
 		cols[2].imageView = gBuffer.getAlbedoSpecView();
@@ -280,29 +313,49 @@ namespace cve {
 	{
 		vkCmdEndRendering(commandBuffer);
 
-		  // Transition all three G-Buffer attachments into shader-read layout
+		VkImageLayout& layoutPos = gBuffer.m_PositionLayout;
+		VkImageLayout   desiredPos = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		if (layoutPos != desiredPos)
+		{
+
+			
 			TransitionImageLayout(
 				commandBuffer,
 				gBuffer.getPositionImage(),
 				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 				VK_IMAGE_ASPECT_COLOR_BIT
-				 );
-		TransitionImageLayout(
-			commandBuffer,
-			gBuffer.getNormalImage(),
-			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-			VK_IMAGE_ASPECT_COLOR_BIT
-			 );
-		TransitionImageLayout(
-			commandBuffer,
-			gBuffer.getAlbedoSpecImage(),
-			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-			VK_IMAGE_ASPECT_COLOR_BIT
-			 );
+			);
+			layoutPos = desiredPos; 
+		}
 
+		VkImageLayout& layoutNormal = gBuffer.m_NormalLayout; 
+		VkImageLayout  desiredNormal = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		if (layoutNormal != desiredNormal)
+		{
+			TransitionImageLayout(
+				commandBuffer,
+				gBuffer.getNormalImage(),
+				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+				VK_IMAGE_ASPECT_COLOR_BIT
+			);
+			layoutNormal = desiredNormal; 
+		}
+		VkImageLayout& layoutAlbedo = gBuffer.m_AlbedoLayout;
+		VkImageLayout  desiredAlbedo = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+		if (layoutAlbedo != desiredAlbedo)
+		{
+			TransitionImageLayout(
+				commandBuffer,
+				gBuffer.getAlbedoSpecImage(),
+				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+				VK_IMAGE_ASPECT_COLOR_BIT
+			);
+			layoutAlbedo = desiredAlbedo; 
+		}
 	}
 
 	void Renderer::TransitionImageLayout(

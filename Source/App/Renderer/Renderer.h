@@ -68,8 +68,8 @@ namespace cve {
 		uint32_t m_CurrentImageIndex;
 		int m_CurrentFrameIndex = 0;
 		bool m_IsFrameStarted = false;
-		std::vector<bool> m_ImageInitialized;
-		std::vector<bool> m_DepthInitialized;
+		std::vector<VkImageLayout> m_SwapchainImageLayouts;
+
 	};
 
 }
