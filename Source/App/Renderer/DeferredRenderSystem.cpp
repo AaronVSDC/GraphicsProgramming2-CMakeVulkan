@@ -58,6 +58,7 @@ namespace cve {
 
 		VkDescriptorSetLayout setLayouts[] = {
 			Texture::s_BindlessSetLayout
+
 		};
 
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
