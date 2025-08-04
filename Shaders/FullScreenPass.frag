@@ -25,10 +25,5 @@ void main() {
     vec3 norm   = normalize(texelFetch(gBuffers[1], pix, 0).xyz);
     vec3 alb    = texelFetch(gBuffers[2], pix, 0).rgb;
 
-    // simple ambient + diffuse from camera location
-    vec3 L     = normalize(pc.cameraPos - pos);
-    float dif  = max(dot(norm, L), 0.0);
-    vec3 color = 0.1 * alb + dif * alb;
-
-    outColor = vec4(color, 1.0);
+    outColor = vec4(alb, 1.0);
 }

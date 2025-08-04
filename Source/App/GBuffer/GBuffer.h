@@ -10,8 +10,8 @@ namespace cve
 	public:
 		// G-buffer attachment formats
 		static constexpr VkFormat POS_FORMAT = VK_FORMAT_R16G16B16A16_SFLOAT;
-		static constexpr VkFormat NORM_FORMAT = VK_FORMAT_R16G16B16A16_SFLOAT;
-		static constexpr VkFormat ALBEDO_FORMAT = VK_FORMAT_R8G8B8A8_UNORM;
+		static constexpr VkFormat NORM_FORMAT = VK_FORMAT_R8G8B8A8_UNORM; 
+		static constexpr VkFormat ALBEDO_FORMAT = VK_FORMAT_R8G8B8A8_SRGB; // USE THIS FORMAT FOR OTHER TEXTURES PLEASE
 		static constexpr VkFormat DEPTH_FORMAT = VK_FORMAT_D32_SFLOAT;
 
 		void create(Device& device, uint32_t width, uint32_t height);

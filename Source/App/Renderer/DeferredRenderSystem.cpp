@@ -319,7 +319,7 @@ namespace cve {
 
 
 		VkPushConstantRange pushConstantRange{};
-		pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 		pushConstantRange.offset = 0;
 		pushConstantRange.size = sizeof(DepthPush);
 
@@ -349,7 +349,7 @@ namespace cve {
 		auto bindDescs = Model::Vertex::GetBindingDescriptions();
 		auto attrDescs = Model::Vertex::GetAttributeDescriptions();
 		depthConfig.vertexBindings = { bindDescs[0] }; 
-		depthConfig.vertexAttributes = { attrDescs[0] }; 
+		depthConfig.vertexAttributes = { attrDescs[0], attrDescs[3]};  
 		depthConfig.colorAttachmentFormats.clear();
 		depthConfig.renderingInfo.colorAttachmentCount = 0;
 		depthConfig.renderingInfo.pColorAttachmentFormats = nullptr;
@@ -394,7 +394,7 @@ namespace cve {
 				vkCmdPushConstants(
 					commandBuffer,
 					m_DepthPrepassPipelineLayout,
-					VK_SHADER_STAGE_VERTEX_BIT,
+					VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
 					0,
 					sizeof(DepthPush),
 					&push

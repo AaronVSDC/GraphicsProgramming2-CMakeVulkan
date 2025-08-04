@@ -86,7 +86,7 @@ namespace cve
 					indexMap[fullPath] = idx;
 					textures.emplace_back(std::make_unique<Texture>(device, fullPath));
 					mi.diffuseIndex = idx;
-					std::cout << "MAKING DIFFUSE TEXTURE OBJECT: " << fullPath.c_str() << "AND GIVING IT INDEX: " << idx << " " << std::endl;
+					std::cout << "MAKING DIFFUSE TEXTURE OBJECT: " << fullPath.c_str() << " WITH IDX: " << idx << " " << std::endl;
 				}
 				else 
 				{
@@ -105,7 +105,7 @@ namespace cve
 					indexMap[fullMask] = idx;
 					textures.emplace_back(std::make_unique<Texture>(device, fullMask));
 					mi.maskIndex = idx;
-					std::cout << "MAKING MASK TEXTURE OBJECT: " << fullMask.c_str() << "AND GIVING IT INDEX: " << idx << " " << std::endl;
+					std::cout << "MAKING MASK TEXTURE OBJECT: " << fullMask.c_str() << " WITH IDX: " << idx << " " << std::endl;
 
 				}
 				else 
@@ -264,7 +264,7 @@ namespace cve
 
 			aiString matName;
 			mat->Get(AI_MATKEY_NAME, matName); 
-			std::cout << "\n" << "Material " << matName.C_Str() << " at #" << m << ":\n";
+			//std::cout << "\n" << "Material " << matName.C_Str() << " at #" << m << ":\n";
 			for (int tt = aiTextureType_NONE; tt <= aiTextureType_UNKNOWN; ++tt)
 			{
 				aiTextureType type = static_cast<aiTextureType>(tt);
@@ -275,14 +275,14 @@ namespace cve
 				{
 					aiString path;
 					aiReturn ret = mat->GetTexture(type, 0, &path);
-					std::cout << "	diffuse: " << path.C_Str() << std::endl; 
+					//std::cout << "	diffuse: " << path.C_Str() << std::endl; 
 					materials[m].diffuseTex = path.C_Str(); 
 				}
 				if (tt == aiTextureType_OPACITY)
 				{
 					aiString path;
 					aiReturn ret = mat->GetTexture(type, 0, &path);
-					std::cout << "	Opacity mask: " << path.C_Str() << std::endl;
+					//std::cout << "	Opacity mask: " << path.C_Str() << std::endl;
 					materials[m].opacityMaskTex = path.C_Str();
 				}
 
