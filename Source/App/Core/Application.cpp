@@ -75,8 +75,8 @@ void Application::run()
 
 
             m_Renderer.BeginRenderingLighting(commandBuffer);
-            DeferredRenderSystem.RenderLighting(commandBuffer, camera);
-            m_Renderer.EndRenderingLighting(commandBuffer); 
+            DeferredRenderSystem.RenderLighting(commandBuffer, camera, currentExtent);
+            m_Renderer.EndRenderingLighting(commandBuffer);  
 			m_Renderer.EndFrame(); 
 		}
 

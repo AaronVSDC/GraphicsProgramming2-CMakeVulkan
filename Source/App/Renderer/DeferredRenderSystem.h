@@ -30,8 +30,8 @@ namespace cve
 		void Initialize(VkExtent2D extent, VkFormat swapFormat); 
 		void RenderGeometry(VkCommandBuffer commandBuffer, std::vector<GameObject>& gameObjects, const Camera& camera);
 		void UpdateGeometry(std::vector<GameObject>& gameObjects, float deltaTime);
-		void RenderLighting(VkCommandBuffer cb, const Camera& camera);
-		void RecreateGBuffer(VkExtent2D extent, VkFormat swapFormat);
+		void RenderLighting(VkCommandBuffer cb, const Camera& camera, VkExtent2D extent);
+		void RecreateGBuffer(VkExtent2D extent, VkFormat swapFormat); 
 		GBuffer& GetGBuffer() { return m_GBuffer;  }
 
 	private:

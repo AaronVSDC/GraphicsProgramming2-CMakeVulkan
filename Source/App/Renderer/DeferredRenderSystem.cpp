@@ -19,9 +19,16 @@ namespace cve {
 		glm::mat4 modelMatrix{ 1.f }; //64B
 		uint32_t materialIndex; //4B
 
-		//pad out to 16 byte multiple
 		uint8_t _pad[12]; 
 	};
+
+	struct PCResolutionCamera {
+		glm::vec2 resolution;
+		float      _pad0[2];
+		glm::vec3 cameraPos;
+		float      _pad1;
+	};
+	static_assert(sizeof(PCResolutionCamera) == 32, "Push-constant struct size mismatch");
 
 	DeferredRenderSystem::DeferredRenderSystem(Device& device, VkExtent2D extent, VkFormat swapFormat)
 		:m_Device{device}
@@ -122,8 +129,12 @@ namespace cve {
 		dsInfo.pBindings = &b;
 		vkCreateDescriptorSetLayout(m_Device.device(), &dsInfo, nullptr, &m_LightDescriptorSetLayout);
 
-		// push const for camera pos
-		VkPushConstantRange pc{ VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(glm::vec3) };
+		// push const for camera pos and screen texel
+		VkPushConstantRange pc{};
+		pc.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		pc.offset = 0;
+		pc.size = sizeof(PCResolutionCamera);  
+
 		VkPipelineLayoutCreateInfo plInfo{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 		plInfo.setLayoutCount = 1;
 		plInfo.pSetLayouts = &m_LightDescriptorSetLayout;
@@ -254,8 +265,17 @@ namespace cve {
 
 	}
 
-	void DeferredRenderSystem::RenderLighting(VkCommandBuffer cb, const Camera& camera)
+	void DeferredRenderSystem::RenderLighting(VkCommandBuffer cb, const Camera& camera, VkExtent2D extent)
 	{
+
+		PCResolutionCamera pushConstantData;
+
+		pushConstantData.resolution = glm::vec2(
+			static_cast<float>(extent.width),
+			static_cast<float>(extent.height)
+		);
+		pushConstantData.cameraPos = camera.GetPosition(); 
+
 		m_LightPipeline->Bind(cb);
 		vkCmdBindDescriptorSets(cb,
 			VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -264,11 +284,11 @@ namespace cve {
 		vkCmdPushConstants(cb,
 			m_LightPipelineLayout,
 			VK_SHADER_STAGE_FRAGMENT_BIT,
-			0, sizeof(glm::vec3),
-			&camera.GetPosition());
+			0, sizeof(pushConstantData),
+			&pushConstantData);
 		// draw fullscreen quad
 		vkCmdDraw(cb,    // no vertex buffer bound 
-			3,               // exactly 3 vertices
+			3,               // exactly 4 vertices
 			1,               // one instance
 			0,               // firstVertex = 0
 			0                // firstInstance = 0

@@ -216,7 +216,7 @@ namespace cve {
 			TransitionImageLayout(
 				commandBuffer,
 				gBuffer.getPositionImage(),              // your helper
-				VK_IMAGE_LAYOUT_UNDEFINED,
+				layoutPos,
 				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 				VK_IMAGE_ASPECT_COLOR_BIT
 			);
@@ -230,7 +230,7 @@ namespace cve {
 			TransitionImageLayout(
 				commandBuffer,
 				gBuffer.getNormalImage(),
-				VK_IMAGE_LAYOUT_UNDEFINED,
+				layoutNormal,
 				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 				VK_IMAGE_ASPECT_COLOR_BIT
 			);
@@ -244,7 +244,7 @@ namespace cve {
 			TransitionImageLayout(
 				commandBuffer,
 				gBuffer.getAlbedoSpecImage(),
-				VK_IMAGE_LAYOUT_UNDEFINED,
+				layoutAlbedo,
 				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 				VK_IMAGE_ASPECT_COLOR_BIT
 			);
@@ -258,7 +258,7 @@ namespace cve {
 			TransitionImageLayout(
 				commandBuffer,
 				gBuffer.getDepthImage(),
-				VK_IMAGE_LAYOUT_UNDEFINED,
+				layoutDepth,
 				VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
 				VK_IMAGE_ASPECT_DEPTH_BIT
 			);
@@ -384,43 +384,53 @@ namespace cve {
 		barrier.subresourceRange.baseMipLevel = 0;
 		barrier.subresourceRange.levelCount = 1;
 		barrier.subresourceRange.baseArrayLayer = 0;
-		barrier.subresourceRange.layerCount = 1;
+		barrier.subresourceRange.layerCount = 1; 
 
-		VkPipelineStageFlags2 srcStage = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
-		VkPipelineStageFlags2 dstStage = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+		VkPipelineStageFlags2 srcStage = VK_PIPELINE_STAGE_2_NONE; 
+		VkPipelineStageFlags2 dstStage = VK_PIPELINE_STAGE_2_NONE;
 		barrier.srcAccessMask = 0;
 		barrier.dstAccessMask = 0;
 
 		if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
 		{
-			barrier.srcAccessMask = 0;
-			barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			barrier.dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
 			srcStage = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT;
 			dstStage = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
 		}
 		else if (oldLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR && newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
 		{
-			barrier.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-			barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-			srcStage = VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT;
+			barrier.dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+			srcStage = VK_PIPELINE_STAGE_2_NONE;
 			dstStage = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
 		}
 		else if (oldLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
 		{
-			barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-			barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+			barrier.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
 			srcStage = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
-			dstStage = VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT;
+			dstStage = VK_PIPELINE_STAGE_2_NONE;
 		}
 		else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
 		{
-			barrier.srcAccessMask = 0;
-			barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+			barrier.dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 			srcStage = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT;
 			dstStage = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT;
 		}
+		else if (oldLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+		{
+			barrier.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+			barrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
+			srcStage = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+			dstStage = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+		}
+		else if (oldLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+		{
+			barrier.srcAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
+			barrier.dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+			srcStage = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+			dstStage = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+		}
 
-		barrier.srcStageMask = srcStage;
+		barrier.srcStageMask = srcStage; 
 		barrier.dstStageMask = dstStage;
 		 
 		VkDependencyInfo depInfo{};

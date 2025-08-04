@@ -278,6 +278,18 @@ namespace cve
 						mesh->mVertices[i].z
 				};
 
+				if (mesh->HasNormals()) {
+					v.normal = {
+					mesh->mNormals[i].x,
+					mesh->mNormals[i].y,
+					mesh->mNormals[i].z
+					};
+					
+				}
+				else {
+					v.normal = { 0.0f, 0.0f, 0.0f };
+				}
+
 				// colors (optional, is not always supported apparantly)
 				v.color = { 1.0f, 1.0f, 1.0f };
 
