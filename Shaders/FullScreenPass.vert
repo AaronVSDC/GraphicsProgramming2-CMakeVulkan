@@ -1,7 +1,5 @@
 #version 450
 
-layout(location = 0) out vec2 fsUV;
-
 void main()
  { 
     // we hardcode a giant triangle that covers the screen:
@@ -14,6 +12,4 @@ void main()
     vec2 pos = verts[gl_VertexIndex];
     gl_Position = vec4(pos, 0.0, 1.0);
 
-    // uv mapping from -1..+1 → 0..1:
-    fsUV = pos * 0.5 + 0.5;
 }

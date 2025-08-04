@@ -64,26 +64,60 @@ namespace cve
 		data.LoadModel(filepath);
 
 
-		//MAKE TEXTURE FROM DATA 
-		Texture::initBindless(device, data.materials.size()); 
+		std::unordered_map<std::string, uint32_t> indexMap;
+		std::vector<std::unique_ptr<Texture>>    textures;
+		textures.reserve(data.materials.size() * 2); 
 
-		for (auto& mi : data.materials) 
+
+		// 3) Load each unique texture exactly once
+		for (auto& mi : data.materials)
 		{
-			if (!(mi.diffuseTex == "NULL"))
+			constexpr uint32_t NO_SLOT = std::numeric_limits<uint32_t>::max();
+
+			// — diffuse
+			mi.diffuseIndex = NO_SLOT;
+			if (mi.diffuseTex != "NULL")
 			{
-				data.textures.emplace_back(
-					std::make_unique<Texture>(device, assetDir + mi.diffuseTex)
-				);
-			}
-			else
-			{
-				data.textures.emplace_back(
-					std::make_unique<Texture>(device, "Resources/Missing_Texture.png")
-					); 
+				std::string fullPath = assetDir + mi.diffuseTex;
+				auto it = indexMap.find(fullPath);
+				if (it == indexMap.end())
+				{
+					uint32_t idx = uint32_t(textures.size());
+					indexMap[fullPath] = idx;
+					textures.emplace_back(std::make_unique<Texture>(device, fullPath));
+					mi.diffuseIndex = idx;
+					std::cout << "MAKING DIFFUSE TEXTURE OBJECT: " << fullPath.c_str() << "AND GIVING IT INDEX: " << idx << " " << std::endl;
+				}
+				else 
+				{
+					mi.diffuseIndex = it->second;
+				}
 			}
 
+			mi.maskIndex = NO_SLOT;
+			if (mi.opacityMaskTex != "NULL" && !mi.opacityMaskTex.empty())
+			{
+				std::string fullMask = assetDir + mi.opacityMaskTex;
+				auto mit = indexMap.find(fullMask);
+				if (mit == indexMap.end()) 
+				{
+					uint32_t idx = uint32_t(textures.size());
+					indexMap[fullMask] = idx;
+					textures.emplace_back(std::make_unique<Texture>(device, fullMask));
+					mi.maskIndex = idx;
+					std::cout << "MAKING MASK TEXTURE OBJECT: " << fullMask.c_str() << "AND GIVING IT INDEX: " << idx << " " << std::endl;
+
+				}
+				else 
+				{
+					mi.maskIndex = mit->second;
+				}
+			}
 		}
-		Texture::updateBindless(device, data.textures);
+		// 4) Move into data and init
+		data.textures = std::move(textures);
+		Texture::initBindless(device, uint32_t(data.textures.size()));
+		Texture::updateBindless(device, &data);
 
 		return std::make_unique<Model>(device, std::move(data));
 	}
@@ -224,26 +258,36 @@ namespace cve
 		}
 
 		materials.resize(scene->mNumMaterials); 
-		for (size_t i = 0; i < scene->mNumMaterials; i++)
+		for (size_t m = 0; m < scene->mNumMaterials; m++)
 		{
-			aiMaterial* mat = scene->mMaterials[i];
-			aiString path;
+			aiMaterial* mat = scene->mMaterials[m];
 
-			if (mat->GetTextureCount(aiTextureType_DIFFUSE) > 0 and mat->GetTexture(aiTextureType_DIFFUSE, 0, &path) == AI_SUCCESS)
+			aiString matName;
+			mat->Get(AI_MATKEY_NAME, matName); 
+			std::cout << "\n" << "Material " << matName.C_Str() << " at #" << m << ":\n";
+			for (int tt = aiTextureType_NONE; tt <= aiTextureType_UNKNOWN; ++tt)
 			{
-				materials[i].diffuseTex = path.C_Str(); 
-			}
-			else 
-			{
+				aiTextureType type = static_cast<aiTextureType>(tt);
+				unsigned count = mat->GetTextureCount(type);
+				if (count == 0) continue;
+
+				if (tt == aiTextureType_DIFFUSE)
+				{
+					aiString path;
+					aiReturn ret = mat->GetTexture(type, 0, &path);
+					std::cout << "	diffuse: " << path.C_Str() << std::endl; 
+					materials[m].diffuseTex = path.C_Str(); 
+				}
+				if (tt == aiTextureType_OPACITY)
+				{
+					aiString path;
+					aiReturn ret = mat->GetTexture(type, 0, &path);
+					std::cout << "	Opacity mask: " << path.C_Str() << std::endl;
+					materials[m].opacityMaskTex = path.C_Str();
+				}
+
 				
-				materials[i].diffuseTex = "NULL";
 			}
-			//if (mat->GetTextureCount(aiTextureType_NORMALS) > 0 and mat->GetTexture(aiTextureType_NORMALS, 0, &path) == AI_SUCCESS)
-			//{
-			//	materials[i].normalTex = path.C_Str();
-			//}
-			//TODO: add everything you want to read in (every type of texture like the two examples above)
-
 		}
 
 		// Calculate total counts so we can reserve memory only once

@@ -1,29 +1,48 @@
 #version 450
 #extension GL_EXT_nonuniform_qualifier : require
 
-// match the locations you wrote out from the vertex shader:
-layout(location = 0) in vec3 fsWorldPos;
-layout(location = 1) in vec3 fsColor;
-layout(location = 2) in vec3 fsNormal;
-layout(location = 3) in vec2 fsUV;
-layout(location = 4) flat in uint fsMaterialIndex;
+layout(early_fragment_tests) in;
 
-// bindless descriptor set 0, binding 0 is your array of samplers:
-layout(set = 0, binding = 0) uniform sampler2D uTextures[];
+layout(location = 0) in vec3 fragPos;
+layout(location = 1) in vec3 fragNorm;
+layout(location = 2) in vec3 fragColor;
+layout(location = 3) in vec2 fragUV;
 
-layout(location = 0) out vec4 outPosition;   // R16G16B16A16
-layout(location = 1) out vec4 outNormal;     // R16G16B16A16 
-layout(location = 2) out vec4 outAlbedoSpec; // R8G8B8A8
+layout(location = 0) out vec4 outPosition;
+layout(location = 1) out vec4 outNormal;
+layout(location = 2) out vec4 outAlbedo;
+
+layout(set = 0, binding = 0) uniform sampler2D bindlessTextures[];
+
+layout(push_constant) uniform PC {
+    mat4 transform;
+    mat4 modelMatrix;
+    uint diffuseIndex;
+    uint maskIndex;
+} pc;
+
+const float alphaThreshold = 0.95;
 
 void main() {
-    // world‐space
-    outPosition = vec4(fsWorldPos, 1.0);
+    uint mi = pc.maskIndex;
+    if (mi != 0xFFFFFFFFu) {
+        float mask = texture(
+            bindlessTextures[ nonuniformEXT(mi) ],
+            fragUV
+        ).r; //TODO: looks ugly now to sample the red channel, you can fix it by actually loading in the black and white image as a grayscale instead of an rgba picture. But this approach "works"
+        if (mask < alphaThreshold) {
+            discard;
+        }
+    }
 
-    // pack normal + 1.0 into alpha (or just write 1.0):
-    outNormal = vec4(normalize(fsNormal), 1.0);
+    // fetch diffuse
+    vec3 albedo = texture(
+        nonuniformEXT(bindlessTextures[ nonuniformEXT(pc.diffuseIndex) ]),
+        fragUV
+    ).rgb * fragColor;
 
-    // sample the diffuse texture for this material:
-    vec4 albedo = texture(uTextures[fsMaterialIndex], fsUV);
-    // store RGB = albedo.rgb, A = specular power (here just 1)
-    outAlbedoSpec = vec4(albedo.rgb, 1.0);
+    // output G-Buffer
+    outPosition   = vec4(fragPos,   1.0);
+    outNormal     = vec4(normalize(fragNorm), 1.0);
+    outAlbedo     = vec4(albedo,  1.0); 
 }

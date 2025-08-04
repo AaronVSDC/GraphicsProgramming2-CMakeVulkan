@@ -6,6 +6,9 @@ namespace cve
 {
 	void GBuffer::create(Device& device, uint32_t width, uint32_t height)
 	{
+        m_Width = width;
+        m_Height = height; 
+
         m_PositionImage = std::make_unique<Texture>(device,
             width, height,
             POS_FORMAT,

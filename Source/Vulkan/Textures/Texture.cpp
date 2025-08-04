@@ -5,7 +5,7 @@
 #include <cmath>
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
-
+#include "Model.h" 
 namespace cve
 {
 
@@ -87,91 +87,91 @@ namespace cve
     VkDescriptorPool      Texture::s_BindlessPool          = VK_NULL_HANDLE; 
     VkDescriptorSet       Texture::s_BindlessDescriptorSet = VK_NULL_HANDLE;
 
-    void Texture::updateBindless(Device& device, const std::vector<std::unique_ptr<Texture>>& textures)
+    void Texture::updateBindless(Device& device, void* rawData) 
     {
-        uint32_t maxTextures = uint32_t(textures.size());
-        std::vector<VkDescriptorImageInfo> imageInfos(maxTextures);
-        std::vector<VkWriteDescriptorSet>  writes(maxTextures); 
+        auto& data = *static_cast<Model::Data*>(rawData);
+        // we have two textures per material
+        uint32_t N = uint32_t(data.textures.size());
+        std::vector<VkDescriptorImageInfo> infos(N);
+        std::vector<VkWriteDescriptorSet>  writes(N);
 
-        for (uint32_t i = 0; i < maxTextures; i++) {
-            imageInfos[i].imageView = textures[i]->getImageView();
-            imageInfos[i].sampler = textures[i]->getSampler();
-            imageInfos[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-            writes[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            writes[i].dstSet = s_BindlessDescriptorSet;
-            writes[i].dstBinding = 0;
-            writes[i].dstArrayElement = i;
-            writes[i].descriptorCount = 1;
-            writes[i].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            writes[i].pImageInfo = &imageInfos[i];
+        for (uint32_t i = 0; i < N; ++i) {
+            infos[i] = {
+                data.textures[i]->getSampler(),
+                data.textures[i]->getImageView(),
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+            };
+            writes[i] = {
+                VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                nullptr,
+                s_BindlessDescriptorSet,
+                /*dstBinding=*/0,
+                /*dstArrayElement=*/i,
+                /*descriptorCount=*/1,
+                VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                &infos[i],
+                nullptr,
+                nullptr
+            };
         }
 
-        vkUpdateDescriptorSets(device.device(),
-            maxTextures,
-            writes.data(),
-            0, nullptr);
+        vkUpdateDescriptorSets(
+            device.device(),
+            N, writes.data(),
+            0, nullptr
+        ); 
     }
 
     void Texture::initBindless(Device& device, uint32_t maxTextures)
     {
-        if (s_BindlessPool != VK_NULL_HANDLE) return;
-        
-        // 1) ONE binding with an array of `maxTextures` combined-image-samplers:
-        VkDescriptorSetLayoutBinding b{};
-        b.binding = 0;
-        b.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        b.descriptorCount = maxTextures;
-        b.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        if (s_BindlessPool != VK_NULL_HANDLE) return; 
 
-        // 2) Enable the “variable count” & “update after bind” flags:
-        VkDescriptorBindingFlags bindingFlags =
+        // Single binding, variable count = maxTextures
+        VkDescriptorSetLayoutBinding binding{};
+        binding.binding = 0;
+        binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        binding.descriptorCount = maxTextures;
+        binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        VkDescriptorBindingFlags flags =
             VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT |
-            VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
-            VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT; 
+            VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT |
+            VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
 
-        VkDescriptorSetLayoutBindingFlagsCreateInfo flagsInfo{};
-        flagsInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
+        VkDescriptorSetLayoutBindingFlagsCreateInfo flagsInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO };
         flagsInfo.bindingCount = 1;
-        flagsInfo.pBindingFlags = &bindingFlags;
+        flagsInfo.pBindingFlags = &flags;
 
-        VkDescriptorSetLayoutCreateInfo layoutInfo{};
-        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        layoutInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT; 
+        VkDescriptorSetLayoutCreateInfo layoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+        layoutInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
         layoutInfo.bindingCount = 1;
-        layoutInfo.pBindings = &b;
+        layoutInfo.pBindings = &binding;
         layoutInfo.pNext = &flagsInfo;
-
         vkCreateDescriptorSetLayout(device.device(), &layoutInfo, nullptr, &s_BindlessSetLayout);
 
-        // 3) Create a pool big enough for maxTextures descriptors, but only 1 set:
+        // Pool for exactly maxTextures descriptors
         VkDescriptorPoolSize poolSize{};
         poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         poolSize.descriptorCount = maxTextures;
 
-        VkDescriptorPoolCreateInfo poolInfo{};
-        poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+        VkDescriptorPoolCreateInfo poolInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
         poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
         poolInfo.poolSizeCount = 1;
         poolInfo.pPoolSizes = &poolSize;
         poolInfo.maxSets = 1;
         vkCreateDescriptorPool(device.device(), &poolInfo, nullptr, &s_BindlessPool);
 
-        // 4) Allocate the single bindless set with `maxTextures` capacity:
-        VkDescriptorSetVariableDescriptorCountAllocateInfo varCountInfo{};
-        varCountInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO;
-        varCountInfo.descriptorSetCount = 1;
-        varCountInfo.pDescriptorCounts = &maxTextures;
+        // Allocate one set, var-count = maxTextures
+        VkDescriptorSetVariableDescriptorCountAllocateInfo varInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO };
+        varInfo.descriptorSetCount = 1;
+        varInfo.pDescriptorCounts = &maxTextures;
 
-        VkDescriptorSetAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        VkDescriptorSetAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
         allocInfo.descriptorPool = s_BindlessPool;
         allocInfo.descriptorSetCount = 1;
         allocInfo.pSetLayouts = &s_BindlessSetLayout;
-        allocInfo.pNext = &varCountInfo;
-
+        allocInfo.pNext = &varInfo;
         vkAllocateDescriptorSets(device.device(), &allocInfo, &s_BindlessDescriptorSet);
-
 
     }
     void Texture::cleanupBindless(Device& device)

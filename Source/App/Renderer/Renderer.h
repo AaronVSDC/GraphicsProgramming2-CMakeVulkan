@@ -27,10 +27,12 @@ namespace cve {
 		void EndRenderingLighting(VkCommandBuffer commandBuffer);
 		void BeginRenderingGeometry(VkCommandBuffer commandBuffer, GBuffer& gBuffer);
 		void EndRenderingGeometry(VkCommandBuffer commandBuffer, GBuffer& gBuffer); 
-
+		void BeginRenderingDepthPrepass(VkCommandBuffer commandBuffer, GBuffer& gBuffer);
+		void EndRenderingDepthPrepass(VkCommandBuffer commandBuffer); 
 
 
 		VkFormat GetSwapChainImageFormat() const { return m_SwapChain->getSwapChainImageFormat(); }
+		VkExtent2D GetSwapChainExtent() const { return m_SwapChain->getSwapChainExtent(); }
 		VkFormat GetDepthFormat() const { return m_SwapChain->findDepthFormat(); }
 		float GetAspectRatio() const { return m_SwapChain->extentAspectRatio();  } 
 

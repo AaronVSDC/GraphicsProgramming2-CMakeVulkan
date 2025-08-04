@@ -164,10 +164,12 @@ namespace cve
 
 		VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures{};
 		indexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
+		indexingFeatures.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
 		indexingFeatures.runtimeDescriptorArray = VK_TRUE;
 		indexingFeatures.descriptorBindingVariableDescriptorCount = VK_TRUE;
 		indexingFeatures.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
 		indexingFeatures.descriptorBindingPartiallyBound = VK_TRUE;
+
 
 		VkPhysicalDeviceSynchronization2Features synchronization2{};
 		synchronization2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES;

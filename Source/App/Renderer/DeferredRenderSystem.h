@@ -31,7 +31,9 @@ namespace cve
 		void RenderGeometry(VkCommandBuffer commandBuffer, std::vector<GameObject>& gameObjects, const Camera& camera);
 		void UpdateGeometry(std::vector<GameObject>& gameObjects, float deltaTime);
 		void RenderLighting(VkCommandBuffer cb, const Camera& camera, VkExtent2D extent);
-		void RecreateGBuffer(VkExtent2D extent, VkFormat swapFormat); 
+		void RecreateGBuffer(VkExtent2D extent, VkFormat swapFormat);
+		void RenderDepthPrepass(VkCommandBuffer commandBuffer, std::vector<GameObject>& gameObjects, const Camera& camera);
+
 		GBuffer& GetGBuffer() { return m_GBuffer;  }
 
 	private:
@@ -41,12 +43,17 @@ namespace cve
 		void CreateLightingPipeline(VkFormat swapFormat);
 		void CreateLightingDescriptorSet();
 
+		void CreateDepthPrepassPipeline();
+		void CreateDepthPrepassPipelineLayout();
+
+
+
 
 		Device& m_Device;
 		GBuffer						m_GBuffer; 
-		VkPipelineLayout			m_GeometryPipelineLayout, m_LightPipelineLayout;
-		std::unique_ptr<Pipeline>	m_GeometryPipeline, m_LightPipeline;
-		VkDescriptorSet				m_GeometryDescriptorSet, m_LightDescriptorSet;
+		VkPipelineLayout			m_GeometryPipelineLayout, m_LightPipelineLayout, m_DepthPrepassPipelineLayout;
+		std::unique_ptr<Pipeline>	m_GeometryPipeline, m_LightPipeline, m_DepthPrepassPipeline;
+		VkDescriptorSet				m_GeometryDescriptorSet, m_LightDescriptorSet; 
 		VkDescriptorSetLayout		m_LightDescriptorSetLayout;
 		VkDescriptorPool			m_LightDescriptorPool;
 

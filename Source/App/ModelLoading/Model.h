@@ -43,8 +43,10 @@ namespace cve
 
 		struct MaterialInfo
 		{
-			std::string diffuseTex;
-			std::string normalTex;
+			std::string diffuseTex = "NULL";
+			std::string opacityMaskTex = "NULL";
+
+			uint32_t    diffuseIndex, maskIndex;
 
 			//TODO: add textureTypes you want to load in
 		};

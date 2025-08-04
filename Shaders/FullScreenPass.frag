@@ -1,38 +1,34 @@
 #version 450
 
-layout(location = 0) in vec2 fsUV;
-
-// descriptor set 0, binding 0 is a 3-element array of samplers:
-layout(set = 0, binding = 0) uniform sampler2D uGBuffer[3];
-
-// push constant: camera position in world-space
-layout(push_constant) uniform PC {
-    vec2 resolution;   // (width, height)
-    vec3 cameraPos;    // your existing camera position
+// must match your ResolutionCameraPush in C++
+layout(push_constant) uniform LightPC {
+    vec2 resolution;
+    float _pad0[2];
+    vec3 cameraPos;
+    float _pad1;
 } pc;
-// final output:
+
+// bindless array of your three G-Buffer attachments:
+//   gBuffers[0] = world‐space position (RGBA16F)
+//   gBuffers[1] = normal           (RGBA16F)
+//   gBuffers[2] = albedo           (RGBA8)
+layout(set = 0, binding = 0) uniform sampler2D gBuffers[];
+
 layout(location = 0) out vec4 outColor;
 
-void main() 
-{
-
+void main() {
+    // integer pixel coordinate
     ivec2 pix = ivec2(gl_FragCoord.xy);
-    // fetch G-Buffer:
-    vec3  pos    = texelFetch(uGBuffer[0], pix, 0).xyz; 
-    vec3  norm   = normalize(texelFetch(uGBuffer[1], pix, 0).xyz);
-    vec3  albedo = texelFetch(uGBuffer[2], pix, 0).rgb;
 
+    // fetch directly—no interpolation, so no half-texel shift artifacts
+    vec3 pos    = texelFetch(gBuffers[0], pix, 0).xyz;
+    vec3 norm   = normalize(texelFetch(gBuffers[1], pix, 0).xyz);
+    vec3 alb    = texelFetch(gBuffers[2], pix, 0).rgb;
 
-    // // simple single‐point light:
-    vec3 lightPos   = vec3( 10.0, 10.0, 10.0 );
-    vec3 lightColor = vec3( 1.0 ); 
+    // simple ambient + diffuse from camera location
+    vec3 L     = normalize(pc.cameraPos - pos);
+    float dif  = max(dot(norm, L), 0.0);
+    vec3 color = 0.1 * alb + dif * alb;
 
-    vec3 L = normalize(lightPos - pos);
-    float diff = max(dot(norm, L), 0.0);
-
-    vec3 V = normalize(pc.cameraPos - pos);
-    vec3 R = reflect(-L, norm);
-    vec3 lit = (albedo * diff) * lightColor;
-
-    outColor = vec4(lit, 1.0);
+    outColor = vec4(color, 1.0);
 }

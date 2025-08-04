@@ -5,9 +5,10 @@
 #include <string>
 #include <vulkan/vulkan.h>
 
+
 namespace cve
 {
-    class Texture final
+	class Texture final
 	{
     public:
         Texture(Device& device, const std::string& filename);
@@ -32,7 +33,7 @@ namespace cve
 
         static void initBindless(Device& device, uint32_t maxTextures);
         static void cleanupBindless(Device& device); 
-        static void updateBindless(Device& device, const std::vector<std::unique_ptr<Texture>>& textures); 
+        static void updateBindless(Device& device, void* rawData);  
     	static VkDescriptorSetLayout   s_BindlessSetLayout;
         static VkDescriptorPool        s_BindlessPool;
         static VkDescriptorSet         s_BindlessDescriptorSet;

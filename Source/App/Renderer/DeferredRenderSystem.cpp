@@ -13,27 +13,32 @@
 namespace cve {
 
 
-	struct SimplePushConstantData
+	struct MatricesAndIndexPush
 	{
 		glm::mat4 transform{ 1.f }; //64B
 		glm::mat4 modelMatrix{ 1.f }; //64B
-		uint32_t materialIndex; //4B
-
-		uint8_t _pad[12]; 
+		uint32_t diffuseIndex;  //  4 bytes
+		uint32_t maskIndex;
+		uint8_t _pad[8]; 
 	};
 
-	struct PCResolutionCamera {
+	struct ResolutionCameraPush {
 		glm::vec2 resolution;
 		float      _pad0[2];
 		glm::vec3 cameraPos;
 		float      _pad1;
 	};
-	static_assert(sizeof(PCResolutionCamera) == 32, "Push-constant struct size mismatch");
+
+	struct DepthPush
+	{
+		glm::mat4 mvp;
+		uint32_t maskIndex;
+	};
 
 	DeferredRenderSystem::DeferredRenderSystem(Device& device, VkExtent2D extent, VkFormat swapFormat)
 		:m_Device{device}
 	{
-		assert(device.properties.limits.maxPushConstantsSize > sizeof(SimplePushConstantData) && "Max supported push constant data is smaller than 256 bytes");
+		assert(device.properties.limits.maxPushConstantsSize > sizeof(MatricesAndIndexPush) && "Max supported push constant data is smaller than 256 bytes");
 		Initialize(extent, swapFormat); 
 	}
 
@@ -43,25 +48,30 @@ namespace cve {
 		vkDestroyDescriptorSetLayout(m_Device.device(), m_LightDescriptorSetLayout, nullptr);
 		vkDestroyPipelineLayout(m_Device.device(), m_LightPipelineLayout, nullptr);
 		vkDestroyPipelineLayout(m_Device.device(), m_GeometryPipelineLayout, nullptr);
+		vkDestroyPipelineLayout(m_Device.device(), m_DepthPrepassPipelineLayout, nullptr);
 		Texture::cleanupBindless(m_Device);
 	}
 
 	void DeferredRenderSystem::Initialize(VkExtent2D extent, VkFormat swapFormat)
 	{
 		m_GBuffer.create(m_Device, extent.width, extent.height);
-		CreateGeometryPipelineLayout();
+		CreateDepthPrepassPipelineLayout();
+		CreateDepthPrepassPipeline(); 
+		CreateGeometryPipelineLayout(); 
 		CreateGeometryPipeline();
 		CreateLightingPipelineLayout();
 		CreateLightingPipeline(swapFormat);
 		CreateLightingDescriptorSet(); 
 	}
+
+#pragma region GEOMETRY_PIPELINE
 	void DeferredRenderSystem::CreateGeometryPipelineLayout()
 	{
 
 		VkPushConstantRange pushConstantRange{};
 		pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 		pushConstantRange.offset = 0;
-		pushConstantRange.size = sizeof(SimplePushConstantData);
+		pushConstantRange.size = sizeof(MatricesAndIndexPush);
 
 		VkDescriptorSetLayout setLayouts[] = {
 			Texture::s_BindlessSetLayout
@@ -98,6 +108,7 @@ namespace cve {
 			cfg.colorAttachmentFormats.size(),
 			cfg.colorBlendAttachment  
 		);
+
 		cfg.colorBlendInfo.attachmentCount =
 			static_cast<uint32_t>(blendAttachments.size());
 		cfg.colorBlendInfo.pAttachments = blendAttachments.data();
@@ -106,6 +117,10 @@ namespace cve {
 		cfg.renderingInfo.colorAttachmentCount = static_cast<uint32_t>(cfg.colorAttachmentFormats.size());
 		cfg.renderingInfo.pColorAttachmentFormats = cfg.colorAttachmentFormats.data();
 		cfg.renderingInfo.depthAttachmentFormat = cfg.depthAttachmentFormat;
+		cfg.depthStencilInfo.depthTestEnable = VK_TRUE;
+		cfg.depthStencilInfo.depthWriteEnable = VK_FALSE;  // <— do not write
+		cfg.depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+		 
 
 		cfg.pipelineLayout = m_GeometryPipelineLayout;
 		// set cfg.renderingInfo.colorAttachmentCount = 3, pColorAttachmentFormats = cfg.colorAttachmentFormats.data(), depthAttachmentFormat = GBuffer::DEPTH_FORMAT
@@ -115,6 +130,63 @@ namespace cve {
 
 	}
 
+
+	void DeferredRenderSystem::RenderGeometry(VkCommandBuffer commandBuffer, std::vector<GameObject>& gameObjects, const Camera& camera)
+	{
+
+		m_GeometryPipeline->Bind(commandBuffer);
+		Texture::bind(commandBuffer, m_GeometryPipelineLayout);
+
+
+		auto projectionViewMatrix = camera.GetProjectionMatrix() * camera.GetViewMatrix();
+
+		for (auto& gameObject : gameObjects)
+		{
+			for (auto& sm : gameObject.m_Model->getData().submeshes)
+			{
+				auto& mat = gameObject.m_Model->getData().materials[sm.materialIndex];
+				MatricesAndIndexPush push{};
+				auto modelMatrix = gameObject.m_Transform.mat4();
+				push.transform = projectionViewMatrix * modelMatrix;
+				push.modelMatrix = modelMatrix;
+				push.diffuseIndex = mat.diffuseIndex;
+				push.maskIndex = mat.maskIndex;
+
+
+				vkCmdPushConstants(
+					commandBuffer,
+					m_GeometryPipelineLayout,
+					VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+					0,
+					sizeof(push),
+					&push
+				);
+
+				gameObject.m_Model->Bind(commandBuffer);
+				gameObject.m_Model->Draw(commandBuffer, sm.indexCount, sm.firstIndex);
+			}
+		}
+	}
+
+	void DeferredRenderSystem::UpdateGeometry(std::vector<GameObject>& gameObjects, float deltaTime)
+	{
+		//update gameobjects here
+	}
+
+
+	void DeferredRenderSystem::RecreateGBuffer(VkExtent2D extent, VkFormat swapFormat)
+	{
+		vkDeviceWaitIdle(m_Device.device());
+
+		m_GBuffer.cleanup();
+		m_GBuffer.create(m_Device, extent.width, extent.height);
+
+		vkDestroyDescriptorPool(m_Device.device(), m_LightDescriptorPool, nullptr);
+		CreateLightingDescriptorSet();
+	}
+#pragma endregion
+
+#pragma region FULLSCREEN_PIPELINE
 	void DeferredRenderSystem::CreateLightingPipelineLayout()
 	{
 		// one binding of an array-of-3 combined-image-samplers
@@ -133,7 +205,7 @@ namespace cve {
 		VkPushConstantRange pc{};
 		pc.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 		pc.offset = 0;
-		pc.size = sizeof(PCResolutionCamera);  
+		pc.size = sizeof(ResolutionCameraPush);  
 
 		VkPipelineLayoutCreateInfo plInfo{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 		plInfo.setLayoutCount = 1;
@@ -215,95 +287,126 @@ namespace cve {
 		);
 	}
 
-
-	void DeferredRenderSystem::RenderGeometry(VkCommandBuffer commandBuffer, std::vector<GameObject>& gameObjects, const Camera& camera)
-	{
-
-		m_GeometryPipeline->Bind(commandBuffer);
-		Texture::bind(commandBuffer, m_GeometryPipelineLayout);  
-
-
-		auto projectionViewMatrix = camera.GetProjectionMatrix() * camera.GetViewMatrix(); 
-
-		for (auto& gameObject : gameObjects)
-		{
-			for (auto& sm : gameObject.m_Model->getData().submeshes)
-			{
-				SimplePushConstantData push{};
-				auto modelMatrix = gameObject.m_Transform.mat4(); 
-				push.transform = projectionViewMatrix * modelMatrix;
-				push.modelMatrix = modelMatrix;
-				push.materialIndex = sm.materialIndex; 
-
-				vkCmdPushConstants(
-					commandBuffer,
-					m_GeometryPipelineLayout, 
-					VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-					0,
-					sizeof(push),
-					&push
-				);
-
-				gameObject.m_Model->Bind(commandBuffer);
-				gameObject.m_Model->Draw(commandBuffer, sm.indexCount, sm.firstIndex); 
-			}
-		}
-	}
-
-	void DeferredRenderSystem::UpdateGeometry(std::vector<GameObject>& gameObjects, float deltaTime)
-	{
-		//constexpr GameObject::id_t kVikingRoomID = 0;
-		//constexpr float degPerSec = 30.f;
-		//constexpr float radPerSec = glm::radians(degPerSec);
-
-		//for (auto& obj : gameObjects)
-		//{
-		//	if (obj.GetID() == kVikingRoomID) {
-		//		obj.m_Transform.rotation.y += radPerSec * deltaTime;
-		//	}
-		//}
-
-	}
-
 	void DeferredRenderSystem::RenderLighting(VkCommandBuffer cb, const Camera& camera, VkExtent2D extent)
 	{
-
-		PCResolutionCamera pushConstantData;
-
+		ResolutionCameraPush pushConstantData;
 		pushConstantData.resolution = glm::vec2(
 			static_cast<float>(extent.width),
 			static_cast<float>(extent.height)
 		);
-		pushConstantData.cameraPos = camera.GetPosition(); 
+		pushConstantData.cameraPos = camera.GetPosition();
 
 		m_LightPipeline->Bind(cb);
 		vkCmdBindDescriptorSets(cb,
 			VK_PIPELINE_BIND_POINT_GRAPHICS,
 			m_LightPipelineLayout, 0, 1, &m_LightDescriptorSet, 0, nullptr);
-		// push camera position for lighting calculations
+
 		vkCmdPushConstants(cb,
 			m_LightPipelineLayout,
 			VK_SHADER_STAGE_FRAGMENT_BIT,
 			0, sizeof(pushConstantData),
 			&pushConstantData);
-		// draw fullscreen quad
-		vkCmdDraw(cb,    // no vertex buffer bound 
-			3,               // exactly 4 vertices
-			1,               // one instance
-			0,               // firstVertex = 0
-			0                // firstInstance = 0
+
+		// draw triangle trick
+		vkCmdDraw(cb, 3, 1, 0, 0);
+	}
+#pragma endregion
+
+#pragma region DEPTH_PREPASS_PIPELINE
+
+	void DeferredRenderSystem::CreateDepthPrepassPipelineLayout()
+	{
+
+
+		VkPushConstantRange pushConstantRange{};
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+		pushConstantRange.offset = 0;
+		pushConstantRange.size = sizeof(DepthPush);
+
+		VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+		pipelineLayoutInfo.setLayoutCount = 0;
+		pipelineLayoutInfo.pSetLayouts = nullptr;
+		pipelineLayoutInfo.pushConstantRangeCount = 1;
+		pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
+
+		VkDescriptorSetLayout setLayouts[] = { Texture::s_BindlessSetLayout };
+		pipelineLayoutInfo.setLayoutCount = 1;
+		pipelineLayoutInfo.pSetLayouts = setLayouts;
+
+		if (vkCreatePipelineLayout(m_Device.device(), &pipelineLayoutInfo, nullptr, &m_DepthPrepassPipelineLayout) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to create geometry pipeline layout");
+		}
+
+	}
+
+	void DeferredRenderSystem::CreateDepthPrepassPipeline()
+	{
+		PipelineConfigInfo depthConfig{};
+		Pipeline::DefaultPipelineConfigInfo(depthConfig);
+
+		auto bindDescs = Model::Vertex::GetBindingDescriptions();
+		auto attrDescs = Model::Vertex::GetAttributeDescriptions();
+		depthConfig.vertexBindings = { bindDescs[0] }; 
+		depthConfig.vertexAttributes = { attrDescs[0] }; 
+		depthConfig.colorAttachmentFormats.clear();
+		depthConfig.renderingInfo.colorAttachmentCount = 0;
+		depthConfig.renderingInfo.pColorAttachmentFormats = nullptr;
+		depthConfig.colorBlendInfo.attachmentCount = 0;
+		depthConfig.colorBlendInfo.pAttachments = nullptr;
+
+		depthConfig.depthAttachmentFormat = GBuffer::DEPTH_FORMAT;
+		depthConfig.renderingInfo.depthAttachmentFormat = depthConfig.depthAttachmentFormat;
+
+		depthConfig.pipelineLayout = m_DepthPrepassPipelineLayout; 
+
+		m_DepthPrepassPipeline = std::make_unique<Pipeline>( 
+			m_Device,
+			depthConfig,
+			"Shaders/DepthPrepass.vert.spv",
+			"Shaders/DepthPrepass.frag.spv" 
 		);
 	}
 
-	void DeferredRenderSystem::RecreateGBuffer(VkExtent2D extent, VkFormat swapFormat)
+	void DeferredRenderSystem::RenderDepthPrepass(
+		VkCommandBuffer commandBuffer,
+		std::vector<GameObject>& gameObjects,
+		const Camera& camera)
 	{
-		vkDeviceWaitIdle(m_Device.device()); 
+		m_DepthPrepassPipeline->Bind(commandBuffer);
+		Texture::bind(commandBuffer, m_DepthPrepassPipelineLayout);
 
-		m_GBuffer.cleanup();
-		m_GBuffer.create(m_Device, extent.width, extent.height);
 
-		vkDestroyDescriptorPool(m_Device.device(), m_LightDescriptorPool, nullptr);
-		CreateLightingDescriptorSet();
+		auto projectionViewMatrix = camera.GetProjectionMatrix() * camera.GetViewMatrix();
+
+		for (auto& gameObject : gameObjects)
+		{
+			for (auto& sm : gameObject.m_Model->getData().submeshes)
+			{
+				auto& mat = gameObject.m_Model->getData().materials[sm.materialIndex];
+				DepthPush push{};
+				auto modelMatrix = gameObject.m_Transform.mat4();
+				push.mvp = projectionViewMatrix * modelMatrix;
+				push.maskIndex = mat.maskIndex;
+
+
+				vkCmdPushConstants(
+					commandBuffer,
+					m_DepthPrepassPipelineLayout,
+					VK_SHADER_STAGE_VERTEX_BIT,
+					0,
+					sizeof(DepthPush),
+					&push
+				);
+
+				gameObject.m_Model->Bind(commandBuffer);
+				gameObject.m_Model->Draw(commandBuffer, sm.indexCount, sm.firstIndex);
+			}
+		}
+
 	}
 
+
+#pragma endregion
 }

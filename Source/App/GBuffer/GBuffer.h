@@ -26,6 +26,9 @@ namespace cve
 		VkImageView getDepthView()      const { return  m_DepthImage->getImageView();  };
 		VkImage getDepthImage() const { return m_DepthImage->getImage();  }
 
+		uint32_t getWidth() const { return m_Width;  }
+		uint32_t getHeight() const { return m_Height;  }
+
 		VkSampler getPositionSampler()   const { return m_PositionImage->getSampler(); }
 		VkSampler getNormalSampler()     const { return m_NormalImage->getSampler(); } 
 		VkSampler getAlbedoSpecSampler() const { return m_AlbedoImage->getSampler(); }
@@ -42,6 +45,7 @@ namespace cve
 		std::unique_ptr<Texture> m_DepthImage;
 
 
+		uint32_t m_Width, m_Height; 
 
 
 	};

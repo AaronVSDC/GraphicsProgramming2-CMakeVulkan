@@ -28,7 +28,7 @@ Application::~Application()
 void Application::run()
 {
     VkExtent2D currentExtent = m_Window.GetExtent();
-    DeferredRenderSystem DeferredRenderSystem = { m_Device, currentExtent, m_Renderer.GetSwapChainImageFormat() };
+    DeferredRenderSystem deferredRenderSystem = { m_Device, currentExtent, m_Renderer.GetSwapChainImageFormat() };
 	Camera camera{};
     camera.SetViewTarget(glm::vec3(-1.f, -2.f, 2.f), glm::vec3(0.f, 0.f, 2.5f)); 
 
@@ -36,7 +36,7 @@ void Application::run()
     KeyboardMovementController cameraController{}; 
 
     auto currentTime = std::chrono::high_resolution_clock::now(); 
-
+     
     float fpsTimer = 0.0f;
     int   frameCount = 0;
 
@@ -51,7 +51,7 @@ void Application::run()
         VkExtent2D newExtent = m_Window.GetExtent();
 
         if (newExtent.width != currentExtent.width || newExtent.height != currentExtent.height) {
-            DeferredRenderSystem.RecreateGBuffer(newExtent, m_Renderer.GetSwapChainImageFormat());
+            deferredRenderSystem.RecreateGBuffer(newExtent, m_Renderer.GetSwapChainImageFormat());
             currentExtent = newExtent;
         }
 
@@ -68,14 +68,20 @@ void Application::run()
 
 		if (auto commandBuffer = m_Renderer.BeginFrame())
 		{
-			m_Renderer.BeginRenderingGeometry(commandBuffer,DeferredRenderSystem.GetGBuffer() ); 
-			DeferredRenderSystem.RenderGeometry(commandBuffer,m_GameObjects, camera); 
-            DeferredRenderSystem.UpdateGeometry(m_GameObjects, elapsedSec); 
-			m_Renderer.EndRenderingGeometry(commandBuffer, DeferredRenderSystem.GetGBuffer());
+            //depth prepass
+
+            m_Renderer.BeginRenderingDepthPrepass(commandBuffer, deferredRenderSystem.GetGBuffer());
+            deferredRenderSystem.RenderDepthPrepass(commandBuffer, m_GameObjects, camera);
+            m_Renderer.EndRenderingDepthPrepass(commandBuffer);
+
+			m_Renderer.BeginRenderingGeometry(commandBuffer,deferredRenderSystem.GetGBuffer() ); 
+			deferredRenderSystem.RenderGeometry(commandBuffer,m_GameObjects, camera); 
+            deferredRenderSystem.UpdateGeometry(m_GameObjects, elapsedSec); 
+			m_Renderer.EndRenderingGeometry(commandBuffer, deferredRenderSystem.GetGBuffer());
 
 
             m_Renderer.BeginRenderingLighting(commandBuffer);
-            DeferredRenderSystem.RenderLighting(commandBuffer, camera, currentExtent);
+            deferredRenderSystem.RenderLighting(commandBuffer, camera, m_Renderer.GetSwapChainExtent());
             m_Renderer.EndRenderingLighting(commandBuffer);  
 			m_Renderer.EndFrame(); 
 		}

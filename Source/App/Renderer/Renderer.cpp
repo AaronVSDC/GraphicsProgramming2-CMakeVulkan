@@ -18,68 +18,10 @@ namespace cve {
 		FreeCommandBuffers();
 	}
 
-	void Renderer::RecreateSwapChain()
-	{
-		auto extent = m_Window.GetExtent();
-		while (extent.width == 0 or extent.height == 0)
-		{
-			extent = m_Window.GetExtent();
-			glfwWaitEvents();
-		}
-
-		vkDeviceWaitIdle(m_Device.device());
-		if (m_SwapChain == nullptr)
-		{
-			m_SwapChain = std::make_unique<SwapChain>(m_Device, extent);
-		}
-		else
-		{
-			std::shared_ptr<SwapChain> oldSwapChain = std::move(m_SwapChain);
-			m_SwapChain = std::make_unique<SwapChain>(m_Device, extent, oldSwapChain);
-
-			if (!oldSwapChain->compareSwapFormats(*m_SwapChain.get()))
-			{
-				throw std::runtime_error("Swap chain image or depth has changed :)");
-			}
-		}
-
-		m_SwapchainImageLayouts = std::vector<VkImageLayout>(
-			m_SwapChain->imageCount(),
-			VK_IMAGE_LAYOUT_UNDEFINED 
-		);
-	}
-	void Renderer::CreateCommandBuffers()
-	{
-		m_CommandBuffers.resize(SwapChain::MAX_FRAMES_IN_FLIGHT);
-		VkCommandBufferAllocateInfo allocInfo{};
-		allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-		allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-		allocInfo.commandPool = m_Device.getCommandPool();
-		allocInfo.commandBufferCount = static_cast<uint32_t>(m_CommandBuffers.size());
-
-		if (vkAllocateCommandBuffers(m_Device.device(), &allocInfo, m_CommandBuffers.data()) != VK_SUCCESS)
-		{
-			throw std::runtime_error("failed to allocate command buffers (Renderer class)");
-		}
-	}
-
-	void Renderer::FreeCommandBuffers()
-	{
-		vkFreeCommandBuffers(m_Device.device(),
-			m_Device.getCommandPool(),
-			static_cast<uint32_t>(m_CommandBuffers.size()),
-			m_CommandBuffers.data());
-		m_CommandBuffers.clear();
-	}
-
 	VkCommandBuffer Renderer::BeginFrame()
 	{
 		assert(!m_IsFrameStarted && "Can't call BeginFrame while already in progress"); 
 
-
-
-
-		
 		auto result = m_SwapChain->acquireNextImage(&m_CurrentImageIndex);
 
 		if (result == VK_ERROR_OUT_OF_DATE_KHR)
@@ -138,6 +80,7 @@ namespace cve {
 		m_CurrentFrameIndex = (m_CurrentFrameIndex + 1) % SwapChain::MAX_FRAMES_IN_FLIGHT; 
 	}
 
+#pragma region FULLSCREEN_PASS
 	void Renderer::BeginRenderingLighting(VkCommandBuffer commandBuffer)
 	{
 		assert(m_IsFrameStarted && "Cant call BeginRenderingLighting while frame is not in progress");
@@ -202,7 +145,9 @@ namespace cve {
 			layout = desired; 
 		}
 	}
+#pragma endregion
 
+#pragma region GEOMETRY_PASS
 	void Renderer::BeginRenderingGeometry(VkCommandBuffer commandBuffer, GBuffer& gBuffer)
 	{
 		// 1) Set up the three G-Buffer color attachments (pos, normal, albedo):
@@ -297,8 +242,8 @@ namespace cve {
 		depth.pNext = nullptr;
 		depth.imageView = gBuffer.getDepthView();
 		depth.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-		depth.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		depth.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		depth.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+		depth.storeOp = VK_ATTACHMENT_STORE_OP_STORE; //TODO: load if you want to sample depth later
 		depth.clearValue.depthStencil = { 1.0f, 0 };
 
 		// 3) The VkRenderingInfo itself
@@ -316,8 +261,12 @@ namespace cve {
 		// 4) Kick off the geometry pass
 		vkCmdBeginRendering(commandBuffer, &info);
 
-		SetViewportAndScissor(commandBuffer); 
-	}
+		VkExtent2D gExtent{ gBuffer.getWidth(), gBuffer.getHeight() };
+		VkViewport vp{ 0, 0, float(gExtent.width), float(gExtent.height), 0.f, 1.f };
+		vkCmdSetViewport(commandBuffer, 0, 1, &vp);
+		VkRect2D sc{ {0,0}, gExtent };
+		vkCmdSetScissor(commandBuffer, 0, 1, &sc);
+	} 
 
 	void Renderer::EndRenderingGeometry(VkCommandBuffer commandBuffer, GBuffer& gBuffer)
 	{
@@ -365,6 +314,65 @@ namespace cve {
 			layoutAlbedo = desiredAlbedo; 
 		}
 	}
+
+#pragma endregion
+
+
+#pragma region DEPTH_PREPASS
+
+	void Renderer::BeginRenderingDepthPrepass(VkCommandBuffer commandBuffer, GBuffer& gBuffer)
+	{
+		assert(m_IsFrameStarted && "Can't call BeginRenderingDepthPrepass while frame is not in progress");
+		assert(commandBuffer == GetCurrentCommandBuffer() && "Wrong command buffer");
+
+		VkImageLayout& layout = gBuffer.m_DepthLayout;
+		VkImageLayout desired = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		if (layout != desired) {
+			TransitionImageLayout(
+				commandBuffer,
+				gBuffer.getDepthImage(),
+				layout,
+				VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+				VK_IMAGE_ASPECT_DEPTH_BIT
+			);
+			layout = desired;
+		}
+
+		VkRenderingAttachmentInfo depthAttach{};
+		depthAttach.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+		depthAttach.imageView = gBuffer.getDepthView();
+		depthAttach.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		depthAttach.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		depthAttach.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		depthAttach.clearValue.depthStencil = { 1.0f, 0 };
+
+		VkRenderingInfo info{};
+		info.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+		info.renderArea.offset = { 0, 0 };
+		info.renderArea.extent = {gBuffer.getWidth(), gBuffer.getHeight()};
+		info.layerCount = 1;
+		info.colorAttachmentCount = 0;
+		info.pColorAttachments = nullptr;
+		info.pDepthAttachment = &depthAttach;
+		info.pStencilAttachment = nullptr;
+
+		vkCmdBeginRendering(commandBuffer, &info);
+		VkExtent2D gExtent{ gBuffer.getWidth(), gBuffer.getHeight() };
+		VkViewport vp{ 0, 0, float(gExtent.width), float(gExtent.height), 0.f, 1.f };
+		vkCmdSetViewport(commandBuffer, 0, 1, &vp);
+		VkRect2D sc{ {0,0}, gExtent };
+		vkCmdSetScissor(commandBuffer, 0, 1, &sc);
+	}
+
+	void Renderer::EndRenderingDepthPrepass(VkCommandBuffer commandBuffer)
+	{
+		assert(m_IsFrameStarted && "Can't call EndRenderingDepthPrepass while frame is not in progress");
+		assert(commandBuffer == GetCurrentCommandBuffer() && "Wrong command buffer");
+		vkCmdEndRendering(commandBuffer);
+	}
+
+#pragma endregion 
+#pragma region HELPERS
 
 	void Renderer::TransitionImageLayout(
 		VkCommandBuffer commandBuffer,
@@ -456,4 +464,60 @@ namespace cve {
 		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 	}
+
+	void Renderer::RecreateSwapChain()
+	{
+		auto extent = m_Window.GetExtent();
+		while (extent.width == 0 or extent.height == 0)
+		{
+			extent = m_Window.GetExtent();
+			glfwWaitEvents();
+		}
+
+		vkDeviceWaitIdle(m_Device.device());
+		if (m_SwapChain == nullptr)
+		{
+			m_SwapChain = std::make_unique<SwapChain>(m_Device, extent);
+		}
+		else
+		{
+			std::shared_ptr<SwapChain> oldSwapChain = std::move(m_SwapChain);
+			m_SwapChain = std::make_unique<SwapChain>(m_Device, extent, oldSwapChain);
+
+			if (!oldSwapChain->compareSwapFormats(*m_SwapChain.get()))
+			{
+				throw std::runtime_error("Swap chain image or depth has changed :)");
+			}
+		}
+
+		m_SwapchainImageLayouts = std::vector<VkImageLayout>(
+			m_SwapChain->imageCount(),
+			VK_IMAGE_LAYOUT_UNDEFINED
+		);
+	}
+	void Renderer::CreateCommandBuffers() 
+	{
+		m_CommandBuffers.resize(SwapChain::MAX_FRAMES_IN_FLIGHT);
+		VkCommandBufferAllocateInfo allocInfo{};
+		allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		allocInfo.commandPool = m_Device.getCommandPool();
+		allocInfo.commandBufferCount = static_cast<uint32_t>(m_CommandBuffers.size());
+
+		if (vkAllocateCommandBuffers(m_Device.device(), &allocInfo, m_CommandBuffers.data()) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to allocate command buffers (Renderer class)");
+		}
+	}
+
+	void Renderer::FreeCommandBuffers()
+	{
+		vkFreeCommandBuffers(m_Device.device(),
+			m_Device.getCommandPool(),
+			static_cast<uint32_t>(m_CommandBuffers.size()),
+			m_CommandBuffers.data());
+		m_CommandBuffers.clear();
+	}
+#pragma endregion
+
 }
