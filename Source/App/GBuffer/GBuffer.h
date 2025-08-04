@@ -15,6 +15,7 @@ namespace cve
 		static constexpr VkFormat DEPTH_FORMAT = VK_FORMAT_D32_SFLOAT;
 
 		void create(Device& device, uint32_t width, uint32_t height);
+		void cleanup();
 
 		VkImageView getPositionView()   const { return m_PositionImage->getImageView();  };
 		VkImage getPositionImage() const { return m_PositionImage->getImage();  }

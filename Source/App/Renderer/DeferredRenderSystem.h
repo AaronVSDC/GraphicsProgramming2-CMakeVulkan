@@ -31,7 +31,7 @@ namespace cve
 		void RenderGeometry(VkCommandBuffer commandBuffer, std::vector<GameObject>& gameObjects, const Camera& camera);
 		void UpdateGeometry(std::vector<GameObject>& gameObjects, float deltaTime);
 		void RenderLighting(VkCommandBuffer cb, const Camera& camera);
-
+		void RecreateGBuffer(VkExtent2D extent, VkFormat swapFormat);
 		GBuffer& GetGBuffer() { return m_GBuffer;  }
 
 	private:
@@ -39,7 +39,8 @@ namespace cve
 		void CreateGeometryPipeline();
 		void CreateLightingPipelineLayout();
 		void CreateLightingPipeline(VkFormat swapFormat);
-		void CreateLightingDescriptorSet(); 
+		void CreateLightingDescriptorSet();
+
 
 		Device& m_Device;
 		GBuffer						m_GBuffer; 

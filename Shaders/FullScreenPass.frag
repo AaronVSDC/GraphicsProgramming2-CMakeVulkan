@@ -13,8 +13,8 @@ layout(location = 0) out vec4 outColor;
 
 void main() {
     // fetch G-Buffer:
-    // vec3  pos    = texture(uGBuffer[0], fsUV).xyz;
-    // vec3  norm   = normalize(texture(uGBuffer[1], fsUV).xyz);
+     vec3  pos    = texture(uGBuffer[0], fsUV).xyz;
+     vec3  norm   = normalize(texture(uGBuffer[1], fsUV).xyz);
     vec3  albedo = texture(uGBuffer[2], fsUV).rgb;
 
 

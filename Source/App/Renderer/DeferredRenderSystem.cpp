@@ -275,4 +275,15 @@ namespace cve {
 		);
 	}
 
+	void DeferredRenderSystem::RecreateGBuffer(VkExtent2D extent, VkFormat swapFormat)
+	{
+		vkDeviceWaitIdle(m_Device.device()); 
+
+		m_GBuffer.cleanup();
+		m_GBuffer.create(m_Device, extent.width, extent.height);
+
+		vkDestroyDescriptorPool(m_Device.device(), m_LightDescriptorPool, nullptr);
+		CreateLightingDescriptorSet();
+	}
+
 }

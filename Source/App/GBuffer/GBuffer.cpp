@@ -38,4 +38,25 @@ namespace cve
         m_DepthLayout =  VK_IMAGE_LAYOUT_UNDEFINED; 
 
 	}
+    void GBuffer::cleanup() {
+        // Destroy each G-buffer attachment in turn:
+        if (m_PositionImage) {
+            m_PositionImage.reset();
+        }
+        if (m_NormalImage) {
+            m_NormalImage.reset();
+        }
+        if (m_AlbedoImage) {
+            m_AlbedoImage.reset();
+        }
+        if (m_DepthImage) {
+            m_DepthImage.reset();
+        }
+
+        // Reset layouts (optional, but keeps state clean):
+        m_PositionLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        m_NormalLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        m_AlbedoLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        m_DepthLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    }
 }

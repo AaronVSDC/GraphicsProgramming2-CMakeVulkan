@@ -76,7 +76,7 @@ namespace cve
 			throw std::runtime_error("validation layers requested, but not available!");
 		}
 
-		VkApplicationInfo appInfo = {};
+		VkApplicationInfo appInfo{};
 		appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 		appInfo.pApplicationName = "VulkanRenderer";
 		appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
@@ -84,30 +84,45 @@ namespace cve
 		appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
 		appInfo.apiVersion = VK_API_VERSION_1_3;
 
-		VkInstanceCreateInfo createInfo = {};
+		auto extensions = getRequiredExtensions();
+		if (enableValidationLayers) {
+			extensions.push_back(VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME);
+		}
+
+		VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
+		populateDebugMessengerCreateInfo(debugCreateInfo);
+
+		VkValidationFeatureEnableEXT enabledFeatures[] = {
+			VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
+			VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,
+			VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT
+		};
+		VkValidationFeaturesEXT validationFeatures{};
+		validationFeatures.sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT;
+		validationFeatures.enabledValidationFeatureCount = sizeof(enabledFeatures) / sizeof(enabledFeatures[0]);
+		validationFeatures.pEnabledValidationFeatures = enabledFeatures;
+		validationFeatures.pNext = &debugCreateInfo; 
+
+		VkInstanceCreateInfo createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 		createInfo.pApplicationInfo = &appInfo;
-
-		auto extensions = getRequiredExtensions();
 		createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
 		createInfo.ppEnabledExtensionNames = extensions.data();
 
-		VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo;
 		if (enableValidationLayers) {
 			createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
 			createInfo.ppEnabledLayerNames = validationLayers.data();
-
-			populateDebugMessengerCreateInfo(debugCreateInfo);
-			createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
+			createInfo.pNext = &validationFeatures;
 		}
 		else {
 			createInfo.enabledLayerCount = 0;
+			createInfo.ppEnabledLayerNames = nullptr;
 			createInfo.pNext = nullptr;
 		}
 
 		if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create instance!");
-		}
+		} 
 
 		hasGflwRequiredInstanceExtensions();
 	}

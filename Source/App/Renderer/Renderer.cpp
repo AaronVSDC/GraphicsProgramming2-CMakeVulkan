@@ -76,6 +76,10 @@ namespace cve {
 	{
 		assert(!m_IsFrameStarted && "Can't call BeginFrame while already in progress"); 
 
+
+
+
+		
 		auto result = m_SwapChain->acquireNextImage(&m_CurrentImageIndex);
 
 		if (result == VK_ERROR_OUT_OF_DATE_KHR)
@@ -91,7 +95,13 @@ namespace cve {
 
 		m_IsFrameStarted = true; 
 
-		auto commandBuffer = GetCurrentCommandBuffer(); 
+		auto commandBuffer = GetCurrentCommandBuffer();
+
+		//vkResetCommandBuffer(commandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT); 
+		//gBuffer.m_AlbedoLayout = VK_IMAGE_LAYOUT_UNDEFINED; 
+		//gBuffer.m_DepthLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		//gBuffer.m_NormalLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		//gBuffer.m_PositionLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
 		VkCommandBufferBeginInfo beginInfo{};
 		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -241,7 +251,7 @@ namespace cve {
 			layoutAlbedo = desiredAlbedo; 
 		}
 
-		VkImageLayout& layoutDepth = gBuffer.m_AlbedoLayout;
+		VkImageLayout& layoutDepth = gBuffer.m_DepthLayout;
 		VkImageLayout desiredDepth = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 		if (layoutDepth != desiredDepth)
 		{
@@ -317,8 +327,6 @@ namespace cve {
 		VkImageLayout   desiredPos = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		if (layoutPos != desiredPos)
 		{
-
-			
 			TransitionImageLayout(
 				commandBuffer,
 				gBuffer.getPositionImage(),

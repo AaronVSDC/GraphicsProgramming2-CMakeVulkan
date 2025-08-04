@@ -27,8 +27,8 @@ Application::~Application()
 }
 void Application::run()
 {
-
-    DeferredRenderSystem DeferredRenderSystem = { m_Device, m_Window.GetExtent(), m_Renderer.GetSwapChainImageFormat() };
+    VkExtent2D currentExtent = m_Window.GetExtent();
+    DeferredRenderSystem DeferredRenderSystem = { m_Device, currentExtent, m_Renderer.GetSwapChainImageFormat() };
 	Camera camera{};
     camera.SetViewTarget(glm::vec3(-1.f, -2.f, 2.f), glm::vec3(0.f, 0.f, 2.5f)); 
 
@@ -47,7 +47,13 @@ void Application::run()
         // Use the "window refresh callback" to redraw the contents of your window when necessary during resizing
         //glfwSetWindowRefreshCallback() ?
 
-        glfwPollEvents();	
+        glfwPollEvents();
+        VkExtent2D newExtent = m_Window.GetExtent();
+
+        if (newExtent.width != currentExtent.width || newExtent.height != currentExtent.height) {
+            DeferredRenderSystem.RecreateGBuffer(newExtent, m_Renderer.GetSwapChainImageFormat());
+            currentExtent = newExtent;
+        }
 
         auto newTime = std::chrono::high_resolution_clock::now(); 
         auto elapsedSec = std::chrono::duration<float, std::chrono::seconds::period>(newTime - currentTime).count(); 
