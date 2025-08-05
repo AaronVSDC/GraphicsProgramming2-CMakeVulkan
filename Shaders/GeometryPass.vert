@@ -3,8 +3,10 @@
 layout(push_constant) uniform PC {
     mat4 transform;
     mat4 modelMatrix;
-    uint diffuseIndex;
-    uint maskIndex;
+    uint albedoIndex;
+    uint normalIndex;
+    uint metalRoughIndex;
+    uint occlusionIndex;
 } pc;
 
 layout(location = 0) in vec3 inPosition;

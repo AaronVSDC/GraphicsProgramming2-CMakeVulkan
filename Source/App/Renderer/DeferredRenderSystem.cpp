@@ -38,10 +38,10 @@ namespace cve {
 	};
 
 	DeferredRenderSystem::DeferredRenderSystem(Device& device, VkExtent2D extent, VkFormat swapFormat)
-		:m_Device{device}
+		:m_Device{ device }
 	{
 		assert(device.properties.limits.maxPushConstantsSize > sizeof(GeometryPC) && "Max supported push constant data is smaller than 256 bytes");
-		Initialize(extent, swapFormat); 
+		Initialize(extent, swapFormat);
 	}
 
 	DeferredRenderSystem::~DeferredRenderSystem()
@@ -58,12 +58,12 @@ namespace cve {
 	{
 		m_GBuffer.create(m_Device, extent.width, extent.height);
 		CreateDepthPrepassPipelineLayout();
-		CreateDepthPrepassPipeline(); 
-		CreateGeometryPipelineLayout(); 
+		CreateDepthPrepassPipeline();
+		CreateGeometryPipelineLayout();
 		CreateGeometryPipeline();
 		CreateLightingPipelineLayout();
 		CreateLightingPipeline(swapFormat);
-		CreateLightingDescriptorSet(); 
+		CreateLightingDescriptorSet();
 	}
 
 #pragma region GEOMETRY_PIPELINE
@@ -94,12 +94,12 @@ namespace cve {
 	}
 	void DeferredRenderSystem::CreateGeometryPipeline()
 	{
-		assert(m_GeometryPipelineLayout != nullptr && "Cannot create geometry pipeline before geometry pipeline layout"); 
+		assert(m_GeometryPipelineLayout != nullptr && "Cannot create geometry pipeline before geometry pipeline layout");
 
 		PipelineConfigInfo cfg{};
 		Pipeline::DefaultPipelineConfigInfo(cfg);
 		cfg.vertexBindings = Model::Vertex::GetBindingDescriptions();
-		cfg.vertexAttributes = Model::Vertex::GetAttributeDescriptions(); 
+		cfg.vertexAttributes = Model::Vertex::GetAttributeDescriptions();
 		cfg.colorAttachmentFormats = {
 			GBuffer::POS_FORMAT,
 			GBuffer::NORM_FORMAT,
@@ -110,7 +110,7 @@ namespace cve {
 		cfg.depthAttachmentFormat = GBuffer::DEPTH_FORMAT;
 		std::vector<VkPipelineColorBlendAttachmentState> blendAttachments(
 			cfg.colorAttachmentFormats.size(),
-			cfg.colorBlendAttachment  
+			cfg.colorBlendAttachment
 		);
 
 		cfg.colorBlendInfo.attachmentCount =
@@ -124,7 +124,7 @@ namespace cve {
 		cfg.depthStencilInfo.depthTestEnable = VK_TRUE;
 		cfg.depthStencilInfo.depthWriteEnable = VK_FALSE;  // <— do not write
 		cfg.depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
-		 
+
 
 		cfg.pipelineLayout = m_GeometryPipelineLayout;
 		// set cfg.renderingInfo.colorAttachmentCount = 3, pColorAttachmentFormats = cfg.colorAttachmentFormats.data(), depthAttachmentFormat = GBuffer::DEPTH_FORMAT
@@ -155,7 +155,7 @@ namespace cve {
 				push.transform = projectionViewMatrix * modelMatrix;
 				push.modelMatrix = modelMatrix;
 				push.albedoIndex = mat.baseColorIndex;
-				push.normalIndex = mat.normalIndex; 
+				push.normalIndex = mat.normalIndex;
 				push.metalRoughIndex = mat.metallicRoughIndex;
 				push.occlusionIndex = mat.occlusionIndex;
 
@@ -196,11 +196,11 @@ namespace cve {
 #pragma region FULLSCREEN_PIPELINE
 	void DeferredRenderSystem::CreateLightingPipelineLayout()
 	{
-		// one binding of an array-of-3 combined-image-samplers
+		// one binding of an array-of-5 combined-image-samplers
 		VkDescriptorSetLayoutBinding b{};
 		b.binding = 0;
 		b.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		b.descriptorCount = 3;
+		b.descriptorCount = 5;
 		b.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
 		VkDescriptorSetLayoutCreateInfo dsInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
@@ -212,7 +212,7 @@ namespace cve {
 		VkPushConstantRange pc{};
 		pc.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 		pc.offset = 0;
-		pc.size = sizeof(ResolutionCameraPush);  
+		pc.size = sizeof(ResolutionCameraPush);
 
 		VkPipelineLayoutCreateInfo plInfo{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 		plInfo.setLayoutCount = 1;
@@ -225,7 +225,7 @@ namespace cve {
 	{
 		VkDescriptorPoolSize poolSize{};
 		poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		poolSize.descriptorCount = 3;
+		poolSize.descriptorCount = 5;
 
 		VkDescriptorPoolCreateInfo poolInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
 		poolInfo.poolSizeCount = 1;
@@ -243,7 +243,7 @@ namespace cve {
 			throw std::runtime_error("Failed to allocate lighting descriptor set");
 		}
 
-		std::array<VkDescriptorImageInfo, 3> imageInfos = {
+		std::array<VkDescriptorImageInfo, 5> imageInfos = {
 		  VkDescriptorImageInfo{
 			m_GBuffer.getPositionSampler(),
 			m_GBuffer.getPositionView(),
@@ -258,7 +258,17 @@ namespace cve {
 			m_GBuffer.getAlbedoSpecSampler(),
 			m_GBuffer.getAlbedoSpecView(),
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-		  }
+		  },
+			VkDescriptorImageInfo{
+				m_GBuffer.getMetalRoughSampler(),
+				m_GBuffer.getMetalRoughView(),
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+				  },
+			VkDescriptorImageInfo{
+				m_GBuffer.getOcclusionSampler(),
+				m_GBuffer.getOcclusionView(),
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+			}
 		};
 
 		VkWriteDescriptorSet write{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
@@ -277,7 +287,7 @@ namespace cve {
 		PipelineConfigInfo cfg{};
 		Pipeline::DefaultPipelineConfigInfo(cfg);
 		cfg.vertexBindings.clear();
-		cfg.vertexAttributes.clear(); 
+		cfg.vertexAttributes.clear();
 
 		cfg.colorAttachmentFormats = { swapFormat };
 		cfg.depthAttachmentFormat = VK_FORMAT_UNDEFINED;
@@ -355,8 +365,8 @@ namespace cve {
 
 		auto bindDescs = Model::Vertex::GetBindingDescriptions();
 		auto attrDescs = Model::Vertex::GetAttributeDescriptions();
-		depthConfig.vertexBindings = { bindDescs[0] }; 
-		depthConfig.vertexAttributes = { attrDescs[0], attrDescs[3]};  
+		depthConfig.vertexBindings = { bindDescs[0] };
+		depthConfig.vertexAttributes = { attrDescs[0], attrDescs[3] };
 		depthConfig.colorAttachmentFormats.clear();
 		depthConfig.renderingInfo.colorAttachmentCount = 0;
 		depthConfig.renderingInfo.pColorAttachmentFormats = nullptr;
@@ -366,13 +376,13 @@ namespace cve {
 		depthConfig.depthAttachmentFormat = GBuffer::DEPTH_FORMAT;
 		depthConfig.renderingInfo.depthAttachmentFormat = depthConfig.depthAttachmentFormat;
 
-		depthConfig.pipelineLayout = m_DepthPrepassPipelineLayout; 
+		depthConfig.pipelineLayout = m_DepthPrepassPipelineLayout;
 
-		m_DepthPrepassPipeline = std::make_unique<Pipeline>( 
+		m_DepthPrepassPipeline = std::make_unique<Pipeline>(
 			m_Device,
 			depthConfig,
 			"Shaders/DepthPrepass.vert.spv",
-			"Shaders/DepthPrepass.frag.spv" 
+			"Shaders/DepthPrepass.frag.spv"
 		);
 	}
 

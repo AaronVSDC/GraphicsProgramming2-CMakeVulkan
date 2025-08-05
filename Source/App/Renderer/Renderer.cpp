@@ -150,8 +150,8 @@ namespace cve {
 #pragma region GEOMETRY_PASS
 	void Renderer::BeginRenderingGeometry(VkCommandBuffer commandBuffer, GBuffer& gBuffer)
 	{
-		// 1) Set up the three G-Buffer color attachments (pos, normal, albedo):
-		VkRenderingAttachmentInfo cols[3]{};
+		// 1) Set up the three G-Buffer color attachments (pos, normal, albedo, metalRough, occlusion):
+		VkRenderingAttachmentInfo cols[5]{};
 		// 0) Transition all 3 G-Buffer color targets from UNDEFINED ? COLOR_ATTACHMENT_OPTIMAL:
 
 		VkImageLayout& layoutPos = gBuffer.m_PositionLayout;
@@ -195,6 +195,33 @@ namespace cve {
 			);
 			layoutAlbedo = desiredAlbedo; 
 		}
+		VkImageLayout& layoutMetalRough = gBuffer.m_MetalRoughLayout; 
+		VkImageLayout desiredMetalRough = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		if (layoutMetalRough != desiredMetalRough)
+		{
+			TransitionImageLayout(
+				commandBuffer,
+				gBuffer.getMetalRoughImage(),
+				layoutMetalRough,
+				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+				VK_IMAGE_ASPECT_COLOR_BIT
+			);
+			layoutMetalRough = desiredMetalRough;
+		}
+
+		VkImageLayout& layoutOcclusion = gBuffer.m_OcclusionLayout;
+		VkImageLayout desiredOcclusion = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		if (layoutOcclusion != desiredOcclusion)
+		{
+			TransitionImageLayout(
+				commandBuffer,
+				gBuffer.getOcclusionImage(),
+				layoutOcclusion,
+				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+				VK_IMAGE_ASPECT_COLOR_BIT
+			);
+			layoutOcclusion = desiredOcclusion;
+		}
 
 		VkImageLayout& layoutDepth = gBuffer.m_DepthLayout;
 		VkImageLayout desiredDepth = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
@@ -236,6 +263,26 @@ namespace cve {
 		cols[2].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 		cols[2].clearValue.color = { {0.0f, 0.0f, 0.0f, 1.0f} };
 
+		// Metal/Roughness (RG8)
+		cols[3].sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+		cols[3].pNext = nullptr;
+		cols[3].imageView = gBuffer.getMetalRoughView();
+		cols[3].imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		cols[3].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		cols[3].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		cols[3].clearValue.color = { {0.0f, 0.0f, 0.0f, 1.0f} };
+
+		// Occlusion (R8)
+		cols[4].sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+		cols[4].pNext = nullptr;
+		cols[4].imageView = gBuffer.getOcclusionView();
+		cols[4].imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		cols[4].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		cols[4].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		cols[4].clearValue.color = { {0.0f, 0.0f, 0.0f, 1.0f} };
+
+
+
 		// 2) Depth attachment
 		VkRenderingAttachmentInfo depth{};
 		depth.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
@@ -253,7 +300,7 @@ namespace cve {
 		info.renderArea.offset = { 0, 0 };
 		info.renderArea.extent = m_Window.GetExtent();
 		info.layerCount = 1;
-		info.colorAttachmentCount = 3;
+		info.colorAttachmentCount = 5;
 		info.pColorAttachments = cols;
 		info.pDepthAttachment = &depth;
 		info.pStencilAttachment = nullptr;  // not using separate stencil
@@ -312,6 +359,34 @@ namespace cve {
 				VK_IMAGE_ASPECT_COLOR_BIT
 			);
 			layoutAlbedo = desiredAlbedo; 
+		}
+		 
+		VkImageLayout& layoutMetalRough = gBuffer.m_MetalRoughLayout;
+		VkImageLayout desiredMetalRough = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		if (layoutMetalRough != desiredMetalRough)
+		{
+			TransitionImageLayout(
+				commandBuffer,
+				gBuffer.getMetalRoughImage(),
+				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+				VK_IMAGE_ASPECT_COLOR_BIT
+			);
+			layoutMetalRough = desiredMetalRough;
+		} 
+
+		VkImageLayout& layoutOcclusion = gBuffer.m_OcclusionLayout;
+		VkImageLayout desiredOcclusion = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		if (layoutOcclusion != desiredOcclusion)
+		{
+			TransitionImageLayout(
+				commandBuffer,
+				gBuffer.getOcclusionImage(),
+				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+				VK_IMAGE_ASPECT_COLOR_BIT
+			);
+			layoutOcclusion = desiredOcclusion;
 		}
 	}
 
