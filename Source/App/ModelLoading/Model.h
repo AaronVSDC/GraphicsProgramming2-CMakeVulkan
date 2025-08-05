@@ -24,13 +24,15 @@ namespace cve
 			glm::vec3 color; 
 			glm::vec3 normal{}; 
 			glm::vec2 uv{};
+			glm::vec3 tangent;
+			glm::vec3 biTangent; 
 
 			static std::vector<VkVertexInputBindingDescription> GetBindingDescriptions();
 			static std::vector<VkVertexInputAttributeDescription> GetAttributeDescriptions();
 
 			bool operator==(const Vertex& other) const
 			{
-				return position == other.position && color == other.color && normal == other.normal && uv == other.uv; 
+				return position == other.position && color == other.color && normal == other.normal && uv == other.uv && tangent == other.tangent && biTangent == other.biTangent;
 			}
 		};
 
@@ -43,12 +45,21 @@ namespace cve
 
 		struct MaterialInfo
 		{
-			std::string diffuseTex = "NULL";
-			std::string opacityMaskTex = "NULL";
+			std::string baseColorTex = "NULL";
+			std::string normalTex = "NULL";
+			std::string metallicRoughTex = "NULL"; 
+			std::string occlusionTex = "NULL";
+			//todo; emissive texture? 
 
-			uint32_t    diffuseIndex, maskIndex;
+			uint32_t    baseColorIndex = UINT32_MAX;
+			uint32_t    metallicRoughIndex = UINT32_MAX;
+			uint32_t    normalIndex = UINT32_MAX;
+			uint32_t    occlusionIndex = UINT32_MAX;
 
-			//TODO: add textureTypes you want to load in
+			glm::vec4 baseColorFactor{ 1,1,1,1 };
+			float     metallicFactor = 1.0f;
+			float     roughnessFactor = 1.0f;
+			float     occlusionStrength = 1.0f;
 		};
 
 		struct Data

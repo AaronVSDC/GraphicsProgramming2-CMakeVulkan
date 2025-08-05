@@ -13,13 +13,15 @@
 namespace cve {
 
 
-	struct MatricesAndIndexPush
+	struct GeometryPC
 	{
-		glm::mat4 transform{ 1.f }; //64B
-		glm::mat4 modelMatrix{ 1.f }; //64B
-		uint32_t diffuseIndex;  //  4 bytes
-		uint32_t maskIndex;
-		uint8_t _pad[8]; 
+		glm::mat4 transform;       //  64 bytes
+		glm::mat4 modelMatrix;     //  64 bytes
+		uint32_t albedoIndex;      //   4 bytes
+		uint32_t normalIndex;      //   4 bytes
+		uint32_t metalRoughIndex;  //   4 bytes
+		uint32_t occlusionIndex;   //   4 bytes
+
 	};
 
 	struct ResolutionCameraPush {
@@ -32,13 +34,13 @@ namespace cve {
 	struct DepthPush
 	{
 		glm::mat4 mvp;
-		uint32_t maskIndex;
+		uint32_t baseColorIndex;
 	};
 
 	DeferredRenderSystem::DeferredRenderSystem(Device& device, VkExtent2D extent, VkFormat swapFormat)
 		:m_Device{device}
 	{
-		assert(device.properties.limits.maxPushConstantsSize > sizeof(MatricesAndIndexPush) && "Max supported push constant data is smaller than 256 bytes");
+		assert(device.properties.limits.maxPushConstantsSize > sizeof(GeometryPC) && "Max supported push constant data is smaller than 256 bytes");
 		Initialize(extent, swapFormat); 
 	}
 
@@ -71,7 +73,7 @@ namespace cve {
 		VkPushConstantRange pushConstantRange{};
 		pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 		pushConstantRange.offset = 0;
-		pushConstantRange.size = sizeof(MatricesAndIndexPush);
+		pushConstantRange.size = sizeof(GeometryPC);
 
 		VkDescriptorSetLayout setLayouts[] = {
 			Texture::s_BindlessSetLayout
@@ -99,9 +101,11 @@ namespace cve {
 		cfg.vertexBindings = Model::Vertex::GetBindingDescriptions();
 		cfg.vertexAttributes = Model::Vertex::GetAttributeDescriptions(); 
 		cfg.colorAttachmentFormats = {
-		  GBuffer::POS_FORMAT,
-		  GBuffer::NORM_FORMAT,
-		  GBuffer::ALBEDO_FORMAT
+			GBuffer::POS_FORMAT,
+			GBuffer::NORM_FORMAT,
+			GBuffer::ALBEDO_FORMAT,
+			GBuffer::METALROUGH_FORMAT,
+			GBuffer::OCCLUSION_FORMAT
 		};
 		cfg.depthAttachmentFormat = GBuffer::DEPTH_FORMAT;
 		std::vector<VkPipelineColorBlendAttachmentState> blendAttachments(
@@ -145,12 +149,15 @@ namespace cve {
 			for (auto& sm : gameObject.m_Model->getData().submeshes)
 			{
 				auto& mat = gameObject.m_Model->getData().materials[sm.materialIndex];
-				MatricesAndIndexPush push{};
+				GeometryPC push{};
 				auto modelMatrix = gameObject.m_Transform.mat4();
+				GeometryPC pc{};
 				push.transform = projectionViewMatrix * modelMatrix;
 				push.modelMatrix = modelMatrix;
-				push.diffuseIndex = mat.diffuseIndex;
-				push.maskIndex = mat.maskIndex;
+				push.albedoIndex = mat.baseColorIndex;
+				push.normalIndex = mat.normalIndex; 
+				push.metalRoughIndex = mat.metallicRoughIndex;
+				push.occlusionIndex = mat.occlusionIndex;
 
 
 				vkCmdPushConstants(
@@ -388,7 +395,7 @@ namespace cve {
 				DepthPush push{};
 				auto modelMatrix = gameObject.m_Transform.mat4();
 				push.mvp = projectionViewMatrix * modelMatrix;
-				push.maskIndex = mat.maskIndex;
+				push.baseColorIndex = mat.baseColorIndex;
 
 
 				vkCmdPushConstants(

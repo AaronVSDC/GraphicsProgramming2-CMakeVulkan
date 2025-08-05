@@ -113,9 +113,9 @@ void Application::LoadGameObjects()
 	//THIS IS WHERE ALL THE MODELS ARE LOADED (OR HARDCODED BUT PLS DONT) AND PUSHED INSIDE THE MODEL POINTER 
 	//-------------------------------------------------------------------------
 
-    std::shared_ptr<Model> oldSponza = Model::CreateModelFromFile(m_Device, "Resources/Sponza/sponza.obj");
+    std::shared_ptr<Model> newSponza = Model::CreateModelFromFile(m_Device, "Resources/Sponza/glTF/Sponza.gltf");
     auto gameObj = GameObject::CreateGameObject(); 
-    gameObj.m_Model = oldSponza;
+    gameObj.m_Model = newSponza;
     gameObj.m_Transform.translation = { 0.f,100.f,0.f }; 
     gameObj.m_Transform.scale = glm::vec3(1.f); 
     gameObj.m_Transform.rotation = { 0.f, glm::radians(-90.f),glm::radians(180.f) };

@@ -12,6 +12,11 @@ namespace cve
 		static constexpr VkFormat POS_FORMAT = VK_FORMAT_R16G16B16A16_SFLOAT;
 		static constexpr VkFormat NORM_FORMAT = VK_FORMAT_R8G8B8A8_UNORM; 
 		static constexpr VkFormat ALBEDO_FORMAT = VK_FORMAT_R8G8B8A8_SRGB; // USE THIS FORMAT FOR OTHER TEXTURES PLEASE
+		static constexpr VkFormat METALROUGH_FORMAT = VK_FORMAT_R8G8_UNORM; //r metal, g roughness
+		static constexpr VkFormat OCCLUSION_FORMAT = VK_FORMAT_R8_UNORM; 
+
+
+
 		static constexpr VkFormat DEPTH_FORMAT = VK_FORMAT_D32_SFLOAT;
 
 		void create(Device& device, uint32_t width, uint32_t height);
@@ -26,6 +31,14 @@ namespace cve
 		VkImageView getDepthView()      const { return  m_DepthImage->getImageView();  };
 		VkImage getDepthImage() const { return m_DepthImage->getImage();  }
 
+		VkImageView getMetalRoughView()   const { return m_MetalRoughImage->getImageView(); }
+		VkImage     getMetalRoughImage()  const { return m_MetalRoughImage->getImage(); }
+		VkSampler   getMetalRoughSampler()const { return m_MetalRoughImage->getSampler(); }
+
+		VkImageView getOcclusionView()   const { return m_OcclusionImage->getImageView(); }
+		VkImage     getOcclusionImage()  const { return m_OcclusionImage->getImage(); }
+		VkSampler   getOcclusionSampler()const { return m_OcclusionImage->getSampler(); }
+
 		uint32_t getWidth() const { return m_Width;  }
 		uint32_t getHeight() const { return m_Height;  }
 
@@ -37,12 +50,16 @@ namespace cve
 		VkImageLayout m_NormalLayout;
 		VkImageLayout m_AlbedoLayout;
 		VkImageLayout m_DepthLayout;
+		VkImageLayout m_MetalRoughLayout; 
+		VkImageLayout m_OcclusionLayout; 
 	private:
 
 		std::unique_ptr<Texture> m_PositionImage;
 		std::unique_ptr<Texture> m_NormalImage;
 		std::unique_ptr<Texture> m_AlbedoImage;
 		std::unique_ptr<Texture> m_DepthImage;
+		std::unique_ptr<Texture> m_MetalRoughImage;
+		std::unique_ptr<Texture> m_OcclusionImage;
 
 
 		uint32_t m_Width, m_Height; 

@@ -4,6 +4,9 @@
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
+
+#include <assimp/pbrmaterial.h>    
+#include <assimp/material.h>    
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm\gtx\hash.hpp>
 
@@ -14,7 +17,7 @@
 #include <unordered_map>
 #include <iostream>
 
- 
+
 namespace std
 {
 	template <>
@@ -23,7 +26,7 @@ namespace std
 		size_t operator()(cve::Model::Vertex const& vertex) const
 		{
 			size_t seed = 0; 
-			cve::hashCombine(seed, vertex.position, vertex.color, vertex.normal, vertex.uv); 
+			cve::hashCombine(seed, vertex.position, vertex.color, vertex.normal, vertex.uv, vertex.tangent, vertex.biTangent); 
 			return seed; 
 		}
 	};
@@ -66,55 +69,37 @@ namespace cve
 
 		std::unordered_map<std::string, uint32_t> indexMap;
 		std::vector<std::unique_ptr<Texture>>    textures;
-		textures.reserve(data.materials.size() * 2); 
+		textures.reserve(data.materials.size() * 4); //BE CAREFULL NOT TO FORGET CHANGING THIS TO AMOUNT OF TEXTURES 
 
 
-		// 3) Load each unique texture exactly once
-		for (auto& mi : data.materials)
+		auto tryLoad = [&](std::string const& filename, uint32_t& outIndex)
 		{
-			constexpr uint32_t NO_SLOT = std::numeric_limits<uint32_t>::max();
-
-			// — diffuse
-			mi.diffuseIndex = NO_SLOT;
-			if (mi.diffuseTex != "NULL")
+			if (filename == "NULL") 
 			{
-				std::string fullPath = assetDir + mi.diffuseTex;
-				auto it = indexMap.find(fullPath);
-				if (it == indexMap.end())
-				{
-					uint32_t idx = uint32_t(textures.size());
-					indexMap[fullPath] = idx;
-					textures.emplace_back(std::make_unique<Texture>(device, fullPath));
-					mi.diffuseIndex = idx;
-					std::cout << "MAKING DIFFUSE TEXTURE OBJECT: " << fullPath.c_str() << " WITH IDX: " << idx << " " << std::endl;
-				}
-				else 
-				{
-					mi.diffuseIndex = it->second;
-				}
+				outIndex = UINT32_MAX;
+				return;
 			}
-
-			mi.maskIndex = NO_SLOT;
-			if (mi.opacityMaskTex != "NULL" && !mi.opacityMaskTex.empty())
+			std::string full = assetDir + filename;
+			auto it = indexMap.find(full);
+			if (it == indexMap.end()) {
+				uint32_t idx = uint32_t(textures.size());
+				indexMap[full] = idx;
+				textures.emplace_back(std::make_unique<Texture>(device, full));
+				outIndex = idx;
+			}
+			else 
 			{
-				std::string fullMask = assetDir + mi.opacityMaskTex;
-				auto mit = indexMap.find(fullMask);
-				if (mit == indexMap.end()) 
-				{
-					uint32_t idx = uint32_t(textures.size());
-					indexMap[fullMask] = idx;
-					textures.emplace_back(std::make_unique<Texture>(device, fullMask));
-					mi.maskIndex = idx;
-					std::cout << "MAKING MASK TEXTURE OBJECT: " << fullMask.c_str() << " WITH IDX: " << idx << " " << std::endl;
-
-				}
-				else 
-				{
-					mi.maskIndex = mit->second;
-				}
+				outIndex = it->second;
 			}
+		};
+
+		for (auto& mi : data.materials) {
+			tryLoad(mi.baseColorTex, mi.baseColorIndex);
+			tryLoad(mi.metallicRoughTex, mi.metallicRoughIndex);
+			tryLoad(mi.normalTex, mi.normalIndex);
+			tryLoad(mi.occlusionTex, mi.occlusionIndex);
 		}
-		// 4) Move into data and init
+
 		data.textures = std::move(textures);
 		Texture::initBindless(device, uint32_t(data.textures.size()));
 		Texture::updateBindless(device, &data);
@@ -236,7 +221,8 @@ namespace cve
 		attributeDescriptions.push_back({ 1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, color) });
 		attributeDescriptions.push_back({ 2, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, normal) });
 		attributeDescriptions.push_back({ 3, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, uv) });
-
+		attributeDescriptions.push_back({ 4, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, tangent) });
+		attributeDescriptions.push_back({ 5, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, biTangent) });
 
 		return attributeDescriptions; 
 
@@ -257,40 +243,77 @@ namespace cve
 			throw std::runtime_error("Assimp error: " + std::string(importer.GetErrorString()));
 		}
 
+		// -- MATERIALS --------------------------------------------------------------
+
 		materials.resize(scene->mNumMaterials); 
 		for (size_t m = 0; m < scene->mNumMaterials; m++)
 		{
 			aiMaterial* mat = scene->mMaterials[m];
+			auto& mi = materials[m];
 
-			aiString matName;
-			mat->Get(AI_MATKEY_NAME, matName); 
-			//std::cout << "\n" << "Material " << matName.C_Str() << " at #" << m << ":\n";
-			for (int tt = aiTextureType_NONE; tt <= aiTextureType_UNKNOWN; ++tt)
-			{
-				aiTextureType type = static_cast<aiTextureType>(tt);
-				unsigned count = mat->GetTextureCount(type);
-				if (count == 0) continue;
-
-				if (tt == aiTextureType_DIFFUSE)
-				{
+			
+			auto tryTex = [&](aiTextureType type, std::string& out) {
+				if (mat->GetTextureCount(type) > 0) {
 					aiString path;
-					aiReturn ret = mat->GetTexture(type, 0, &path);
-					//std::cout << "	diffuse: " << path.C_Str() << std::endl; 
-					materials[m].diffuseTex = path.C_Str(); 
+					mat->GetTexture(type, 0, &path);
+					out = path.C_Str();
 				}
-				if (tt == aiTextureType_OPACITY)
-				{
-					aiString path;
-					aiReturn ret = mat->GetTexture(type, 0, &path);
-					//std::cout << "	Opacity mask: " << path.C_Str() << std::endl;
-					materials[m].opacityMaskTex = path.C_Str();
-				}
+				};
 
-				
+			// BASE COLOR
+			tryTex(aiTextureType_BASE_COLOR, mi.baseColorTex);
+
+			// METALLIC-ROUGHNESS
+			if (mat->GetTextureCount(aiTextureType_METALNESS) > 0) {
+				aiString path; mat->GetTexture(aiTextureType_METALNESS, 0, &path);
+				mi.metallicRoughTex = path.C_Str();
 			}
+			else if (mat->GetTextureCount(aiTextureType_DIFFUSE_ROUGHNESS) > 0) {
+				aiString path; mat->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, 0, &path);
+				mi.metallicRoughTex = path.C_Str();
+			}
+
+			// NORMAL MAP
+			if (mat->GetTextureCount(aiTextureType_NORMAL_CAMERA) > 0) {
+				aiString path; mat->GetTexture(aiTextureType_NORMAL_CAMERA, 0, &path);
+				mi.normalTex = path.C_Str(); 
+			}
+			else {
+				tryTex(aiTextureType_NORMALS, mi.normalTex);
+			}
+
+			// AMBIENT OCCLUSION
+			tryTex(aiTextureType_AMBIENT_OCCLUSION, mi.occlusionTex);
+
+
+			//RAW SCAN FOR PBR FACTORS (cant seem to get the macros to be recognised so doing it by hand) 
+			for (unsigned int p = 0; p < mat->mNumProperties; p++) {
+				auto* prop = mat->mProperties[p];
+				const char* key = prop->mKey.C_Str();
+
+				if (std::strcmp(key, "$mat.gltf.pbrMetallicRoughness.baseColorFactor") == 0
+					&& prop->mDataLength >= sizeof(float) * 4) {
+					auto f = reinterpret_cast<float const*>(prop->mData);
+					mi.baseColorFactor = glm::vec4(f[0], f[1], f[2], f[3]);
+				}
+				else if (std::strcmp(key, "$mat.gltf.pbrMetallicRoughness.metallicFactor") == 0
+					&& prop->mDataLength >= sizeof(float)) {
+					mi.metallicFactor = *reinterpret_cast<float const*>(prop->mData);
+				}
+				else if (std::strcmp(key, "$mat.gltf.pbrMetallicRoughness.roughnessFactor") == 0
+					&& prop->mDataLength >= sizeof(float)) {
+					mi.roughnessFactor = *reinterpret_cast<float const*>(prop->mData);
+				}
+				else if (std::strcmp(key, "$mat.gltf.occlusionStrength") == 0
+					&& prop->mDataLength >= sizeof(float)) {
+					mi.occlusionStrength = *reinterpret_cast<float const*>(prop->mData);
+				}
+			}
+
+			
 		}
 
-		// Calculate total counts so we can reserve memory only once
+		// -- COUNT TOTAL SIZE -------------------------------------------------
 		uint32_t totalVertices = 0;
 		uint32_t totalFaces = 0;
 		for (uint32_t m = 0; m < scene->mNumMeshes; m++) 
@@ -305,8 +328,10 @@ namespace cve
 
 		uint32_t globalVertexOffset = 0; 
 		uint32_t globalIndexOffset = 0;
-		// Iterate over every mesh in the file
-		for (uint32_t m = 0; m < scene->mNumMeshes; m++) 
+
+
+		// -- MESHES, VERTICES, INDICES, SUBMESHES ----------------------------
+		for (uint32_t m = 0; m < scene->mNumMeshes; m++)
 		{
 			aiMesh* mesh = scene->mMeshes[m];
 
@@ -334,8 +359,16 @@ namespace cve
 					v.normal = { 0.0f, 0.0f, 0.0f };
 				}
 
-				// colors (optional, is not always supported apparantly)
-				v.color = { 1.0f, 1.0f, 1.0f };
+				
+				if (mesh->HasVertexColors(0)) 
+				{
+					auto& c = mesh->mColors[0][i];
+					v.color = { c.r, c.g, c.b };
+				}
+				else
+				{
+					v.color = { 1.0f, 1.0f, 1.0f };
+				}
 
 				if (mesh->mTextureCoords[0]) {
 					v.uv = {
@@ -346,6 +379,25 @@ namespace cve
 				else {
 					v.uv = { 0.0f, 0.0f };
 				}
+
+				if (mesh->HasTangentsAndBitangents()) {
+					v.tangent = {
+					  mesh->mTangents[i].x,
+					  mesh->mTangents[i].y,
+					  mesh->mTangents[i].z
+					};
+					v.biTangent = {
+					  mesh->mBitangents[i].x, 
+					  mesh->mBitangents[i].y,
+					  mesh->mBitangents[i].z
+					};
+				}
+				else {
+					// you can orthonormalize later in the shader or generate here
+					v.tangent = { 1,0,0 };
+					v.biTangent = { 0,1,0 };
+				}
+
 
 				vertices.push_back(v);
 			}
