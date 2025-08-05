@@ -286,9 +286,9 @@ namespace cve {
 	{
 		PipelineConfigInfo cfg{};
 		Pipeline::DefaultPipelineConfigInfo(cfg);
-		cfg.vertexBindings.clear();
-		cfg.vertexAttributes.clear();
-
+		cfg.vertexBindings = Model::Vertex::GetBindingDescriptions();
+		cfg.vertexAttributes = Model::Vertex::GetAttributeDescriptions();
+		 
 		cfg.colorAttachmentFormats = { swapFormat };
 		cfg.depthAttachmentFormat = VK_FORMAT_UNDEFINED;
 		cfg.pipelineLayout = m_LightPipelineLayout;

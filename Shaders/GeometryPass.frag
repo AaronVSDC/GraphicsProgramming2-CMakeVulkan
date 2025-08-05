@@ -4,15 +4,18 @@
 layout(early_fragment_tests) in;
 
 layout(location = 0) in vec3 fragPos;
-layout(location = 1) in vec3 fragNorm;
+layout(location = 1) in vec3 fragNormal;
 layout(location = 2) in vec3 fragColor;
-layout(location = 3) in vec2 fragUV;
+layout(location = 3) in vec2 fragUV; //I dont think we actually need them over here. 
+layout(location = 4) in vec3 fragTangent;
+layout(location = 5) in vec3 fragBiTangent;
+
 
 layout(location = 0) out vec4 outPosition;
-layout(location = 1) out vec4 outNormal;
-layout(location = 2) out vec4 outAlbedo;
-layout(location = 3) out vec4 outMetalRough;
-layout(location = 4) out vec4 outOcclusion;
+layout(location = 1) out vec4 outNormalMap;
+layout(location = 2) out vec4 outAlbedoMap;
+layout(location = 3) out vec4 outMetalRoughnessMap;
+layout(location = 4) out vec4 outOcclusionMap;
 
 layout(set = 0, binding = 0) uniform sampler2D bindlessTextures[];
 
@@ -26,7 +29,14 @@ layout(push_constant) uniform PC {
 } pc;
 
 const float alphaThreshold = 0.95;
+vec3 normal; 
 
+mat3 TBN = mat3(
+    normalize(fragTangent),
+    normalize(fragBiTangent),
+    normalize(fragNormal)
+);
+vec3 worldN; 
 void main() {
  vec4 base = vec4(fragColor, 1.0);
     if (pc.albedoIndex != 0xFFFFFFFFu) {
@@ -47,10 +57,16 @@ void main() {
         occ = texture(bindlessTextures[ nonuniformEXT(pc.occlusionIndex) ], fragUV).r;
     }
 
+    if(pc.normalIndex != 0xFFFFFFFFu) {
+        vec3 nm = texture(bindlessTextures[nonuniformEXT(pc.normalIndex)], fragUV).rgb;
+        nm = nm * 2.0 - 1.0;           
+        worldN = normalize(TBN * nm);   
+     }
+ 
     // output G-Buffer
-    outPosition   = vec4(fragPos,   1.0);
-    outNormal     = vec4(normalize(fragNorm), 1.0);
-    outAlbedo     = vec4(albedo,  1.0);
-    outMetalRough = vec4(mr, 0.0, 1.0); 
-    outOcclusion  = vec4(occ, 0.0, 0.0, 1.0);
+    outPosition          = vec4(fragPos,   1.0);
+    outNormalMap         = vec4(worldN, 1.0);
+    outAlbedoMap         = vec4(albedo,  1.0);
+    outMetalRoughnessMap = vec4(mr, 0.0, 1.0); 
+    outOcclusionMap      = vec4(occ, 0.0, 0.0, 1.0);
 }
