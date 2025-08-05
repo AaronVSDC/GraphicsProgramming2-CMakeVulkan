@@ -29,7 +29,7 @@ layout(location = 0) out vec4 outColor;
 
 vec3 lightColor = vec3(1.0,1.0,1.0); 
 float ambientStrength = 0.1; 
-vec3 lightDirection = -vec3(0.577,-0.577,-0.577); 
+vec3 lightDirection = vec3(0.577,-0.577,-0.577); 
 float lightIntensity = 1.0;  
 
 void main() {
@@ -48,7 +48,7 @@ void main() {
     float diff = max(dot(normal, lightDirection), 0.0);
     vec3 diffuse = diff * lightColor * lightIntensity;
 
-    vec3 color = (ambient + diffuse );
+    vec3 color = (ambient + diffuse) * albedo;
     
 
     outColor = vec4(color, 1);

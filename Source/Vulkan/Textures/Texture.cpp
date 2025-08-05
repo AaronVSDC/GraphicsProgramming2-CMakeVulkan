@@ -9,10 +9,10 @@
 namespace cve
 {
 
-	Texture::Texture(Device& device, const std::string& filename)
+	Texture::Texture(Device& device, const std::string& filename, VkFormat format)
         : m_Device(device)
     {
-        createTexture(filename);
+        createTexture(filename, format);
     }
 
     Texture::Texture(Device& device, uint32_t width, uint32_t height, VkFormat format, VkImageUsageFlags usage,
@@ -205,7 +205,7 @@ namespace cve
 
 #pragma region TEXTURE
 
-    void Texture::createTexture(const std::string& filename)
+    void Texture::createTexture(const std::string& filename, VkFormat format)
     {
         // 1. Load m_Image pixels with stb_image
         int texWidth, texHeight, texChannels;
@@ -239,7 +239,7 @@ namespace cve
             static_cast<uint32_t>(texWidth),
             static_cast<uint32_t>(texHeight),
             m_MipLevels,
-            VK_FORMAT_R8G8B8A8_SRGB,
+            format,
             VK_IMAGE_TILING_OPTIMAL,
             VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
@@ -248,7 +248,7 @@ namespace cve
         // 4. Transition m_Image to DST for copy
         transitionImageLayout(
             m_Image,
-            VK_FORMAT_R8G8B8A8_SRGB,
+            format,
             VK_IMAGE_LAYOUT_UNDEFINED,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
             m_MipLevels
@@ -275,7 +275,7 @@ namespace cve
         vkFreeMemory(m_Device.device(), stagingBufferMemory, nullptr);
 
         // 7. Create m_Image view and m_Sampler
-        createImageView(VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, m_MipLevels);
+        createImageView(format, VK_IMAGE_ASPECT_COLOR_BIT, m_MipLevels);
         createSampler();
     }
 

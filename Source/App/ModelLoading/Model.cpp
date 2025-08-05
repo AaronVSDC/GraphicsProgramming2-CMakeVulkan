@@ -17,6 +17,8 @@
 #include <unordered_map>
 #include <iostream>
 
+#include "GBuffer.h"
+
 
 namespace std
 {
@@ -72,7 +74,7 @@ namespace cve
 		textures.reserve(data.materials.size() * 4); //BE CAREFULL NOT TO FORGET CHANGING THIS TO AMOUNT OF TEXTURES 
 
 
-		auto tryLoad = [&](std::string const& filename, uint32_t& outIndex)
+		auto tryLoad = [&](std::string const& filename, uint32_t& outIndex, VkFormat format)
 		{
 			if (filename == "NULL") 
 			{
@@ -81,10 +83,11 @@ namespace cve
 			}
 			std::string full = assetDir + filename;
 			auto it = indexMap.find(full);
-			if (it == indexMap.end()) {
+			if (it == indexMap.end())
+			{
 				uint32_t idx = uint32_t(textures.size());
 				indexMap[full] = idx;
-				textures.emplace_back(std::make_unique<Texture>(device, full));
+				textures.emplace_back(std::make_unique<Texture>(device, full,format)); 
 				outIndex = idx;
 			}
 			else 
@@ -93,11 +96,12 @@ namespace cve
 			}
 		};
 
-		for (auto& mi : data.materials) {
-			tryLoad(mi.baseColorTex, mi.baseColorIndex);
-			tryLoad(mi.metallicRoughTex, mi.metallicRoughIndex);
-			tryLoad(mi.normalTex, mi.normalIndex);
-			tryLoad(mi.occlusionTex, mi.occlusionIndex);
+		for (auto& mi : data.materials)
+		{
+			tryLoad(mi.baseColorTex, mi.baseColorIndex, GBuffer::ALBEDO_FORMAT);
+			tryLoad(mi.metallicRoughTex, mi.metallicRoughIndex, GBuffer::METALROUGH_FORMAT);
+			tryLoad(mi.normalTex, mi.normalIndex, GBuffer::NORM_FORMAT);
+			tryLoad(mi.occlusionTex, mi.occlusionIndex, GBuffer::OCCLUSION_FORMAT);
 		}
 
 		data.textures = std::move(textures);

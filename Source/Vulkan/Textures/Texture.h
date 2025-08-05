@@ -11,7 +11,7 @@ namespace cve
 	class Texture final
 	{
     public:
-        Texture(Device& device, const std::string& filename);
+        Texture(Device& device, const std::string& filename, VkFormat format);
 
         //ctor for render target / G buffer attachments
         Texture(Device& device,
@@ -54,7 +54,7 @@ namespace cve
 
 
 
-    	void createTexture(const std::string& filename);
+    	void createTexture(const std::string& filename, VkFormat format);
 
         void createImage(
             uint32_t width,

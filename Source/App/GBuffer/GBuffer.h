@@ -12,8 +12,8 @@ namespace cve
 		static constexpr VkFormat POS_FORMAT = VK_FORMAT_R16G16B16A16_SFLOAT; 
 		static constexpr VkFormat NORM_FORMAT = VK_FORMAT_R8G8B8A8_UNORM;   
 		static constexpr VkFormat ALBEDO_FORMAT = VK_FORMAT_R8G8B8A8_SRGB; // USE THIS FORMAT FOR OTHER TEXTURES PLEASE
-		static constexpr VkFormat METALROUGH_FORMAT = VK_FORMAT_R8G8_UNORM; //r metal, g roughness
-		static constexpr VkFormat OCCLUSION_FORMAT = VK_FORMAT_R8_UNORM; 
+		static constexpr VkFormat METALROUGH_FORMAT = VK_FORMAT_R8G8B8A8_SRGB; //r metal, g roughness
+		static constexpr VkFormat OCCLUSION_FORMAT = VK_FORMAT_R8G8B8A8_SRGB;
 
 
 
