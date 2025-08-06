@@ -37,12 +37,6 @@ namespace cve {
 		uint32_t baseColorIndex;
 	};
 
-	struct ToneMappingPush {
-		float aperture;     // f-stop
-		float shutterSpeed;  // in seconds
-		float iso;           // sensor sensitivity
-	};
-
 	DeferredRenderSystem::DeferredRenderSystem(Device& device, VkExtent2D extent, VkFormat swapFormat)
 		:m_Device{ device }
 	{
@@ -55,6 +49,9 @@ namespace cve {
 		vkDestroyDescriptorPool(m_Device.device(), m_LightDescriptorPool, nullptr);
 		vkDestroyDescriptorSetLayout(m_Device.device(), m_LightDescriptorSetLayout, nullptr);
 		vkDestroyPipelineLayout(m_Device.device(), m_LightPipelineLayout, nullptr);
+		vkDestroyDescriptorPool(m_Device.device(), m_BlitDescriptorPool, nullptr);
+		vkDestroyDescriptorSetLayout(m_Device.device(), m_BlitDescriptorSetLayout, nullptr);
+		vkDestroyPipelineLayout(m_Device.device(), m_BlitPipelineLayout, nullptr);
 		vkDestroyPipelineLayout(m_Device.device(), m_GeometryPipelineLayout, nullptr);
 		vkDestroyPipelineLayout(m_Device.device(), m_DepthPrepassPipelineLayout, nullptr);
 		Texture::cleanupBindless(m_Device);
@@ -457,16 +454,10 @@ namespace cve {
 			throw std::runtime_error("Failed to create blit descriptor set layout");
 		}
 
-		VkPushConstantRange pc{};
-		pc.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-		pc.offset = 0;
-		pc.size = sizeof(ToneMappingPush);
-
+		
 		VkPipelineLayoutCreateInfo plInfo{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 		plInfo.setLayoutCount = 1;
 		plInfo.pSetLayouts = &m_BlitDescriptorSetLayout;
-		plInfo.pushConstantRangeCount = 1;
-		plInfo.pPushConstantRanges = &pc;
 		if (vkCreatePipelineLayout(m_Device.device(), &plInfo, nullptr,
 			&m_BlitPipelineLayout) != VK_SUCCESS) {
 			throw std::runtime_error("Failed to create blit pipeline layout");
@@ -542,25 +533,12 @@ namespace cve {
 	void DeferredRenderSystem::RenderBlit(VkCommandBuffer commandBuffer)
 	{
 
-		ToneMappingPush push;
-		push.aperture = 2.8f;
-		push.shutterSpeed = 1.f / 60.f;
-		push.iso = 100.f; 
-
 		// Bind blit/tone-map pipeline
 		m_BlitPipeline->Bind(commandBuffer);
 		vkCmdBindDescriptorSets(
 			commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
 			m_BlitPipelineLayout, 0, 1,
 			&m_BlitDescriptorSet, 0, nullptr);
-
-		// Push ToneMappingUniforms
-		vkCmdPushConstants(
-			commandBuffer,
-			m_BlitPipelineLayout,
-			VK_SHADER_STAGE_FRAGMENT_BIT,
-			0, sizeof(push),
-			&push);
 
 		// Fullscreen triangle
 		vkCmdDraw(commandBuffer, 3, 1, 0, 0);

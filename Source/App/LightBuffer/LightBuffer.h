@@ -9,7 +9,7 @@ namespace cve {
     {
     public:
 
-        static constexpr VkFormat HDR_FORMAT = VK_FORMAT_R16G16B16A16_SFLOAT; 
+        static constexpr VkFormat HDR_FORMAT = VK_FORMAT_R32G32B32A32_SFLOAT; 
 
         void create(Device& device, uint32_t width, uint32_t height); 
         void cleanup();
