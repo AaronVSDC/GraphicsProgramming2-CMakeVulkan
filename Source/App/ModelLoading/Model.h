@@ -62,6 +62,19 @@ namespace cve
 			float     occlusionStrength = 1.0f;
 		};
 
+		struct Light
+		{
+			enum class Type : int { Directional = 0, Point = 1, Spot = 2 };
+			Type      type;
+			glm::vec3 position;    // for Point/Spot
+			glm::vec3 direction;   // for Directional/Spot
+			glm::vec3 color;       // RGB
+			float     intensity;   // you can map aiLight attenuation to this
+			float     range;       // for attenuation (Point/Spot)
+			float     innerAngle;  // for Spot (radians)
+			float     outerAngle;  // for Spot (radians)
+		};
+
 		struct Data
 		{
 			std::vector<Vertex> vertices{};

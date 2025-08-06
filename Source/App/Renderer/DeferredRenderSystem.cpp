@@ -37,6 +37,12 @@ namespace cve {
 		uint32_t baseColorIndex;
 	};
 
+	struct ToneMappingPush {
+		float aperture;     // f-stop
+		float shutterSpeed;  // in seconds
+		float iso;           // sensor sensitivity
+	};
+
 	DeferredRenderSystem::DeferredRenderSystem(Device& device, VkExtent2D extent, VkFormat swapFormat)
 		:m_Device{ device }
 	{
@@ -57,14 +63,118 @@ namespace cve {
 	void DeferredRenderSystem::Initialize(VkExtent2D extent, VkFormat swapFormat)
 	{
 		m_GBuffer.create(m_Device, extent.width, extent.height);
+		m_LightBuffer.create(m_Device, extent.width, extent.height); 
+
 		CreateDepthPrepassPipelineLayout();
 		CreateDepthPrepassPipeline();
 		CreateGeometryPipelineLayout();
 		CreateGeometryPipeline();
 		CreateLightingPipelineLayout();
-		CreateLightingPipeline(swapFormat);
+		CreateLightingPipeline();
 		CreateLightingDescriptorSet();
+		// 4) Blit/tone-map pass reads HDR, writes swapchain
+		CreateBlitPipelineLayout();
+		CreateBlitPipeline(swapFormat);
+		CreateBlitDescriptorSet();
 	}
+
+#pragma region DEPTH_PREPASS_PIPELINE
+
+	void DeferredRenderSystem::CreateDepthPrepassPipelineLayout()
+	{
+
+
+		VkPushConstantRange pushConstantRange{};
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+		pushConstantRange.offset = 0;
+		pushConstantRange.size = sizeof(DepthPush);
+
+		VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+		pipelineLayoutInfo.setLayoutCount = 0;
+		pipelineLayoutInfo.pSetLayouts = nullptr;
+		pipelineLayoutInfo.pushConstantRangeCount = 1;
+		pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
+
+		VkDescriptorSetLayout setLayouts[] = { Texture::s_BindlessSetLayout };
+		pipelineLayoutInfo.setLayoutCount = 1;
+		pipelineLayoutInfo.pSetLayouts = setLayouts;
+
+		if (vkCreatePipelineLayout(m_Device.device(), &pipelineLayoutInfo, nullptr, &m_DepthPrepassPipelineLayout) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to create geometry pipeline layout");
+		}
+
+	}
+
+	void DeferredRenderSystem::CreateDepthPrepassPipeline()
+	{
+		PipelineConfigInfo depthConfig{};
+		Pipeline::DefaultPipelineConfigInfo(depthConfig);
+
+		auto bindDescs = Model::Vertex::GetBindingDescriptions();
+		auto attrDescs = Model::Vertex::GetAttributeDescriptions();
+		depthConfig.vertexBindings = { bindDescs[0] };
+		depthConfig.vertexAttributes = { attrDescs[0], attrDescs[3] };
+		depthConfig.colorAttachmentFormats.clear();
+		depthConfig.renderingInfo.colorAttachmentCount = 0;
+		depthConfig.renderingInfo.pColorAttachmentFormats = nullptr;
+		depthConfig.colorBlendInfo.attachmentCount = 0;
+		depthConfig.colorBlendInfo.pAttachments = nullptr;
+
+		depthConfig.depthAttachmentFormat = GBuffer::DEPTH_FORMAT;
+		depthConfig.renderingInfo.depthAttachmentFormat = depthConfig.depthAttachmentFormat;
+
+		depthConfig.pipelineLayout = m_DepthPrepassPipelineLayout;
+
+		m_DepthPrepassPipeline = std::make_unique<Pipeline>(
+			m_Device,
+			depthConfig,
+			"Shaders/DepthPrepass.vert.spv",
+			"Shaders/DepthPrepass.frag.spv"
+		);
+	}
+
+	void DeferredRenderSystem::RenderDepthPrepass(
+		VkCommandBuffer commandBuffer,
+		std::vector<GameObject>& gameObjects,
+		const Camera& camera)
+	{
+		m_DepthPrepassPipeline->Bind(commandBuffer);
+		Texture::bind(commandBuffer, m_DepthPrepassPipelineLayout);
+
+
+		auto projectionViewMatrix = camera.GetProjectionMatrix() * camera.GetViewMatrix();
+
+		for (auto& gameObject : gameObjects)
+		{
+			for (auto& sm : gameObject.m_Model->getData().submeshes)
+			{
+				auto& mat = gameObject.m_Model->getData().materials[sm.materialIndex];
+				DepthPush push{};
+				auto modelMatrix = gameObject.m_Transform.mat4();
+				push.mvp = projectionViewMatrix * modelMatrix;
+				push.baseColorIndex = mat.baseColorIndex;
+
+
+				vkCmdPushConstants(
+					commandBuffer,
+					m_DepthPrepassPipelineLayout,
+					VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+					0,
+					sizeof(DepthPush),
+					&push
+				);
+
+				gameObject.m_Model->Bind(commandBuffer);
+				gameObject.m_Model->Draw(commandBuffer, sm.indexCount, sm.firstIndex);
+			}
+		}
+
+	}
+
+
+#pragma endregion
 
 #pragma region GEOMETRY_PIPELINE
 	void DeferredRenderSystem::CreateGeometryPipelineLayout()
@@ -193,7 +303,7 @@ namespace cve {
 	}
 #pragma endregion
 
-#pragma region FULLSCREEN_PIPELINE
+#pragma region LIGHTING_PIPELINE
 	void DeferredRenderSystem::CreateLightingPipelineLayout()
 	{
 		// one binding of an array-of-5 combined-image-samplers
@@ -282,14 +392,12 @@ namespace cve {
 		vkUpdateDescriptorSets(m_Device.device(), 1, &write, 0, nullptr);
 	}
 
-	void DeferredRenderSystem::CreateLightingPipeline(VkFormat swapFormat)
+
+	void DeferredRenderSystem::CreateLightingPipeline()
 	{
 		PipelineConfigInfo cfg{};
 		Pipeline::DefaultPipelineConfigInfo(cfg);
-		cfg.vertexBindings = Model::Vertex::GetBindingDescriptions();
-		cfg.vertexAttributes = Model::Vertex::GetAttributeDescriptions();
-		 
-		cfg.colorAttachmentFormats = { swapFormat };
+		cfg.colorAttachmentFormats = { LightBuffer::HDR_FORMAT };
 		cfg.depthAttachmentFormat = VK_FORMAT_UNDEFINED;
 		cfg.pipelineLayout = m_LightPipelineLayout;
 		cfg.renderingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
@@ -299,8 +407,8 @@ namespace cve {
 
 		m_LightPipeline = std::make_unique<Pipeline>(
 			m_Device, cfg,
-			"Shaders/FullScreenPass.vert.spv",
-			"Shaders/FullScreenPass.frag.spv"
+			"Shaders/Triangle.vert.spv",
+			"Shaders/LightingPass.frag.spv"
 		);
 	}
 
@@ -325,105 +433,140 @@ namespace cve {
 			&pushConstantData);
 
 		// draw triangle trick
-		vkCmdDraw(cb, 3, 1, 0, 0);
+		vkCmdDraw(cb, 3, 1, 0, 0); 
 	}
+
+
 #pragma endregion
 
-#pragma region DEPTH_PREPASS_PIPELINE
+#pragma region BLITTING
 
-	void DeferredRenderSystem::CreateDepthPrepassPipelineLayout()
+	void DeferredRenderSystem::CreateBlitPipelineLayout()
 	{
+		VkDescriptorSetLayoutBinding binding{};
+		binding.binding = 0;
+		binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		binding.descriptorCount = 1;
+		binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
+		VkDescriptorSetLayoutCreateInfo dsInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+		dsInfo.bindingCount = 1;
+		dsInfo.pBindings = &binding;
+		if (vkCreateDescriptorSetLayout(m_Device.device(), &dsInfo, nullptr,
+			&m_BlitDescriptorSetLayout) != VK_SUCCESS) {
+			throw std::runtime_error("Failed to create blit descriptor set layout");
+		}
 
-		VkPushConstantRange pushConstantRange{};
-		pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-		pushConstantRange.offset = 0;
-		pushConstantRange.size = sizeof(DepthPush);
+		VkPushConstantRange pc{};
+		pc.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		pc.offset = 0;
+		pc.size = sizeof(ToneMappingPush);
 
-		VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		pipelineLayoutInfo.setLayoutCount = 0;
-		pipelineLayoutInfo.pSetLayouts = nullptr;
-		pipelineLayoutInfo.pushConstantRangeCount = 1;
-		pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
-
-		VkDescriptorSetLayout setLayouts[] = { Texture::s_BindlessSetLayout };
-		pipelineLayoutInfo.setLayoutCount = 1;
-		pipelineLayoutInfo.pSetLayouts = setLayouts;
-
-		if (vkCreatePipelineLayout(m_Device.device(), &pipelineLayoutInfo, nullptr, &m_DepthPrepassPipelineLayout) != VK_SUCCESS)
-		{
-			throw std::runtime_error("failed to create geometry pipeline layout");
+		VkPipelineLayoutCreateInfo plInfo{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
+		plInfo.setLayoutCount = 1;
+		plInfo.pSetLayouts = &m_BlitDescriptorSetLayout;
+		plInfo.pushConstantRangeCount = 1;
+		plInfo.pPushConstantRanges = &pc;
+		if (vkCreatePipelineLayout(m_Device.device(), &plInfo, nullptr,
+			&m_BlitPipelineLayout) != VK_SUCCESS) {
+			throw std::runtime_error("Failed to create blit pipeline layout");
 		}
 
 	}
 
-	void DeferredRenderSystem::CreateDepthPrepassPipeline()
+	void DeferredRenderSystem::CreateBlitPipeline(VkFormat swapFormat)
 	{
-		PipelineConfigInfo depthConfig{};
-		Pipeline::DefaultPipelineConfigInfo(depthConfig);
+		PipelineConfigInfo cfg{};
+		Pipeline::DefaultPipelineConfigInfo(cfg); 
 
-		auto bindDescs = Model::Vertex::GetBindingDescriptions();
-		auto attrDescs = Model::Vertex::GetAttributeDescriptions();
-		depthConfig.vertexBindings = { bindDescs[0] };
-		depthConfig.vertexAttributes = { attrDescs[0], attrDescs[3] };
-		depthConfig.colorAttachmentFormats.clear();
-		depthConfig.renderingInfo.colorAttachmentCount = 0;
-		depthConfig.renderingInfo.pColorAttachmentFormats = nullptr;
-		depthConfig.colorBlendInfo.attachmentCount = 0;
-		depthConfig.colorBlendInfo.pAttachments = nullptr;
+		// no vertex buffers: triangle uses gl_VertexIndex
+		cfg.vertexBindings.clear();
+		cfg.vertexAttributes.clear();
 
-		depthConfig.depthAttachmentFormat = GBuffer::DEPTH_FORMAT;
-		depthConfig.renderingInfo.depthAttachmentFormat = depthConfig.depthAttachmentFormat;
+		cfg.colorAttachmentFormats = { swapFormat };
+		cfg.depthAttachmentFormat = VK_FORMAT_UNDEFINED;
+		cfg.pipelineLayout = m_BlitPipelineLayout;
 
-		depthConfig.pipelineLayout = m_DepthPrepassPipelineLayout;
+		cfg.renderingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
+		cfg.renderingInfo.colorAttachmentCount = 1;
+		cfg.renderingInfo.pColorAttachmentFormats = cfg.colorAttachmentFormats.data();
 
-		m_DepthPrepassPipeline = std::make_unique<Pipeline>(
+		m_BlitPipeline = std::make_unique<Pipeline>(
 			m_Device,
-			depthConfig,
-			"Shaders/DepthPrepass.vert.spv",
-			"Shaders/DepthPrepass.frag.spv"
+			cfg,
+			"Shaders/Triangle.vert.spv",
+			"Shaders/Blit.frag.spv"
 		);
 	}
 
-	void DeferredRenderSystem::RenderDepthPrepass(
-		VkCommandBuffer commandBuffer,
-		std::vector<GameObject>& gameObjects,
-		const Camera& camera)
+	void DeferredRenderSystem::CreateBlitDescriptorSet()
 	{
-		m_DepthPrepassPipeline->Bind(commandBuffer);
-		Texture::bind(commandBuffer, m_DepthPrepassPipelineLayout);
+		VkDescriptorPoolSize poolSize{};
+		poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		poolSize.descriptorCount = 1;
 
-
-		auto projectionViewMatrix = camera.GetProjectionMatrix() * camera.GetViewMatrix();
-
-		for (auto& gameObject : gameObjects)
-		{
-			for (auto& sm : gameObject.m_Model->getData().submeshes)
-			{
-				auto& mat = gameObject.m_Model->getData().materials[sm.materialIndex];
-				DepthPush push{};
-				auto modelMatrix = gameObject.m_Transform.mat4();
-				push.mvp = projectionViewMatrix * modelMatrix;
-				push.baseColorIndex = mat.baseColorIndex;
-
-
-				vkCmdPushConstants(
-					commandBuffer,
-					m_DepthPrepassPipelineLayout,
-					VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-					0,
-					sizeof(DepthPush),
-					&push
-				);
-
-				gameObject.m_Model->Bind(commandBuffer);
-				gameObject.m_Model->Draw(commandBuffer, sm.indexCount, sm.firstIndex);
-			}
+		VkDescriptorPoolCreateInfo poolInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
+		poolInfo.poolSizeCount = 1;
+		poolInfo.pPoolSizes = &poolSize;
+		poolInfo.maxSets = 1;
+		if (vkCreateDescriptorPool(m_Device.device(), &poolInfo, nullptr,
+			&m_BlitDescriptorPool) != VK_SUCCESS) {
+			throw std::runtime_error("Failed to create blit descriptor pool");
 		}
 
+		VkDescriptorSetAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
+		allocInfo.descriptorPool = m_BlitDescriptorPool;
+		allocInfo.descriptorSetCount = 1;
+		allocInfo.pSetLayouts = &m_BlitDescriptorSetLayout;
+		if (vkAllocateDescriptorSets(m_Device.device(), &allocInfo,
+			&m_BlitDescriptorSet) != VK_SUCCESS) {
+			throw std::runtime_error("Failed to allocate blit descriptor set");
+		}
+
+		VkDescriptorImageInfo imageInfo{};
+		imageInfo.sampler = m_LightBuffer.getSampler();
+		imageInfo.imageView = m_LightBuffer.getImageView();
+		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		 
+		VkWriteDescriptorSet write{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+		write.dstSet = m_BlitDescriptorSet;
+		write.dstBinding = 0;
+		write.dstArrayElement = 0;
+		write.descriptorCount = 1;
+		write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		write.pImageInfo = &imageInfo;
+
+		vkUpdateDescriptorSets(m_Device.device(), 1, &write, 0, nullptr);
 	}
 
+	void DeferredRenderSystem::RenderBlit(VkCommandBuffer commandBuffer)
+	{
 
-#pragma endregion
+		ToneMappingPush push;
+		push.aperture = 2.8f;
+		push.shutterSpeed = 1.f / 60.f;
+		push.iso = 100.f; 
+
+		// Bind blit/tone-map pipeline
+		m_BlitPipeline->Bind(commandBuffer);
+		vkCmdBindDescriptorSets(
+			commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+			m_BlitPipelineLayout, 0, 1,
+			&m_BlitDescriptorSet, 0, nullptr);
+
+		// Push ToneMappingUniforms
+		vkCmdPushConstants(
+			commandBuffer,
+			m_BlitPipelineLayout,
+			VK_SHADER_STAGE_FRAGMENT_BIT,
+			0, sizeof(push),
+			&push);
+
+		// Fullscreen triangle
+		vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+	}
+
+#pragma enregion
+
+
 }

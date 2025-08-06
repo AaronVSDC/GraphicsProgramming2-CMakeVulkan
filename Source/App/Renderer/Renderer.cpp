@@ -80,20 +80,78 @@ namespace cve {
 		m_CurrentFrameIndex = (m_CurrentFrameIndex + 1) % SwapChain::MAX_FRAMES_IN_FLIGHT; 
 	}
 
-#pragma region FULLSCREEN_PASS
-	void Renderer::BeginRenderingLighting(VkCommandBuffer commandBuffer)
+
+#pragma region DEPTH_PREPASS
+
+	void Renderer::BeginRenderingDepthPrepass(VkCommandBuffer commandBuffer, GBuffer& gBuffer)
+	{
+		assert(m_IsFrameStarted && "Can't call BeginRenderingDepthPrepass while frame is not in progress");
+		assert(commandBuffer == GetCurrentCommandBuffer() && "Wrong command buffer");
+
+		VkImageLayout& layout = gBuffer.m_DepthLayout;
+		VkImageLayout desired = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		if (layout != desired) {
+			TransitionImageLayout(
+				commandBuffer,
+				gBuffer.getDepthImage(),
+				layout,
+				VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+				VK_IMAGE_ASPECT_DEPTH_BIT
+			);
+			layout = desired;
+		}
+
+		VkRenderingAttachmentInfo depthAttach{};
+		depthAttach.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+		depthAttach.imageView = gBuffer.getDepthView();
+		depthAttach.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		depthAttach.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		depthAttach.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		depthAttach.clearValue.depthStencil = { 1.0f, 0 };
+
+		VkRenderingInfo info{};
+		info.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+		info.renderArea.offset = { 0, 0 };
+		info.renderArea.extent = { gBuffer.getWidth(), gBuffer.getHeight() };
+		info.layerCount = 1;
+		info.colorAttachmentCount = 0;
+		info.pColorAttachments = nullptr;
+		info.pDepthAttachment = &depthAttach;
+		info.pStencilAttachment = nullptr;
+
+		vkCmdBeginRendering(commandBuffer, &info);
+		VkExtent2D gExtent{ gBuffer.getWidth(), gBuffer.getHeight() };
+		VkViewport vp{ 0, 0, float(gExtent.width), float(gExtent.height), 0.f, 1.f };
+		vkCmdSetViewport(commandBuffer, 0, 1, &vp);
+		VkRect2D sc{ {0,0}, gExtent };
+		vkCmdSetScissor(commandBuffer, 0, 1, &sc);
+	}
+
+	void Renderer::EndRenderingDepthPrepass(VkCommandBuffer commandBuffer)
+	{
+		assert(m_IsFrameStarted && "Can't call EndRenderingDepthPrepass while frame is not in progress");
+		assert(commandBuffer == GetCurrentCommandBuffer() && "Wrong command buffer");
+		vkCmdEndRendering(commandBuffer);
+	}
+
+
+
+#pragma endregion 
+
+#pragma region LIGHTING_PASS
+	void Renderer::BeginRenderingLighting(VkCommandBuffer commandBuffer, LightBuffer& lightingBuffer)
 	{
 		assert(m_IsFrameStarted && "Cant call BeginRenderingLighting while frame is not in progress");
 		assert(commandBuffer == GetCurrentCommandBuffer() && "Can't begin render pass on command buffer from a different frame"); 
 
 
-		VkImageLayout& layout = m_SwapchainImageLayouts[m_CurrentImageIndex];
+		VkImageLayout& layout = lightingBuffer.m_Layout; 
 		VkImageLayout desired = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 		if (layout != desired)
 		{
 			TransitionImageLayout(
 				commandBuffer,
-				m_SwapChain->getImage(m_CurrentImageIndex),
+				lightingBuffer.getImage(),
 				layout,
 				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 				VK_IMAGE_ASPECT_COLOR_BIT);
@@ -102,7 +160,7 @@ namespace cve {
 
 		VkRenderingAttachmentInfo colorAttachment{};
 		colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-		colorAttachment.imageView = m_SwapChain->getImageView(m_CurrentImageIndex);
+		colorAttachment.imageView = lightingBuffer.getImageView();
 		colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 		colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -114,33 +172,37 @@ namespace cve {
 		renderingInfo.renderArea.offset = { 0,0 };
 		renderingInfo.renderArea.extent = m_SwapChain->getSwapChainExtent();
 		renderingInfo.layerCount = 1;
-		renderingInfo.colorAttachmentCount = 1;
+		renderingInfo.colorAttachmentCount = 1; 
 		renderingInfo.pColorAttachments = &colorAttachment;
 		renderingInfo.pDepthAttachment = nullptr;
 
 		vkCmdBeginRendering(commandBuffer, &renderingInfo);
-		SetViewportAndScissor(commandBuffer); 
 
+		VkExtent2D gExtent{ lightingBuffer.getWidth(), lightingBuffer.getHeight() };
+		VkViewport vp{ 0, 0, float(gExtent.width), float(gExtent.height), 0.f, 1.f };
+		vkCmdSetViewport(commandBuffer, 0, 1, &vp);
+		VkRect2D sc{ {0,0}, gExtent };
+		vkCmdSetScissor(commandBuffer, 0, 1, &sc);
 
 
 	}
 
-	void Renderer::EndRenderingLighting(VkCommandBuffer commandBuffer)
+	void Renderer::EndRenderingLighting(VkCommandBuffer commandBuffer, LightBuffer& lightBuffer)
 	{
 		assert(m_IsFrameStarted && "Cant call EndRenderingLighting while frame is not in progress");
 		assert(commandBuffer == GetCurrentCommandBuffer() && "Can't end render pass on command buffer from a different frame");
 
 		vkCmdEndRendering(commandBuffer);
 
-		VkImageLayout& layout = m_SwapchainImageLayouts[m_CurrentImageIndex];
-		VkImageLayout desired = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+		VkImageLayout& layout = lightBuffer.m_Layout;
+		VkImageLayout desired = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		if (layout != desired)
 		{
 			TransitionImageLayout(
 				commandBuffer,
-				m_SwapChain->getImage(m_CurrentImageIndex),
+				lightBuffer.getImage(),
 				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-				VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 				VK_IMAGE_ASPECT_COLOR_BIT);
 			layout = desired; 
 		}
@@ -392,61 +454,72 @@ namespace cve {
 
 #pragma endregion
 
+#pragma region BLITTING
 
-#pragma region DEPTH_PREPASS
-
-	void Renderer::BeginRenderingDepthPrepass(VkCommandBuffer commandBuffer, GBuffer& gBuffer)
+	void Renderer::BeginRenderingBlittingPass(VkCommandBuffer commandBuffer)
 	{
-		assert(m_IsFrameStarted && "Can't call BeginRenderingDepthPrepass while frame is not in progress");
+		assert(m_IsFrameStarted && "Can't call BeginRenderingBlittingPass while frame not in progress");
 		assert(commandBuffer == GetCurrentCommandBuffer() && "Wrong command buffer");
 
-		VkImageLayout& layout = gBuffer.m_DepthLayout;
-		VkImageLayout desired = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-		if (layout != desired) {
+		
+		VkImageLayout& layout = m_SwapchainImageLayouts[m_CurrentImageIndex];
+		if (layout != VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
 			TransitionImageLayout(
 				commandBuffer,
-				gBuffer.getDepthImage(),
+				m_SwapChain->getImage(m_CurrentImageIndex),
 				layout,
-				VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-				VK_IMAGE_ASPECT_DEPTH_BIT
+				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+				VK_IMAGE_ASPECT_COLOR_BIT
 			);
-			layout = desired;
+			layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 		}
 
-		VkRenderingAttachmentInfo depthAttach{};
-		depthAttach.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-		depthAttach.imageView = gBuffer.getDepthView();
-		depthAttach.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-		depthAttach.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		depthAttach.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		depthAttach.clearValue.depthStencil = { 1.0f, 0 };
+		VkRenderingAttachmentInfo colorAttachment{};
+		colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+		colorAttachment.imageView = m_SwapChain->getImageView(m_CurrentImageIndex);
+		colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		colorAttachment.clearValue.color = { {0.0f, 0.0f, 0.0f, 1.0f} };
 
-		VkRenderingInfo info{};
-		info.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
-		info.renderArea.offset = { 0, 0 };
-		info.renderArea.extent = {gBuffer.getWidth(), gBuffer.getHeight()};
-		info.layerCount = 1;
-		info.colorAttachmentCount = 0;
-		info.pColorAttachments = nullptr;
-		info.pDepthAttachment = &depthAttach;
-		info.pStencilAttachment = nullptr;
+		VkRenderingInfo renderingInfo{};
+		renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+		renderingInfo.renderArea.offset = { 0, 0 };
+		renderingInfo.renderArea.extent = m_SwapChain->getSwapChainExtent();
+		renderingInfo.layerCount = 1;
+		renderingInfo.colorAttachmentCount = 1;
+		renderingInfo.pColorAttachments = &colorAttachment;
+		renderingInfo.pDepthAttachment = nullptr;
+		renderingInfo.pStencilAttachment = nullptr;
 
-		vkCmdBeginRendering(commandBuffer, &info);
-		VkExtent2D gExtent{ gBuffer.getWidth(), gBuffer.getHeight() };
-		VkViewport vp{ 0, 0, float(gExtent.width), float(gExtent.height), 0.f, 1.f };
-		vkCmdSetViewport(commandBuffer, 0, 1, &vp);
-		VkRect2D sc{ {0,0}, gExtent };
-		vkCmdSetScissor(commandBuffer, 0, 1, &sc);
+		vkCmdBeginRendering(commandBuffer, &renderingInfo);
+		SetViewportAndScissor(commandBuffer);
 	}
 
-	void Renderer::EndRenderingDepthPrepass(VkCommandBuffer commandBuffer)
+	void Renderer::EndRenderingBlittingPass(VkCommandBuffer commandBuffer)
 	{
-		assert(m_IsFrameStarted && "Can't call EndRenderingDepthPrepass while frame is not in progress");
+		assert(m_IsFrameStarted && "Can't call EndRenderingBlittingPass while frame not in progress");
 		assert(commandBuffer == GetCurrentCommandBuffer() && "Wrong command buffer");
+
 		vkCmdEndRendering(commandBuffer);
+
+		VkImageLayout& layout = m_SwapchainImageLayouts[m_CurrentImageIndex];
+		if (layout != VK_IMAGE_LAYOUT_PRESENT_SRC_KHR) 
+		{
+			TransitionImageLayout(
+				commandBuffer,
+				m_SwapChain->getImage(m_CurrentImageIndex),
+				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+				VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+				VK_IMAGE_ASPECT_COLOR_BIT
+			);
+			layout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+		}
 	}
 
-#pragma endregion 
+
+#pragma endregion
+
 #pragma region HELPERS
 
 	void Renderer::TransitionImageLayout(

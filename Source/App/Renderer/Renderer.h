@@ -4,6 +4,7 @@
 #include "SwapChain.h"
 #include "Model.h"
 #include "GBuffer.h"
+#include "LightBuffer.h"
 
 //std 
 #include <memory>
@@ -23,12 +24,14 @@ namespace cve {
 
 		VkCommandBuffer BeginFrame(); 
 		void EndFrame(); 
-		void BeginRenderingLighting(VkCommandBuffer commandBuffer);
-		void EndRenderingLighting(VkCommandBuffer commandBuffer);
+		void BeginRenderingLighting(VkCommandBuffer commandBuffer, LightBuffer& lightBuffer);
+		void EndRenderingLighting(VkCommandBuffer commandBuffer, LightBuffer& lightBuffer);
 		void BeginRenderingGeometry(VkCommandBuffer commandBuffer, GBuffer& gBuffer);
 		void EndRenderingGeometry(VkCommandBuffer commandBuffer, GBuffer& gBuffer); 
 		void BeginRenderingDepthPrepass(VkCommandBuffer commandBuffer, GBuffer& gBuffer);
-		void EndRenderingDepthPrepass(VkCommandBuffer commandBuffer); 
+		void EndRenderingDepthPrepass(VkCommandBuffer commandBuffer);
+		void BeginRenderingBlittingPass(VkCommandBuffer commandBuffer);
+		void EndRenderingBlittingPass(VkCommandBuffer commandBuffer); 
 
 
 		VkFormat GetSwapChainImageFormat() const { return m_SwapChain->getSwapChainImageFormat(); }

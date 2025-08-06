@@ -66,10 +66,11 @@ set(SOURCE_FILES
   "Source/App/Utils/Utils.h"
   "Source/Vulkan/Textures/Texture.cpp"
   "Source/App/GBuffer/GBuffer.cpp"
+  "Source/App/LightBuffer/LightBuffer.cpp"
 )
 
 # Define executable
-add_executable(${TARGET_NAME} ${SOURCE_FILES})
+add_executable(${TARGET_NAME} ${SOURCE_FILES} )
 
 # Link libraries
 target_link_libraries(${TARGET_NAME}
@@ -90,7 +91,7 @@ set(HEADER_DIRS "")
 foreach(HDR ${HEADER_FILES})
   get_filename_component(HDR_DIR ${HDR} DIRECTORY)
   list(APPEND HEADER_DIRS ${HDR_DIR})
-endforeach()
+endforeach() 
 list(REMOVE_DUPLICATES HEADER_DIRS)
 
 # Tell our target to include _every_ header folder

@@ -64,7 +64,7 @@ void Application::run()
 
 
         float aspectRatio = m_Renderer.GetAspectRatio(); 
-        camera.SetPerspectiveProjection(glm::radians(50.f), aspectRatio, 50.f, 3000.f); // near and far plane 
+        camera.SetPerspectiveProjection(glm::radians(50.f), aspectRatio, 0.1f, 50.f); // near and far plane 
 
 		if (auto commandBuffer = m_Renderer.BeginFrame())
 		{
@@ -80,9 +80,15 @@ void Application::run()
 			m_Renderer.EndRenderingGeometry(commandBuffer, deferredRenderSystem.GetGBuffer());
 
 
-            m_Renderer.BeginRenderingLighting(commandBuffer);
+            m_Renderer.BeginRenderingLighting(commandBuffer, deferredRenderSystem.GetLightBuffer());
             deferredRenderSystem.RenderLighting(commandBuffer, camera, m_Renderer.GetSwapChainExtent());
-            m_Renderer.EndRenderingLighting(commandBuffer);  
+            m_Renderer.EndRenderingLighting(commandBuffer, deferredRenderSystem.GetLightBuffer());
+
+            m_Renderer.BeginRenderingBlittingPass(commandBuffer);
+            deferredRenderSystem.RenderBlit(commandBuffer);
+            m_Renderer.EndRenderingBlittingPass(commandBuffer); 
+
+
 			m_Renderer.EndFrame(); 
 		}
 
@@ -116,7 +122,7 @@ void Application::LoadGameObjects()
     std::shared_ptr<Model> newSponza = Model::CreateModelFromFile(m_Device, "Resources/Sponza/glTF/Sponza.gltf");
     auto gameObj = GameObject::CreateGameObject(); 
     gameObj.m_Model = newSponza;
-    gameObj.m_Transform.translation = { 0.f,100.f,0.f }; 
+    gameObj.m_Transform.translation = { 0.f,1.f,0.f }; 
     gameObj.m_Transform.scale = glm::vec3(1.f); 
     gameObj.m_Transform.rotation = { 0.f, glm::radians(-90.f),glm::radians(180.f) };
     m_GameObjects.push_back(std::move(gameObj)); 

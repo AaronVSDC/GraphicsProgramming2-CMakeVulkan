@@ -239,9 +239,11 @@ namespace cve
 
 		const aiScene* scene = importer.ReadFile(
 			filepath,
-			aiProcess_Triangulate        // make sure everything is triangles
-			| aiProcess_FlipUVs            // flip for GL-style UVs
-			| aiProcess_CalcTangentSpace); // if you need normals/tangents
+			aiProcess_Triangulate     
+			| aiProcess_FlipUVs           
+			| aiProcess_CalcTangentSpace
+			| aiProcess_PreTransformVertices
+		);
 
 		if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mMeshes) {
 			throw std::runtime_error("Assimp error: " + std::string(importer.GetErrorString()));
