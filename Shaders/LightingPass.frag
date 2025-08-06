@@ -9,7 +9,7 @@ layout(push_constant) uniform LightPC {
     vec2 viewportSize;
     float _pad0[2];
     vec3 cameraPos;
-    float _pad1;
+    uint lightCount;
 } pc;
 
 // bindless array of your three G-Buffer attachments:
@@ -22,15 +22,17 @@ layout(set = 0, binding = 0) uniform sampler2D gBuffers[];
 layout(set = 0, binding = 5) uniform sampler2D gDepth;
 
 // now lights live in set 1, binding 0
-struct PointLight {
+struct Light {
     vec3 position;
     float radius;
-    vec3 lightColor; 
+    vec3 direction;
+    uint type; // 0 = point, 1 = directional
+    vec3 lightColor;
     float lightIntensity;
 };
 layout(set = 1, binding = 0) readonly buffer Lights {
-    PointLight lights[];
-} PointLights;
+    Light lights[];
+} LightsData;
 
 
 
@@ -38,7 +40,8 @@ layout(location = 0) out vec4 outColor;
 const float MIN_ROUGHNESS = 0.045;
 
 
-//HELPERS-------------------------------------------------
+const uint LIGHT_TYPE_POINT = 0;
+const uint LIGHT_TYPE_DIRECTIONAL = 1;
 
 
 
@@ -56,24 +59,38 @@ void main() {
     float metallic = metalRoughSample.r; 
     float roughness = max(metalRoughSample.g, MIN_ROUGHNESS); 
 
+    // 0. Depth check for skybox
+    if (depthSample >= 1.0) 
+    {
+        // vec2 fragCoord = vec2(gl_FragCoord.xy);
+        // vec3 viewDir = normalize(GetWorldPositionFromDepth(depthSample, fragCoord, ubo.viewportSize, inverse(ubo.proj), inverse(ubo.view)));
+        // outLit = vec4(texture(environmentMap, viewDir).rgb, 1.0);
+        outColor = vec4(0); 
+        return;
+    }
+
     vec3 litColor = vec3(0.0); 
 
-    uint pointLightCount = 1; //todo: make sure you actually keep the amount of lights in the scene.  
 
-    for(int i = 0; i < pointLightCount; ++i)
+    for(int i = 0; i < pc.lightCount; ++i)
     {
-        PointLight pl = PointLights.lights[i]; 
-        vec3 L = pl.position - worldPosSample; 
-        float distance = length(L);
+        Light light = LightsData.lights[i]; 
 
-        if(distance < pl.radius)
+        if(light.type == LIGHT_TYPE_POINT)
         {
-            float attenuation = 1.0 / (distance * distance + 0.0001);
+            vec3 L = light.position - worldPosSample; 
+            float distance = length(L);
 
-            litColor += CalculatePBR_Point(albedoSample, normalSample, metallic, roughness, worldPosSample, pl.position, pl.lightColor, pl.lightIntensity * attenuation, pc.cameraPos); 
-
+            if(distance < light.radius)
+            {
+                float attenuation = 1.0 / (distance * distance + 0.0001);
+                litColor += CalculatePBR_Point(albedoSample, normalSample, metallic, roughness, worldPosSample, light.position, light.lightColor, light.lightIntensity * attenuation, pc.cameraPos);
+            }
         }
-
+        else if(light.type == LIGHT_TYPE_DIRECTIONAL)
+        {
+            litColor += CalculatePBR_Directional(albedoSample, normalSample, metallic, roughness, worldPosSample, light.direction, light.lightColor, light.lightIntensity, pc.cameraPos);   
+        }
     }
     
     outColor = vec4(litColor, 1.0);

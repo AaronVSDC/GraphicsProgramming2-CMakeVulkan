@@ -14,7 +14,7 @@ namespace cve {
 
 
 
-	DeferredRenderSystem::DeferredRenderSystem(Device& device, VkExtent2D extent, VkFormat swapFormat, std::vector<PointLight>& lights)
+	DeferredRenderSystem::DeferredRenderSystem(Device& device, VkExtent2D extent, VkFormat swapFormat, std::vector<Light>& lights)
 		:m_Device{ device }, m_CPULights{lights}
 	{
 		assert(device.properties.limits.maxPushConstantsSize > sizeof(GeometryPC) && "Max supported push constant data is smaller than 256 bytes");
@@ -421,7 +421,7 @@ namespace cve {
 		VkDescriptorBufferInfo bufInfo{};
 		bufInfo.buffer = m_LightsBuffer;
 		bufInfo.offset = 0;
-		bufInfo.range = sizeof(PointLight) * m_MaxLights;
+		bufInfo.range = sizeof(Light) * m_MaxLights;
 
 		VkWriteDescriptorSet writeBuf{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
 		writeBuf.dstSet = m_PointLightsDescriptorSet;
@@ -460,8 +460,8 @@ namespace cve {
 		uint32_t count = std::min((size_t)m_CPULights.size(), m_MaxLights);
 		void* ptr = nullptr;
 		vkMapMemory(m_Device.device(), m_LightsBufferMemory, 0,
-			sizeof(PointLight) * count, 0, &ptr);
-		memcpy(ptr, m_CPULights.data(), sizeof(PointLight) * count);
+			sizeof(Light) * count, 0, &ptr);
+		memcpy(ptr, m_CPULights.data(), sizeof(Light) * count);
 		vkUnmapMemory(m_Device.device(), m_LightsBufferMemory); 
 
 		ResolutionCameraPush pushConstantData;
@@ -470,7 +470,7 @@ namespace cve {
 			static_cast<float>(extent.height)
 		);
 		pushConstantData.cameraPos = camera.GetPosition();
-
+		pushConstantData.lightCount = count; 
 
 		VkDescriptorSet sets[] = { m_LightDescriptorSet, m_PointLightsDescriptorSet };
 
@@ -492,7 +492,7 @@ namespace cve {
 	void DeferredRenderSystem::CreateLightsBuffer(size_t maxLights)
 	{
 		m_MaxLights = maxLights;
-		VkDeviceSize bufferSize = sizeof(PointLight) * m_MaxLights;
+		VkDeviceSize bufferSize = sizeof(Light) * m_MaxLights;
 		m_Device.createBuffer(
 			bufferSize,
 			VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,

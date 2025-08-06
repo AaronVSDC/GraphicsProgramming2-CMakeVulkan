@@ -42,19 +42,22 @@ namespace cve
 		uint32_t baseColorIndex;
 	};
 
+	enum class LightType : uint32_t { Point = 0, Directional = 1 };
 
-	struct alignas(16) PointLight
+	struct alignas(16) Light
 	{
-		glm::vec3 position;
-		float     radius;
-		glm::vec3 lightColor;    
-		float     lightIntensity;
+		glm::vec3 position{};
+		float     radius{};
+		glm::vec3 direction{};
+		LightType type{};
+		glm::vec3 lightColor{}; 
+		float     lightIntensity{};
 	};
 
 	class DeferredRenderSystem final
 	{
 	public:
-		DeferredRenderSystem(Device& device, VkExtent2D extent, VkFormat swapFormat, std::vector<PointLight>& lights);
+		DeferredRenderSystem(Device& device, VkExtent2D extent, VkFormat swapFormat, std::vector<Light>& lights);
 		~DeferredRenderSystem();
 
 		DeferredRenderSystem(const DeferredRenderSystem& other) = delete;
@@ -111,7 +114,7 @@ namespace cve
 		VkDescriptorPool        m_PointLightsDescriptorPool;
 		VkDescriptorSet         m_PointLightsDescriptorSet;
 
-		std::vector<PointLight> m_CPULights; 
+		std::vector<Light> m_CPULights; 
 
 		 
 	};

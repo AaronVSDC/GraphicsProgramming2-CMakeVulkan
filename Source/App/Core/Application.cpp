@@ -127,12 +127,33 @@ void Application::LoadGameObjects()
     m_GameObjects.push_back(std::move(gameObj));
 
     // Add a red point light at (10,10,10):
-    m_Lights.push_back({
-        { 0.f, -1.f,  0.f },
-         100.f,
-         { 1.f, 0.37f, 0.33f },
-         900.f
-        });
+
+
+    Light yellowLight;
+    yellowLight.type = LightType::Point;
+    yellowLight.lightIntensity = 200.f;
+    yellowLight.position = glm::vec3{ 0,0,0 };
+    yellowLight.lightColor = { 1.0f, 0.27f, .17f };
+    yellowLight.radius = { 100.f };
+
+    Light redLight;
+    redLight.type = LightType::Point;
+    redLight.lightIntensity = 200.f;
+    redLight.position = glm::vec3{ 0,0,6 };
+    redLight.lightColor = { .5f, 0.8f, .15f };
+    redLight.radius = { 100.f };
+
+    m_Lights.push_back(yellowLight); 
+    m_Lights.push_back(redLight); 
+    // Add a white directional light pointing downward
+    //m_Lights.push_back({
+    //    { 0.f, 0.f, 0.f },
+    //     0.f,
+    //     {0.577f, 0.577f, -0.577f},
+    //     LightType::Directional,
+    //     { 1.f, 1.f, 1.f },
+    //     1.f
+    //    });
 
 }
 

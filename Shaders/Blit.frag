@@ -3,7 +3,7 @@
 #extension GL_GOOGLE_include_directive : enable
 #include "ToneMappingHelpers.glsl"
 
-#define INDOOR
+#define SUNNY_16
 
 
 #ifdef SUNNY_16 
@@ -24,6 +24,7 @@ layout(set = 0, binding = 0) uniform sampler2D litSampler;
 layout(location = 0) out vec4 outColor;
 
 void main() {
+
     ivec2 pix = ivec2(gl_FragCoord.xy); 
 
     vec3 litColor = texelFetch(litSampler, pix, 0).rgb;
