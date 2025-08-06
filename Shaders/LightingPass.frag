@@ -21,7 +21,7 @@ layout(set = 0, binding = 0) uniform sampler2D gBuffers[];
 // now lights live in set 1, binding 0
 struct PointLight {
     vec3 position;
-    vec3 radius;
+    float radius;
     vec3 lightColor; 
     float lightIntensity;
 };
