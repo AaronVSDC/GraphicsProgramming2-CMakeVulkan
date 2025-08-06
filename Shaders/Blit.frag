@@ -1,13 +1,22 @@
 //Blit.frag
 #version 450
 #extension GL_GOOGLE_include_directive : enable
- #include "ToneMappingHelpers.glsl"
+#include "ToneMappingHelpers.glsl"
+
+#define INDOOR
 
 
-float aperture = 8.0f;
-float shutterSpeed = 1.0f/125.f;
+#ifdef SUNNY_16 
+float aperture = 5.0f;
+float shutterSpeed = 1.0f/200.f;
 float iso = 100.f;
+#endif
 
+#ifdef INDOOR
+float aperture = 1.4f;
+float shutterSpeed = 1.0f/60.f;
+float iso = 1600.f;
+#endif
 
 layout(location = 0) in vec2 fragUV;
 layout(set = 0, binding = 0) uniform sampler2D litSampler;
