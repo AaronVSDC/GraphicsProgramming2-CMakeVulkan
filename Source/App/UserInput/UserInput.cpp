@@ -49,7 +49,7 @@ namespace cve
         if (glm::dot(rotate, rotate) > std::numeric_limits<float>::epsilon()) {
             // 4) apply scaled rotation
             glm::vec3 deltaRot = glm::vec3(rotate * sensScale, 0.0f);
-            gameObject.m_Transform.rotation += m_LookSpeed * elapsedSec * deltaRot;
+            gameObject.m_Transform.rotation += m_LookSpeed * elapsedSec * deltaRot; 
         }
 
         // Clamp pitch (x) and wrap yaw (y)

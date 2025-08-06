@@ -18,6 +18,19 @@ layout(push_constant) uniform LightPC {
 //   gBuffers[4] = occlusion
 layout(set = 0, binding = 0) uniform sampler2D gBuffers[];
 
+// now lights live in set 1, binding 0
+struct PointLight {
+    vec3 position;
+    vec3 radius;
+    vec3 lightColor; 
+    float lightIntensity;
+};
+layout(set = 1, binding = 0) buffer Lights {
+    PointLight lights[];
+} lightsBuf;
+
+
+
 layout(location = 0) out vec4 outColor;
 
 
@@ -45,5 +58,5 @@ void main() {
     vec3 color = (ambient + diffuse) * albedo;
     
 
-    outColor = vec4(color, 1);
+    outColor = vec4(metalRough.g, metalRough.g, metalRough.g, 1);
 }

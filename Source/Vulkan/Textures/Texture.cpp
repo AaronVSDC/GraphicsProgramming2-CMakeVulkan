@@ -207,9 +207,14 @@ namespace cve
 
     void Texture::createTexture(const std::string& filename, VkFormat format)
     {
+        int desiredChannels = STBI_rgb_alpha;  // default = 4
+        if (format == VK_FORMAT_R8_UNORM)    desiredChannels = STBI_grey;
+        if (format == VK_FORMAT_R8G8_UNORM)  desiredChannels = STBI_grey_alpha;
+        if (format == VK_FORMAT_R8G8B8_UNORM)desiredChannels = STBI_rgb;
+
         // 1. Load m_Image pixels with stb_image
         int texWidth, texHeight, texChannels;
-        stbi_uc* pixels = stbi_load(filename.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+        stbi_uc* pixels = stbi_load(filename.c_str(), &texWidth, &texHeight, &texChannels, desiredChannels);
         if (!pixels) {
             throw std::runtime_error("Failed to load texture m_Image: " + filename);
         }

@@ -1,5 +1,4 @@
 #include "Application.h"
-#include "DeferredRenderSystem.h"
 #include "Camera.h"
 #include "UserInput.h"
 
@@ -28,7 +27,7 @@ Application::~Application()
 void Application::run()
 {
     VkExtent2D currentExtent = m_Window.GetExtent();
-    DeferredRenderSystem deferredRenderSystem = { m_Device, currentExtent, m_Renderer.GetSwapChainImageFormat() };
+    DeferredRenderSystem deferredRenderSystem = { m_Device, currentExtent, m_Renderer.GetSwapChainImageFormat(), m_Lights };
 	Camera camera{};
     camera.SetViewTarget(glm::vec3(-1.f, -2.f, 2.f), glm::vec3(0.f, 0.f, 2.5f)); 
 
@@ -125,7 +124,15 @@ void Application::LoadGameObjects()
     gameObj.m_Transform.translation = { 0.f,1.f,0.f }; 
     gameObj.m_Transform.scale = glm::vec3(1.f); 
     gameObj.m_Transform.rotation = { 0.f, glm::radians(-90.f),glm::radians(180.f) };
-    m_GameObjects.push_back(std::move(gameObj)); 
+    m_GameObjects.push_back(std::move(gameObj));
+
+    // Add a red point light at (10,10,10):
+    m_Lights.push_back({
+        /* position      */ { 10.f, 10.f,  10.f },
+        /* _pad0 (unused)*/ 0.f,
+        /* lightColor    */ { 1.f, 0.f, 0.f },
+        /* lightIntensity*/ 200.f
+        });
 
 }
 

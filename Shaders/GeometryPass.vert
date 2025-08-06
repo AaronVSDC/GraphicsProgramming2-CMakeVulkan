@@ -7,7 +7,8 @@ layout(push_constant) uniform PC {
     mat4 modelMatrix;
     uint albedoIndex;
     uint normalIndex;
-    uint metalRoughIndex;
+    uint metallicIndex;
+    uint roughnessIndex; 
     uint occlusionIndex;
 } pc;
 

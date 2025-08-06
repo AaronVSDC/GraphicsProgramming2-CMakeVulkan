@@ -7,6 +7,9 @@
 //std 
 #include <memory>
 #include <vector>
+
+#include "DeferredRenderSystem.h"
+
 namespace cve {
 
 class Application
@@ -31,6 +34,8 @@ private:
 	Device m_Device{m_Window}; 
 	Renderer m_Renderer{ m_Window, m_Device }; 
 	std::vector<GameObject> m_GameObjects;
+	std::vector<PointLight> m_Lights; 
+
 };
 
 }

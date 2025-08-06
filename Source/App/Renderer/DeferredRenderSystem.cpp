@@ -13,32 +13,9 @@
 namespace cve {
 
 
-	struct GeometryPC
-	{
-		glm::mat4 transform;       //  64 bytes
-		glm::mat4 modelMatrix;     //  64 bytes
-		uint32_t albedoIndex;      //   4 bytes
-		uint32_t normalIndex;      //   4 bytes
-		uint32_t metalRoughIndex;  //   4 bytes
-		uint32_t occlusionIndex;   //   4 bytes
 
-	};
-
-	struct ResolutionCameraPush {
-		glm::vec2 resolution;
-		float      _pad0[2];
-		glm::vec3 cameraPos;
-		float      _pad1;
-	};
-
-	struct DepthPush
-	{
-		glm::mat4 mvp;
-		uint32_t baseColorIndex;
-	};
-
-	DeferredRenderSystem::DeferredRenderSystem(Device& device, VkExtent2D extent, VkFormat swapFormat)
-		:m_Device{ device }
+	DeferredRenderSystem::DeferredRenderSystem(Device& device, VkExtent2D extent, VkFormat swapFormat, std::vector<PointLight>& lights)
+		:m_Device{ device }, m_CPULights{lights}
 	{
 		assert(device.properties.limits.maxPushConstantsSize > sizeof(GeometryPC) && "Max supported push constant data is smaller than 256 bytes");
 		Initialize(extent, swapFormat);
@@ -46,8 +23,10 @@ namespace cve {
 
 	DeferredRenderSystem::~DeferredRenderSystem()
 	{
-		vkDestroyDescriptorPool(m_Device.device(), m_LightDescriptorPool, nullptr);
-		vkDestroyDescriptorSetLayout(m_Device.device(), m_LightDescriptorSetLayout, nullptr);
+		vkDestroyBuffer(m_Device.device(), m_LightsBuffer, nullptr); 
+		vkFreeMemory(m_Device.device(), m_LightsBufferMemory, nullptr);
+		vkDestroyDescriptorPool(m_Device.device(), m_LightingPassDescriptorPool, nullptr); 
+		vkDestroyDescriptorSetLayout(m_Device.device(), m_LightingPassDescriptorSetLayout, nullptr);
 		vkDestroyPipelineLayout(m_Device.device(), m_LightPipelineLayout, nullptr);
 		vkDestroyDescriptorPool(m_Device.device(), m_BlitDescriptorPool, nullptr);
 		vkDestroyDescriptorSetLayout(m_Device.device(), m_BlitDescriptorSetLayout, nullptr);
@@ -60,7 +39,7 @@ namespace cve {
 	void DeferredRenderSystem::Initialize(VkExtent2D extent, VkFormat swapFormat)
 	{
 		m_GBuffer.create(m_Device, extent.width, extent.height);
-		m_LightBuffer.create(m_Device, extent.width, extent.height); 
+		m_LightingPassBuffer.create(m_Device, extent.width, extent.height); 
 
 		CreateDepthPrepassPipelineLayout();
 		CreateDepthPrepassPipeline();
@@ -69,10 +48,13 @@ namespace cve {
 		CreateLightingPipelineLayout();
 		CreateLightingPipeline();
 		CreateLightingDescriptorSet();
-		// 4) Blit/tone-map pass reads HDR, writes swapchain
+		CreateLightsBuffer(m_CPULights.size()); 
+
 		CreateBlitPipelineLayout();
 		CreateBlitPipeline(swapFormat);
 		CreateBlitDescriptorSet();
+
+
 	}
 
 #pragma region DEPTH_PREPASS_PIPELINE
@@ -295,7 +277,7 @@ namespace cve {
 		m_GBuffer.cleanup();
 		m_GBuffer.create(m_Device, extent.width, extent.height);
 
-		vkDestroyDescriptorPool(m_Device.device(), m_LightDescriptorPool, nullptr);
+		vkDestroyDescriptorPool(m_Device.device(), m_LightingPassDescriptorPool, nullptr);
 		CreateLightingDescriptorSet();
 	}
 #pragma endregion
@@ -304,17 +286,33 @@ namespace cve {
 	void DeferredRenderSystem::CreateLightingPipelineLayout()
 	{
 		// one binding of an array-of-5 combined-image-samplers
-		VkDescriptorSetLayoutBinding b{};
-		b.binding = 0;
-		b.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		b.descriptorCount = 5;
-		b.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		VkDescriptorSetLayoutBinding descBinding{};
+		descBinding.binding = 0; 
+		descBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descBinding.descriptorCount = 5;
+		descBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
 		VkDescriptorSetLayoutCreateInfo dsInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
 		dsInfo.bindingCount = 1;
-		dsInfo.pBindings = &b;
-		vkCreateDescriptorSetLayout(m_Device.device(), &dsInfo, nullptr, &m_LightDescriptorSetLayout);
+		dsInfo.pBindings = &descBinding;
+		vkCreateDescriptorSetLayout(m_Device.device(), &dsInfo, nullptr, &m_LightingPassDescriptorSetLayout);
 
+		// 2) Lights set (set 1):
+		VkDescriptorSetLayoutBinding bLight{};
+		bLight.binding = 0;
+		bLight.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+		bLight.descriptorCount = 1;
+		bLight.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		VkDescriptorSetLayoutCreateInfo lightInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+		lightInfo.bindingCount = 1;
+		lightInfo.pBindings = &bLight;
+		vkCreateDescriptorSetLayout(m_Device.device(), &lightInfo, nullptr, &m_PointLightsDescriptorSetLayout);
+
+
+		VkDescriptorSetLayout setLayouts[] = {
+			m_LightingPassDescriptorSetLayout,  // set 0
+			m_PointLightsDescriptorSetLayout    // set 1
+		};
 		// push const for camera pos and screen texel
 		VkPushConstantRange pc{};
 		pc.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -322,30 +320,32 @@ namespace cve {
 		pc.size = sizeof(ResolutionCameraPush);
 
 		VkPipelineLayoutCreateInfo plInfo{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
-		plInfo.setLayoutCount = 1;
-		plInfo.pSetLayouts = &m_LightDescriptorSetLayout;
+		plInfo.setLayoutCount = 2;
+		plInfo.pSetLayouts = setLayouts;
 		plInfo.pushConstantRangeCount = 1;
 		plInfo.pPushConstantRanges = &pc;
 		vkCreatePipelineLayout(m_Device.device(), &plInfo, nullptr, &m_LightPipelineLayout);
 	}
 	void DeferredRenderSystem::CreateLightingDescriptorSet()
 	{
-		VkDescriptorPoolSize poolSize{};
-		poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		poolSize.descriptorCount = 5;
+		VkDescriptorPoolSize poolSizes[2]{};
+		poolSizes[0].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		poolSizes[0].descriptorCount = 5;
+		poolSizes[1].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+		poolSizes[1].descriptorCount = 1;
 
 		VkDescriptorPoolCreateInfo poolInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
-		poolInfo.poolSizeCount = 1;
-		poolInfo.pPoolSizes = &poolSize;
-		poolInfo.maxSets = 1;
-		if (vkCreateDescriptorPool(m_Device.device(), &poolInfo, nullptr, &m_LightDescriptorPool) != VK_SUCCESS) {
+		poolInfo.poolSizeCount = 2;
+		poolInfo.pPoolSizes = poolSizes;
+		poolInfo.maxSets = 2;
+		if (vkCreateDescriptorPool(m_Device.device(), &poolInfo, nullptr, &m_LightingPassDescriptorPool) != VK_SUCCESS) {
 			throw std::runtime_error("Failed to create lighting descriptor pool");
 		}
 
 		VkDescriptorSetAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
-		allocInfo.descriptorPool = m_LightDescriptorPool;
+		allocInfo.descriptorPool = m_LightingPassDescriptorPool;
 		allocInfo.descriptorSetCount = 1;
-		allocInfo.pSetLayouts = &m_LightDescriptorSetLayout;
+		allocInfo.pSetLayouts = &m_LightingPassDescriptorSetLayout;
 		if (vkAllocateDescriptorSets(m_Device.device(), &allocInfo, &m_LightDescriptorSet) != VK_SUCCESS) {
 			throw std::runtime_error("Failed to allocate lighting descriptor set");
 		}
@@ -386,7 +386,29 @@ namespace cve {
 		write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		write.pImageInfo = imageInfos.data();
 
+
+		// 3) Allocate & write the Lights set (set 1):
+		VkDescriptorSetAllocateInfo alloc1{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
+		alloc1.descriptorPool = m_LightingPassDescriptorPool;
+		alloc1.descriptorSetCount = 1;
+		alloc1.pSetLayouts = &m_PointLightsDescriptorSetLayout;
+		vkAllocateDescriptorSets(m_Device.device(), &alloc1, &m_PointLightsDescriptorSet);
+
+		VkDescriptorBufferInfo bufInfo{};
+		bufInfo.buffer = m_LightsBuffer;
+		bufInfo.offset = 0;
+		bufInfo.range = sizeof(PointLight) * m_MaxLights;
+
+		VkWriteDescriptorSet writeBuf{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+		writeBuf.dstSet = m_PointLightsDescriptorSet;
+		writeBuf.dstBinding = 0;
+		writeBuf.descriptorCount = 1;
+		writeBuf.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+		writeBuf.pBufferInfo = &bufInfo;
+
+		vkUpdateDescriptorSets(m_Device.device(), 1, &writeBuf, 0, nullptr);
 		vkUpdateDescriptorSets(m_Device.device(), 1, &write, 0, nullptr);
+
 	}
 
 
@@ -411,6 +433,14 @@ namespace cve {
 
 	void DeferredRenderSystem::RenderLighting(VkCommandBuffer cb, const Camera& camera, VkExtent2D extent)
 	{
+		// copy into ssbo
+		uint32_t count = std::min((size_t)m_CPULights.size(), m_MaxLights);
+		void* ptr = nullptr;
+		vkMapMemory(m_Device.device(), m_LightsBufferMemory, 0,
+			sizeof(PointLight) * count, 0, &ptr);
+		memcpy(ptr, m_CPULights.data(), sizeof(PointLight) * count);
+		vkUnmapMemory(m_Device.device(), m_LightsBufferMemory); 
+
 		ResolutionCameraPush pushConstantData;
 		pushConstantData.resolution = glm::vec2(
 			static_cast<float>(extent.width),
@@ -418,10 +448,12 @@ namespace cve {
 		);
 		pushConstantData.cameraPos = camera.GetPosition();
 
-		m_LightPipeline->Bind(cb);
+
+		VkDescriptorSet sets[] = { m_LightDescriptorSet, m_PointLightsDescriptorSet };
+
 		vkCmdBindDescriptorSets(cb,
 			VK_PIPELINE_BIND_POINT_GRAPHICS,
-			m_LightPipelineLayout, 0, 1, &m_LightDescriptorSet, 0, nullptr);
+			m_LightPipelineLayout, 0, 2, sets, 0, nullptr);
 
 		vkCmdPushConstants(cb,
 			m_LightPipelineLayout,
@@ -429,14 +461,27 @@ namespace cve {
 			0, sizeof(pushConstantData),
 			&pushConstantData);
 
+		m_LightPipeline->Bind(cb);
 		// draw triangle trick
 		vkCmdDraw(cb, 3, 1, 0, 0); 
 	}
 
+	void DeferredRenderSystem::CreateLightsBuffer(size_t maxLights)
+	{
+		m_MaxLights = maxLights;
+		VkDeviceSize bufferSize = sizeof(PointLight) * m_MaxLights;
+		m_Device.createBuffer(
+			bufferSize,
+			VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			m_LightsBuffer,
+			m_LightsBufferMemory
+		);
+	}
 
 #pragma endregion
 
-#pragma region BLITTING
+#pragma region BLITTING 
 
 	void DeferredRenderSystem::CreateBlitPipelineLayout()
 	{
@@ -515,8 +560,8 @@ namespace cve {
 		}
 
 		VkDescriptorImageInfo imageInfo{};
-		imageInfo.sampler = m_LightBuffer.getSampler();
-		imageInfo.imageView = m_LightBuffer.getImageView();
+		imageInfo.sampler = m_LightingPassBuffer.getSampler();
+		imageInfo.imageView = m_LightingPassBuffer.getImageView();
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		 
 		VkWriteDescriptorSet write{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
@@ -544,7 +589,7 @@ namespace cve {
 		vkCmdDraw(commandBuffer, 3, 1, 0, 0);
 	}
 
-#pragma enregion
+#pragma endregion
 
 
 }

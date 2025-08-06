@@ -2,6 +2,7 @@
 
 //std
 #include <cassert>
+#include <iostream>
 #include <limits>
 
 namespace cve
@@ -64,7 +65,9 @@ namespace cve
     void Camera::SetViewYXZ(glm::vec3 position, glm::vec3 rotation) 
     {
         //extract camera position
-        m_Position = position; 
+        m_Position = position;
+        //std::cout << m_Position.x << " " << m_Position.y << " " << m_Position.z << std::endl; 
+
         const float c3 = glm::cos(rotation.z);
         const float s3 = glm::sin(rotation.z);
         const float c2 = glm::cos(rotation.x);

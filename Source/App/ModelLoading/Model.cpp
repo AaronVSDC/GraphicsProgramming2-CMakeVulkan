@@ -270,8 +270,8 @@ namespace cve
 			tryTex(aiTextureType_BASE_COLOR, mi.baseColorTex);
 
 			// METALLIC-ROUGHNESS
-			if (mat->GetTextureCount(aiTextureType_METALNESS) > 0) {
-				aiString path; mat->GetTexture(aiTextureType_METALNESS, 0, &path);
+			if (mat->GetTextureCount(aiTextureType_SPECULAR) > 0) {
+				aiString path; mat->GetTexture(aiTextureType_SPECULAR, 0, &path);
 				mi.metallicRoughTex = path.C_Str();
 			}
 			else if (mat->GetTextureCount(aiTextureType_DIFFUSE_ROUGHNESS) > 0) {
@@ -411,7 +411,7 @@ namespace cve
 			//indices
 			for (uint32_t f = 0; f < mesh->mNumFaces; f++)
 			{
-				const aiFace& face = mesh->mFaces[f];
+				const aiFace& face = mesh->mFaces[f]; 
 				for (uint32_t idx = 0; idx < face.mNumIndices; idx++)
 				{
 					indices.push_back(face.mIndices[idx] + globalVertexOffset);
@@ -431,5 +431,6 @@ namespace cve
 			globalIndexOffset += faceCount * 3;
 
 		}
+
 	}
 }
