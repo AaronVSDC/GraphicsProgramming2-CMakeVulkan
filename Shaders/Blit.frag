@@ -24,5 +24,5 @@ void main() {
     vec3 mapped     = Uncharted2ToneMapping(litColor * exposure);
     mapped          = pow(mapped, vec3(1.0 / GAMMA)); 
 
-    outColor = vec4(mapped, 1.0);
+    outColor = vec4(litColor, 1.0);
 }

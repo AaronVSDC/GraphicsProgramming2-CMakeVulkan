@@ -29,14 +29,7 @@ layout(push_constant) uniform PC {
 } pc;
 
 const float alphaThreshold = 0.95;
-vec3 normal; 
 
-mat3 TBN = mat3(
-    normalize(fragTangent),
-    normalize(fragBiTangent),
-    normalize(fragNormal)
-);
-vec3 worldN; 
 void main() {
  vec4 base = vec4(fragColor, 1.0);
     if (pc.albedoIndex != 0xFFFFFFFFu) {
@@ -57,15 +50,21 @@ void main() {
         occ = texture(bindlessTextures[ nonuniformEXT(pc.occlusionIndex) ], fragUV).r;
     }
 
+    vec3 normal = vec3(0.0); 
     if(pc.normalIndex != 0xFFFFFFFFu) {
-        vec3 nm = texture(bindlessTextures[nonuniformEXT(pc.normalIndex)], fragUV).rgb;
-        nm = nm * 2.0 - 1.0;           
-        worldN = normalize(TBN * nm);   
+        mat3 TBN = mat3(
+        normalize(fragTangent),
+        normalize(fragBiTangent),
+        normalize(fragNormal)
+        );
+
+        vec3 sampledNormal = texture(bindlessTextures[nonuniformEXT(pc.normalIndex)], fragUV).rgb * 2.0 - 1.0;        
+        normal = normalize(TBN * sampledNormal); 
      }
  
     // output G-Buffer
     outPosition          = vec4(fragPos,   1.0);
-    outNormalMap         = vec4(worldN, 1.0);
+    outNormalMap         = vec4(normal * 0.5 + 0.5, 1.0); 
     outAlbedoMap         = vec4(albedo,  1.0);
     outMetalRoughnessMap = vec4(mr, 0.0, 1.0); 
     outOcclusionMap      = vec4(occ, 0.0, 0.0, 1.0);

@@ -47,6 +47,8 @@ void main() {
 
     vec3 worldPosSample   = texelFetch(gBuffers[0], pix, 0).xyz;
     vec3 normalSample     = texelFetch(gBuffers[1], pix, 0).rgb;
+    normalSample = normalize(normalSample * 2.0 - 1.0);
+
     vec3 albedoSample     = texelFetch(gBuffers[2], pix, 0).rgb;
     vec2 metalRoughSample = texelFetch(gBuffers[3],pix, 0).rg;
     float depthSample     = texelFetch(gDepth, pix, 0).r;
