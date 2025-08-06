@@ -47,8 +47,8 @@ namespace cve {
 		CreateGeometryPipeline();
 		CreateLightingPipelineLayout();
 		CreateLightingPipeline();
+		CreateLightsBuffer(m_CPULights.size());
 		CreateLightingDescriptorSet();
-		CreateLightsBuffer(m_CPULights.size()); 
 
 		CreateBlitPipelineLayout();
 		CreateBlitPipeline(swapFormat);
@@ -70,7 +70,6 @@ namespace cve {
 
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		pipelineLayoutInfo.setLayoutCount = 0;
 		pipelineLayoutInfo.pSetLayouts = nullptr;
 		pipelineLayoutInfo.pushConstantRangeCount = 1;
 		pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
@@ -211,7 +210,7 @@ namespace cve {
 		cfg.renderingInfo.pColorAttachmentFormats = cfg.colorAttachmentFormats.data();
 		cfg.renderingInfo.depthAttachmentFormat = cfg.depthAttachmentFormat;
 		cfg.depthStencilInfo.depthTestEnable = VK_TRUE;
-		cfg.depthStencilInfo.depthWriteEnable = VK_FALSE;  // <— do not write
+		cfg.depthStencilInfo.depthWriteEnable = VK_FALSE;   
 		cfg.depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
 
 
@@ -285,16 +284,24 @@ namespace cve {
 #pragma region LIGHTING_PIPELINE
 	void DeferredRenderSystem::CreateLightingPipelineLayout()
 	{
-		// one binding of an array-of-5 combined-image-samplers
+		// g-buffer array (binding 0) and separate depth sampler (binding 5)
 		VkDescriptorSetLayoutBinding descBinding{};
-		descBinding.binding = 0; 
+		descBinding.binding = 0;
 		descBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		descBinding.descriptorCount = 5;
-		descBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		descBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT; 
+
+		VkDescriptorSetLayoutBinding depthBinding{};
+		depthBinding.binding = 5;
+		depthBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		depthBinding.descriptorCount = 1;
+		depthBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+		std::array<VkDescriptorSetLayoutBinding, 2> bindings{ descBinding, depthBinding };
 
 		VkDescriptorSetLayoutCreateInfo dsInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-		dsInfo.bindingCount = 1;
-		dsInfo.pBindings = &descBinding;
+		dsInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+		dsInfo.pBindings = bindings.data();
 		vkCreateDescriptorSetLayout(m_Device.device(), &dsInfo, nullptr, &m_LightingPassDescriptorSetLayout);
 
 		// 2) Lights set (set 1):
@@ -330,7 +337,7 @@ namespace cve {
 	{
 		VkDescriptorPoolSize poolSizes[2]{};
 		poolSizes[0].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		poolSizes[0].descriptorCount = 5;
+		poolSizes[0].descriptorCount = 6;
 		poolSizes[1].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 		poolSizes[1].descriptorCount = 1;
 
@@ -378,13 +385,30 @@ namespace cve {
 			}
 		};
 
-		VkWriteDescriptorSet write{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-		write.dstSet = m_LightDescriptorSet;
-		write.dstBinding = 0;
-		write.dstArrayElement = 0;
-		write.descriptorCount = static_cast<uint32_t>(imageInfos.size());
-		write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		write.pImageInfo = imageInfos.data();
+		VkDescriptorImageInfo depthInfo{
+		m_GBuffer.getDepthSampler(),
+		m_GBuffer.getDepthView(),
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+		};
+
+		VkWriteDescriptorSet writeGBuffer{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+		writeGBuffer.dstSet = m_LightDescriptorSet;
+		writeGBuffer.dstBinding = 0;
+		writeGBuffer.dstArrayElement = 0; 
+		writeGBuffer.descriptorCount = static_cast<uint32_t>(imageInfos.size());
+		writeGBuffer.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		writeGBuffer.pImageInfo = imageInfos.data();
+
+		VkWriteDescriptorSet writeDepth{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+		writeDepth.dstSet = m_LightDescriptorSet;
+		writeDepth.dstBinding = 5;
+		writeDepth.dstArrayElement = 0;
+		writeDepth.descriptorCount = 1;
+		writeDepth.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		writeDepth.pImageInfo = &depthInfo;
+
+		std::array<VkWriteDescriptorSet, 2> writes{ writeGBuffer, writeDepth };
+
 
 
 		// 3) Allocate & write the Lights set (set 1):
@@ -407,8 +431,7 @@ namespace cve {
 		writeBuf.pBufferInfo = &bufInfo;
 
 		vkUpdateDescriptorSets(m_Device.device(), 1, &writeBuf, 0, nullptr);
-		vkUpdateDescriptorSets(m_Device.device(), 1, &write, 0, nullptr);
-
+		vkUpdateDescriptorSets(m_Device.device(), static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr); 
 	}
 
 

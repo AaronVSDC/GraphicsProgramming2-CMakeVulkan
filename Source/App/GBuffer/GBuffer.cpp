@@ -41,13 +41,12 @@ namespace cve
                 VK_IMAGE_ASPECT_COLOR_BIT);
         m_OcclusionLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
-        // depth: no sampler needed
+        
         m_DepthImage = std::make_unique<Texture>(device,
             width, height,
             DEPTH_FORMAT,
-            VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-            VK_IMAGE_ASPECT_DEPTH_BIT,
-            false);
+            VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, 
+            VK_IMAGE_ASPECT_DEPTH_BIT); 
 
         m_PositionLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         m_NormalLayout = VK_IMAGE_LAYOUT_UNDEFINED; 

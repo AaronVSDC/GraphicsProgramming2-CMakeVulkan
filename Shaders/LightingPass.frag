@@ -1,10 +1,12 @@
 //Lighting.frag
 #version 450
+#extension GL_GOOGLE_include_directive : enable
+#include "LightingHelpers.glsl"
 
 
 // must match your ResolutionCameraPush in C++
 layout(push_constant) uniform LightPC {
-    vec2 resolution;
+    vec2 viewportSize;
     float _pad0[2];
     vec3 cameraPos;
     float _pad1;
@@ -17,6 +19,7 @@ layout(push_constant) uniform LightPC {
 //   gBuffers[3] = metalRoughness 
 //   gBuffers[4] = occlusion
 layout(set = 0, binding = 0) uniform sampler2D gBuffers[];
+layout(set = 0, binding = 5) uniform sampler2D gDepth;
 
 // now lights live in set 1, binding 0
 struct PointLight {
@@ -25,38 +28,52 @@ struct PointLight {
     vec3 lightColor; 
     float lightIntensity;
 };
-layout(set = 1, binding = 0) buffer Lights {
+layout(set = 1, binding = 0) readonly buffer Lights {
     PointLight lights[];
-} lightsBuf;
+} PointLights;
 
 
 
 layout(location = 0) out vec4 outColor;
+const float MIN_ROUGHNESS = 0.045;
 
 
-vec3 lightColor = vec3(1.0,1.0,1.0); 
-float ambientStrength = 0.1; 
-vec3 lightDirection = vec3(0.577,-0.577,-0.577); 
-float lightIntensity = 1.0;  
+//HELPERS-------------------------------------------------
+
+
 
 void main() {
     ivec2 pix = ivec2(gl_FragCoord.xy);
 
-    vec3 pos        = texelFetch(gBuffers[0], pix, 0).xyz;
-    vec3 normal     = texelFetch(gBuffers[1], pix, 0).rgb;
-    vec3 albedo     = texelFetch(gBuffers[2], pix, 0).rgb;
-    vec2 metalRough = texelFetch(gBuffers[3],pix, 0).rg;
+    vec3 worldPosSample   = texelFetch(gBuffers[0], pix, 0).xyz;
+    vec3 normalSample     = texelFetch(gBuffers[1], pix, 0).rgb;
+    vec3 albedoSample     = texelFetch(gBuffers[2], pix, 0).rgb;
+    vec2 metalRoughSample = texelFetch(gBuffers[3],pix, 0).rg;
+    float depthSample     = texelFetch(gDepth, pix, 0).r;
 
+    float metallic = metalRoughSample.r; 
+    float roughness = max(metalRoughSample.g, MIN_ROUGHNESS); 
 
-    // 2) Compute ambient
-    vec3 ambient = ambientStrength * lightColor;
+    vec3 litColor = vec3(0.0); 
 
-    // 3) Diffuse (Lambert)
-    float diff = max(dot(normal, lightDirection), 0.0);
-    vec3 diffuse = diff * lightColor * lightIntensity;
+    uint pointLightCount = 1; //todo: make sure you actually keep the amount of lights in the scene.  
 
-    vec3 color = (ambient + diffuse) * albedo;
+    for(int i = 0; i < pointLightCount; ++i)
+    {
+        PointLight pl = PointLights.lights[i]; 
+        vec3 L = pl.position - worldPosSample; 
+        float distance = length(L);
+
+        if(distance < pl.radius)
+        {
+            float attenuation = 1.0 / (distance * distance + 0.0001);
+
+            litColor += CalculatePBR_Point(albedoSample, normalSample, metallic, roughness, worldPosSample, pl.position, pl.lightColor, pl.lightIntensity * attenuation, pc.cameraPos); 
+
+        }
+
+    }
     
+    outColor = vec4(litColor, 1.0);
 
-    outColor = vec4(metalRough.g, metalRough.g, metalRough.g, 1);
 }

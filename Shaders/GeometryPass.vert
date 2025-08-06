@@ -26,13 +26,17 @@ layout(location = 4) out vec3 fragTangent;
 layout(location = 5) out vec3 fragBiTangent;
 
 void main() {
+
+    // clip-space
+    gl_Position = pc.transform * vec4(inPosition, 1.0);
+
     // world-space position & normal
-    fragPos   = (pc.transform * vec4(inPosition, 1.0)).xyz;
-    fragNorm  = normalize((pc.modelMatrix * vec4(inNormal, 0.0)).xyz);
+    fragPos   = (pc.modelMatrix * vec4(inPosition, 1.0)).xyz;
+    mat3 normalMatrix = transpose(inverse(mat3(pc.modelMatrix)));
+    fragNorm  = normalize((normalMatrix * inNormal));
     fragTangent   = normalize((pc.modelMatrix * vec4(inTangent,   0.0)).xyz);
     fragBiTangent = normalize((pc.modelMatrix * vec4(inBiTangent, 0.0)).xyz);
     fragColor = inColor;
     fragUV    = inUV;
-    // clip-space
-    gl_Position = pc.transform * vec4(inPosition, 1.0);
+
 }

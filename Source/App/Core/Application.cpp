@@ -128,10 +128,10 @@ void Application::LoadGameObjects()
 
     // Add a red point light at (10,10,10):
     m_Lights.push_back({
-        /* position      */ { 10.f, 10.f,  10.f },
-        /* _pad0 (unused)*/ 0.f,
-        /* lightColor    */ { 1.f, 0.f, 0.f },
-        /* lightIntensity*/ 200.f
+        { 0.f, -1.f,  0.f },
+         100.f,
+         { 1.f, 0.37f, 0.33f },
+         900.f
         });
 
 }

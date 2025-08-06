@@ -30,6 +30,7 @@ namespace cve
 		VkImage getAlbedoSpecImage() const { return m_AlbedoImage->getImage();  }
 		VkImageView getDepthView()      const { return  m_DepthImage->getImageView();  };
 		VkImage getDepthImage() const { return m_DepthImage->getImage();  }
+		VkSampler getDepthSampler() const { return m_DepthImage->getSampler(); }
 
 		VkImageView getMetalRoughView()   const { return m_MetalRoughImage->getImageView(); }
 		VkImage     getMetalRoughImage()  const { return m_MetalRoughImage->getImage(); }

@@ -352,7 +352,7 @@ namespace cve {
 		depth.imageView = gBuffer.getDepthView();
 		depth.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 		depth.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-		depth.storeOp = VK_ATTACHMENT_STORE_OP_STORE; //TODO: load if you want to sample depth later
+		depth.storeOp = VK_ATTACHMENT_STORE_OP_STORE; 
 		depth.clearValue.depthStencil = { 1.0f, 0 };
 
 		// 3) The VkRenderingInfo itself
@@ -449,6 +449,20 @@ namespace cve {
 				VK_IMAGE_ASPECT_COLOR_BIT
 			);
 			layoutOcclusion = desiredOcclusion;
+		}
+
+		VkImageLayout& layoutDepth = gBuffer.m_DepthLayout; 
+		VkImageLayout desiredDepth = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		if (layoutDepth != desiredDepth)
+		{
+			TransitionImageLayout(
+				commandBuffer,
+				gBuffer.getDepthImage(),
+				VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+				VK_IMAGE_ASPECT_DEPTH_BIT
+			);
+			layoutDepth = desiredDepth;
 		}
 	}
 
