@@ -1,6 +1,7 @@
 #include "Application.h"
 #include "Camera.h"
 #include "UserInput.h"
+#include "HDRImage.h" 
 
 //libs
 #define GLM_FORCE_RADIANS
@@ -39,6 +40,9 @@ void Application::run()
     float fpsTimer = 0.0f;
     int   frameCount = 0;
 
+    HDRImage HDRImage = { m_Device, "Resources/HDRImages/circus_arena_4k.hdr" };
+
+     
     //main loop
 	while (!m_Window.ShouldClose())
 	{
@@ -48,6 +52,8 @@ void Application::run()
 
         glfwPollEvents();
         VkExtent2D newExtent = m_Window.GetExtent();
+
+
 
         if (newExtent.width != currentExtent.width || newExtent.height != currentExtent.height) {
             deferredRenderSystem.RecreateGBuffer(newExtent, m_Renderer.GetSwapChainImageFormat());
@@ -154,7 +160,6 @@ void Application::LoadGameObjects()
     //     { 1.f, 1.f, 1.f },
     //     1.f
     //    });
-
 }
 
 }

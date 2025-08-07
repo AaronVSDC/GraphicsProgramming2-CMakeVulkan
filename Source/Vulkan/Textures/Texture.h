@@ -74,7 +74,7 @@ namespace cve
 
         void createSampler();
 
-        void transitionImageLayout(
+         void transitionImageLayout(
             VkImage image,
             VkFormat format,
             VkImageLayout oldLayout,
