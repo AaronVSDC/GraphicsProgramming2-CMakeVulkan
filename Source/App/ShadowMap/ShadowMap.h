@@ -14,7 +14,7 @@ namespace cve
         VkSampler   getSampler()   const { return m_Sampler; }
         VkExtent2D  getExtent()    const { return { m_Width, m_Height }; }
 
-        VkImageLayout m_Layout; 
+        VkImageLayout m_Layout = VK_IMAGE_LAYOUT_UNDEFINED; 
 
     private: 
         Device* m_Device = nullptr;

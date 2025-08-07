@@ -22,17 +22,21 @@ namespace cve
 
 	DeferredRenderSystem::~DeferredRenderSystem()
 	{
-		vkDestroyBuffer(m_Device.device(), m_LightsBuffer, nullptr); 
+		vkDestroyBuffer(m_Device.device(), m_LightsBuffer, nullptr);
 		vkFreeMemory(m_Device.device(), m_LightsBufferMemory, nullptr);
-		vkDestroyDescriptorPool(m_Device.device(), m_LightingPassDescriptorPool, nullptr); 
+		vkDestroyDescriptorPool(m_Device.device(), m_LightingPassDescriptorPool, nullptr);
 		vkDestroyDescriptorSetLayout(m_Device.device(), m_LightingPassDescriptorSetLayout, nullptr);
+		vkDestroyDescriptorPool(m_Device.device(), m_PointLightsDescriptorPool, nullptr);
+		vkDestroyDescriptorSetLayout(m_Device.device(), m_PointLightsDescriptorSetLayout, nullptr);
 		vkDestroyPipelineLayout(m_Device.device(), m_LightPipelineLayout, nullptr);
 		vkDestroyDescriptorPool(m_Device.device(), m_BlitDescriptorPool, nullptr);
 		vkDestroyDescriptorSetLayout(m_Device.device(), m_BlitDescriptorSetLayout, nullptr);
 		vkDestroyPipelineLayout(m_Device.device(), m_BlitPipelineLayout, nullptr);
 		vkDestroyPipelineLayout(m_Device.device(), m_GeometryPipelineLayout, nullptr);
 		vkDestroyPipelineLayout(m_Device.device(), m_DepthPrepassPipelineLayout, nullptr);
-		Texture::cleanupBindless(m_Device);
+		vkDestroyPipelineLayout(m_Device.device(), m_ShadowPipelineLayout, nullptr);
+		m_ShadowMap.cleanup();
+		Texture::cleanupBindless(m_Device); 
 	}
 
 	void DeferredRenderSystem::Initialize(VkExtent2D extent, VkFormat swapFormat)
@@ -592,7 +596,11 @@ namespace cve
 	void DeferredRenderSystem::CreateShadowPipeline()
 	{
 		PipelineConfigInfo cfg{};
-		Pipeline::DefaultPipelineConfigInfo(cfg); 
+		Pipeline::DefaultPipelineConfigInfo(cfg);
+		auto bindingDescs = Model::Vertex::GetBindingDescriptions();
+		auto attrDescs = Model::Vertex::GetAttributeDescriptions(); 
+		cfg.vertexBindings = { bindingDescs[0] };
+		cfg.vertexAttributes = { attrDescs[0] };
 		cfg.depthStencilInfo.depthTestEnable = VK_TRUE;
 		cfg.depthStencilInfo.depthWriteEnable = VK_TRUE;
 		cfg.depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
@@ -617,24 +625,11 @@ namespace cve
 
 	void DeferredRenderSystem::RenderShadowPass(VkCommandBuffer cb, Camera& camera) {
 
-		VkRenderingAttachmentInfo depthAttach{ VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO };
-		depthAttach.imageView = m_ShadowMap.getDepthView();
-		depthAttach.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-		depthAttach.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		depthAttach.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		depthAttach.clearValue.depthStencil = { 1.0f, 0 };
-
-		VkRenderingInfo info{ VK_STRUCTURE_TYPE_RENDERING_INFO };
-		info.renderArea.extent = m_ShadowMap.getExtent();
-		info.layerCount = 1;
-		info.pDepthAttachment = &depthAttach;
-		vkCmdBeginRendering(cb, &info);
-
-		glm::mat4 lighViewProj = CalculateLightsViewProj(camera, m_CPULights[0]); 
-			vkCmdPushConstants(cb,
-				m_ShadowPipelineLayout,
-				VK_SHADER_STAGE_VERTEX_BIT,
-				0, sizeof(glm::mat4), &lighViewProj);
+		glm::mat4 lighViewProj = CalculateLightsViewProj(camera, m_CPULights[0]);
+		vkCmdPushConstants(cb, 
+			m_ShadowPipelineLayout,
+			VK_SHADER_STAGE_VERTEX_BIT,
+			0, sizeof(glm::mat4), &lighViewProj);
 
 		m_ShadowPipeline->Bind(cb);
 

@@ -549,12 +549,12 @@ namespace cve
 		{
 			TransitionImageLayout(
 				commandBuffer,
-				shadowMap.getDepthImage(),
-				VK_IMAGE_LAYOUT_UNDEFINED,                         // assume first?use
+				shadowMap.getDepthImage(), 
+				layoutShadow,
 				VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
 				VK_IMAGE_ASPECT_DEPTH_BIT
 			);
-			layoutShadow = desiredShadow; 
+			layoutShadow = desiredShadow;
 		}
 		// Set up a single depth attachment
 		VkRenderingAttachmentInfo depthAttach{ VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO };
@@ -600,7 +600,9 @@ namespace cve
 				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 				VK_IMAGE_ASPECT_DEPTH_BIT
 			);
+			layoutShadow = desiredShadow;
 		}
+	
 	}
 
 #pragma endregion

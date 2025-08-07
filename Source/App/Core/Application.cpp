@@ -143,9 +143,10 @@ void Application::LoadGameObjects()
     //FIRST AND ONLY LIGHT DIRECTIONAL
     Light sun;
     sun.type = LightType::Directional;
-    sun.lightIntensity = 200.f;
+    sun.direction = { 0.577,0.577,0.577 }; 
+    sun.lightIntensity = 10.f;
     sun.position = glm::vec3{ 0,0,0 };
-    sun.lightColor = { 1.0f, 0.27f, .17f };
+    sun.lightColor = { 1.0f, 0.85f, .75f };
     sun.radius = { 100.f };
 
     Light redLight;
@@ -156,7 +157,7 @@ void Application::LoadGameObjects()
     redLight.radius = { 100.f };
 
     m_Lights.push_back(sun);
-    m_Lights.push_back(redLight);
+    //m_Lights.push_back(redLight);
 
 
 

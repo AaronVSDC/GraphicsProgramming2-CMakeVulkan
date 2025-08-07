@@ -21,8 +21,11 @@ namespace cve
             | VK_IMAGE_USAGE_SAMPLED_BIT;
         imgInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
-        if (vkCreateImage(device.device(), &imgInfo, nullptr, &m_DepthImage) != VK_SUCCESS)
-            throw std::runtime_error("could not create ShadowMap image. "); 
+        m_Device->createImageWithInfo(
+            imgInfo,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            m_DepthImage,
+            m_DepthMemory); 
         // allocate & bind memory...
         // 2) Image view
         VkImageViewCreateInfo viewInfo{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
@@ -53,6 +56,20 @@ namespace cve
 
     void ShadowMap::cleanup()
     {
+        if (m_Sampler != VK_NULL_HANDLE)
+            vkDestroySampler(m_Device->device(), m_Sampler, nullptr);
+        if (m_DepthImageView != VK_NULL_HANDLE)
+            vkDestroyImageView(m_Device->device(), m_DepthImageView, nullptr);
+        if (m_DepthImage != VK_NULL_HANDLE)
+            vkDestroyImage(m_Device->device(), m_DepthImage, nullptr);
+        if (m_DepthMemory != VK_NULL_HANDLE)
+            vkFreeMemory(m_Device->device(), m_DepthMemory, nullptr);
+
+        m_Sampler = VK_NULL_HANDLE;
+        m_DepthImageView = VK_NULL_HANDLE;
+        m_DepthImage = VK_NULL_HANDLE;
+        m_DepthMemory = VK_NULL_HANDLE;
+        m_Layout = VK_IMAGE_LAYOUT_UNDEFINED;
     }
 
 }

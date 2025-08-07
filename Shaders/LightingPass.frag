@@ -39,7 +39,7 @@ layout(set = 1, binding = 0) readonly buffer Lights {
 
 layout(binding = 6) uniform samplerCube environmentMap; 
 layout(binding = 7) uniform samplerCube irradianceMap; 
-
+layout(binding = 8) uniform sampler2D shadowMap; 
 
 layout(location = 0) out vec4 outColor;
 const float MIN_ROUGHNESS = 0.045;
@@ -63,6 +63,8 @@ void main() {
 
     float metallic = metalRoughSample.r; 
     float roughness = max(metalRoughSample.g, MIN_ROUGHNESS); 
+
+
 
     // 0. Depth check for skybox
     if (depthSample >= 1.0) 
