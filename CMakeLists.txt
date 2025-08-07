@@ -67,6 +67,7 @@ set(SOURCE_FILES
   "Source/Vulkan/Textures/Texture.cpp"
   "Source/App/GBuffer/GBuffer.cpp"
   "Source/App/LightBuffer/LightBuffer.cpp"
+   "Source/Vulkan/HDRImage/HDRImage.cpp"
 )
 
 # Define executable

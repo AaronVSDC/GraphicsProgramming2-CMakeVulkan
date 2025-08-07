@@ -504,7 +504,7 @@ namespace cve
 		return commandBuffer;
 	}
 
-	void  Device::endSingleTimeCommands(VkCommandBuffer commandBuffer)
+	void Device::endSingleTimeCommands(VkCommandBuffer commandBuffer)
 	{
 		vkEndCommandBuffer(commandBuffer);
 
