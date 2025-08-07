@@ -27,7 +27,7 @@ namespace cve
             m_PreviousMouseY = mouseY;
 
             rotate.y += static_cast<float>(dx);
-            rotate.x += static_cast<float>(-dy);
+            rotate.x += static_cast<float>(dy);
         }
 
         if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS and m_MouseCaptured) {
@@ -63,14 +63,14 @@ namespace cve
         // Compute raw direction based on camera orientation
         glm::vec3 dir{
             cos(pitch) * sin(yaw),
-             -sin(pitch),
+             sin(pitch),
             cos(pitch) * cos(yaw)
         };
         // Use dir directly as forward, so pressing forward moves into view direction
         glm::vec3 forwardDir = glm::normalize(dir);
-        glm::vec3 upDir = glm::vec3(0.0f, -1.0f, 0.0f);
+        glm::vec3 upDir = glm::vec3(0.0f, 1.0f, 0.0f);
         // Right vector is cross(up, forward)
-        glm::vec3 rightDir = -glm::normalize(glm::cross(upDir, forwardDir));
+        glm::vec3 rightDir = glm::normalize(glm::cross(upDir, forwardDir));
 
 
         // Gather input

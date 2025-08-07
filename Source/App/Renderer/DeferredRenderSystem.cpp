@@ -17,7 +17,7 @@ namespace cve {
 	DeferredRenderSystem::DeferredRenderSystem(Device& device, VkExtent2D extent, VkFormat swapFormat, std::vector<Light>& lights)
 		:m_Device{ device }, m_CPULights{lights}
 	{
-		assert(device.properties.limits.maxPushConstantsSize > sizeof(GeometryPC) && "Max supported push constant data is smaller than 256 bytes");
+		assert(device.properties.limits.maxPushConstantsSize > sizeof(GeometryPassPush) && "Max supported push constant data is smaller than 256 bytes");
 		Initialize(extent, swapFormat);
 	}
 
@@ -40,6 +40,7 @@ namespace cve {
 	{
 		m_GBuffer.create(m_Device, extent.width, extent.height);
 		m_LightingPassBuffer.create(m_Device, extent.width, extent.height); 
+		m_HDRImage = std::make_unique<HDRImage>(m_Device, "Resources/HDRImages/circus_arena_4k.hdr"); 
 
 		CreateDepthPrepassPipelineLayout();
 		CreateDepthPrepassPipeline();
@@ -161,7 +162,7 @@ namespace cve {
 		VkPushConstantRange pushConstantRange{};
 		pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 		pushConstantRange.offset = 0;
-		pushConstantRange.size = sizeof(GeometryPC);
+		pushConstantRange.size = sizeof(GeometryPassPush);
 
 		VkDescriptorSetLayout setLayouts[] = {
 			Texture::s_BindlessSetLayout
@@ -237,9 +238,9 @@ namespace cve {
 			for (auto& sm : gameObject.m_Model->getData().submeshes)
 			{
 				auto& mat = gameObject.m_Model->getData().materials[sm.materialIndex];
-				GeometryPC push{};
+				GeometryPassPush push{};
 				auto modelMatrix = gameObject.m_Transform.mat4();
-				GeometryPC pc{};
+				GeometryPassPush pc{};
 				push.transform = projectionViewMatrix * modelMatrix;
 				push.modelMatrix = modelMatrix;
 				push.albedoIndex = mat.baseColorIndex;
@@ -297,7 +298,13 @@ namespace cve {
 		depthBinding.descriptorCount = 1;
 		depthBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-		std::array<VkDescriptorSetLayoutBinding, 2> bindings{ descBinding, depthBinding };
+		VkDescriptorSetLayoutBinding HDRBinding{};
+		HDRBinding.binding = 6;
+		HDRBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		HDRBinding.descriptorCount = 1;
+		HDRBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT; 
+
+		std::array<VkDescriptorSetLayoutBinding, 3> bindings{ descBinding, depthBinding, HDRBinding };
 
 		VkDescriptorSetLayoutCreateInfo dsInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
 		dsInfo.bindingCount = static_cast<uint32_t>(bindings.size());
@@ -324,7 +331,7 @@ namespace cve {
 		VkPushConstantRange pc{};
 		pc.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 		pc.offset = 0;
-		pc.size = sizeof(ResolutionCameraPush);
+		pc.size = sizeof(LightingPassPush);
 
 		VkPipelineLayoutCreateInfo plInfo{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 		plInfo.setLayoutCount = 2;
@@ -399,6 +406,19 @@ namespace cve {
 		writeGBuffer.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		writeGBuffer.pImageInfo = imageInfos.data();
 
+		VkDescriptorImageInfo HDRInfo{};
+		HDRInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		HDRInfo.imageView = m_HDRImage->GetCubeMapView();
+		HDRInfo.sampler = m_HDRImage->GetCubeMapSampler();
+
+		VkWriteDescriptorSet writeHDR{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+		writeHDR.dstSet = m_LightDescriptorSet;
+		writeHDR.dstBinding = 6;
+		writeHDR.dstArrayElement = 0;
+		writeHDR.descriptorCount = 1;
+		writeHDR.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		writeHDR.pImageInfo = &HDRInfo;
+
 		VkWriteDescriptorSet writeDepth{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
 		writeDepth.dstSet = m_LightDescriptorSet;
 		writeDepth.dstBinding = 5;
@@ -407,7 +427,7 @@ namespace cve {
 		writeDepth.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		writeDepth.pImageInfo = &depthInfo;
 
-		std::array<VkWriteDescriptorSet, 2> writes{ writeGBuffer, writeDepth };
+		std::array<VkWriteDescriptorSet, 3> writes{ writeGBuffer, writeDepth, writeHDR };
 
 
 
@@ -464,13 +484,15 @@ namespace cve {
 		memcpy(ptr, m_CPULights.data(), sizeof(Light) * count);
 		vkUnmapMemory(m_Device.device(), m_LightsBufferMemory); 
 
-		ResolutionCameraPush pushConstantData;
+		LightingPassPush pushConstantData;
 		pushConstantData.resolution = glm::vec2(
 			static_cast<float>(extent.width),
 			static_cast<float>(extent.height)
 		);
 		pushConstantData.cameraPos = camera.GetPosition();
-		pushConstantData.lightCount = count; 
+		pushConstantData.lightCount = count;
+		pushConstantData.view = camera.GetViewMatrix();
+		pushConstantData.proj = camera.GetProjectionMatrix(); 
 
 		VkDescriptorSet sets[] = { m_LightDescriptorSet, m_PointLightsDescriptorSet };
 

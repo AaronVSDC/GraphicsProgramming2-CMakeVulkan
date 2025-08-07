@@ -12,13 +12,14 @@
 #include <memory>
 #include <vector>
 
+#include "HDRImage.h"
 #include "LightBuffer.h"
 
 
 namespace cve
 {
 
-	struct GeometryPC
+	struct GeometryPassPush
 	{
 		glm::mat4 transform;       //  64 bytes
 		glm::mat4 modelMatrix;     //  64 bytes
@@ -29,11 +30,13 @@ namespace cve
 
 	};
 
-	struct ResolutionCameraPush {
-		glm::vec2 resolution;
-		float      _pad0[2];
-		glm::vec3 cameraPos;
-		glm::uint  lightCount;
+	struct LightingPassPush {
+		glm::mat4 view;       
+		glm::mat4 proj;         
+		glm::vec2 resolution;   
+		float      _pad0[2];   
+		glm::vec3 cameraPos;    
+		uint32_t   lightCount;  
 	};
 
 	struct DepthPush
@@ -114,7 +117,9 @@ namespace cve
 		VkDescriptorPool        m_PointLightsDescriptorPool;
 		VkDescriptorSet         m_PointLightsDescriptorSet;
 
-		std::vector<Light> m_CPULights; 
+		std::vector<Light> m_CPULights;
+
+		std::unique_ptr<HDRImage> m_HDRImage; 
 
 		 
 	};

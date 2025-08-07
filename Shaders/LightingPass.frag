@@ -6,6 +6,8 @@
 
 // must match your ResolutionCameraPush in C++
 layout(push_constant) uniform LightPC {
+    mat4 view;
+    mat4 proj;  
     vec2 viewportSize;
     float _pad0[2];
     vec3 cameraPos;
@@ -34,6 +36,7 @@ layout(set = 1, binding = 0) readonly buffer Lights {
     Light lights[];
 } LightsData;
 
+layout(binding = 6) uniform samplerCube environmentMap; 
 
 
 layout(location = 0) out vec4 outColor;
@@ -62,12 +65,11 @@ void main() {
     // 0. Depth check for skybox
     if (depthSample >= 1.0) 
     {
-        // vec2 fragCoord = vec2(gl_FragCoord.xy);
-        // vec3 viewDir = normalize(GetWorldPositionFromDepth(depthSample, fragCoord, ubo.viewportSize, inverse(ubo.proj), inverse(ubo.view)));
-        // outLit = vec4(texture(environmentMap, viewDir).rgb, 1.0);
-        outColor = vec4(0); 
+        vec2 fragCoord = vec2(gl_FragCoord.xy);
+        vec3 viewDir = normalize(GetWorldPositionFromDepth(depthSample, fragCoord, pc.viewportSize, inverse(pc.proj), inverse(pc.view)));
+        outColor = vec4(texture(environmentMap, viewDir).rgb, 1.0);
         return;
-    }
+     }
 
     vec3 litColor = vec3(0.0); 
 

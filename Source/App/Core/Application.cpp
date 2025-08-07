@@ -40,8 +40,6 @@ void Application::run()
     float fpsTimer = 0.0f;
     int   frameCount = 0;
 
-    HDRImage HDRImage = { m_Device, "Resources/HDRImages/circus_arena_4k.hdr" };
-
      
     //main loop
 	while (!m_Window.ShouldClose())
@@ -127,9 +125,7 @@ void Application::LoadGameObjects()
     std::shared_ptr<Model> newSponza = Model::CreateModelFromFile(m_Device, "Resources/Sponza/glTF/Sponza.gltf");
     auto gameObj = GameObject::CreateGameObject(); 
     gameObj.m_Model = newSponza;
-    gameObj.m_Transform.translation = { 0.f,1.f,0.f }; 
-    gameObj.m_Transform.scale = glm::vec3(1.f); 
-    gameObj.m_Transform.rotation = { 0.f, glm::radians(-90.f),glm::radians(180.f) };
+    gameObj.m_Transform.translation = { 0.f,-1.f,0.f }; 
     m_GameObjects.push_back(std::move(gameObj));
 
     // Add a red point light at (10,10,10):

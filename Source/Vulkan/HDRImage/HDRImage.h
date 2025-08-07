@@ -21,6 +21,9 @@ namespace cve
 		HDRImage(HDRImage&&) = delete;
 		HDRImage& operator=(HDRImage&&) = delete;
 
+
+		VkImageView& GetCubeMapView() { return m_CubeMapImageView;  }
+		VkSampler& GetCubeMapSampler() { return m_CubeMapSampler;  } 
 	private: 
 
 		void RenderToCubeMap(const VkExtent2D& extent, uint32_t mipLevels, const std::string& vertPath, const std::string& fragPath, VkImage&
