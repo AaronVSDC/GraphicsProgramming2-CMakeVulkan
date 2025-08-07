@@ -1,9 +1,6 @@
 #pragma once
 #include "Model.h"
-#include "Texture.h"
 //libs
-#include <glm\gtc\matrix_transform.hpp>
-
 //std 
 #include <memory>
 
@@ -78,7 +75,8 @@ namespace cve
 
 		std::shared_ptr<Model> m_Model{};
 		glm::vec3 m_Color{}; 
-		TransformComponent m_Transform{}; 
+		TransformComponent m_Transform{};
+
 
 	private: 
 

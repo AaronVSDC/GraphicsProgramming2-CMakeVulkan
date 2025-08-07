@@ -8,6 +8,7 @@
 layout(push_constant) uniform LightPC {
     mat4 view;
     mat4 proj;  
+    mat4 lightViewProj; 
     vec2 viewportSize;
     float _pad0[2];
     vec3 cameraPos;
@@ -97,7 +98,7 @@ void main() {
     
 
     vec3 iblColor = CalculateDiffuseIrradiance( irradianceMap ,albedoSample, normalSample);
-    litColor += iblColor;
+    //litColor += iblColor;
 
     outColor = vec4(litColor, 1.0);
 

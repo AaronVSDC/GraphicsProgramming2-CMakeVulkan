@@ -1,5 +1,5 @@
 #include "DeferredRenderSystem.h"
-
+#include "Utils.h"
 //libs
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -10,9 +10,8 @@
 #include <array>
 #include <stdexcept>
 #include <iostream>
-namespace cve {
-
-
+namespace cve
+{
 
 	DeferredRenderSystem::DeferredRenderSystem(Device& device, VkExtent2D extent, VkFormat swapFormat, std::vector<Light>& lights)
 		:m_Device{ device }, m_CPULights{lights}
@@ -41,11 +40,14 @@ namespace cve {
 		m_GBuffer.create(m_Device, extent.width, extent.height);
 		m_LightingPassBuffer.create(m_Device, extent.width, extent.height); 
 		m_HDRImage = std::make_unique<HDRImage>(m_Device, "Resources/HDRImages/circus_arena_4k.hdr"); 
+		m_ShadowMap.create(m_Device, extent.width, extent.height);
 
 		CreateDepthPrepassPipelineLayout();
 		CreateDepthPrepassPipeline();
 		CreateGeometryPipelineLayout();
 		CreateGeometryPipeline();
+		CreateShadowPipelineLayout(); 
+		CreateShadowPipeline(); 
 		CreateLightingPipelineLayout();
 		CreateLightingPipeline();
 		CreateLightsBuffer(m_CPULights.size());
@@ -310,7 +312,13 @@ namespace cve {
 		irrBinding.descriptorCount = 1;
 		irrBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-		std::array<VkDescriptorSetLayoutBinding, 4> bindings{ descBinding, depthBinding, HDRBinding, irrBinding };
+		VkDescriptorSetLayoutBinding shadowBind{};
+		shadowBind.binding = 8;
+		shadowBind.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		shadowBind.descriptorCount = 1;
+		shadowBind.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+		std::array<VkDescriptorSetLayoutBinding, 5> bindings{ descBinding, depthBinding, HDRBinding, irrBinding , shadowBind};
 
 		VkDescriptorSetLayoutCreateInfo dsInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
 		dsInfo.bindingCount = static_cast<uint32_t>(bindings.size());
@@ -442,6 +450,18 @@ namespace cve {
 		  nullptr, nullptr
 		};
 
+		VkDescriptorImageInfo shadowInfo{};
+		shadowInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		shadowInfo.imageView = m_ShadowMap.getDepthView();
+		shadowInfo.sampler = m_ShadowMap.getSampler();
+
+		VkWriteDescriptorSet writeShadow{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+		writeShadow.dstSet = m_LightDescriptorSet;
+		writeShadow.dstBinding = 8;
+		writeShadow.descriptorCount = 1;
+		writeShadow.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		writeShadow.pImageInfo = &shadowInfo;
+
 		VkWriteDescriptorSet writeDepth{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
 		writeDepth.dstSet = m_LightDescriptorSet;
 		writeDepth.dstBinding = 5;
@@ -450,7 +470,7 @@ namespace cve {
 		writeDepth.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		writeDepth.pImageInfo = &depthInfo;
 
-		std::array<VkWriteDescriptorSet, 4> writes{ writeGBuffer, writeDepth, writeHDR, writeIrr };
+		std::array<VkWriteDescriptorSet, 5> writes{ writeGBuffer, writeDepth, writeHDR, writeIrr, writeShadow };
 
 
 
@@ -547,8 +567,79 @@ namespace cve {
 		);
 	}
 
+
 #pragma endregion
 
+
+#pragma region SHADOWS
+	void DeferredRenderSystem::CreateShadowPipelineLayout()
+	{
+		VkPushConstantRange pc{};
+		pc.stageFlags = VK_SHADER_STAGE_VERTEX_BIT; 
+		pc.offset = 0;
+		pc.size = sizeof(glm::mat4);
+
+		VkPipelineLayoutCreateInfo info{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
+		info.pushConstantRangeCount = 1;
+		info.pPushConstantRanges = &pc;
+		info.setLayoutCount = 0;
+		info.pSetLayouts = nullptr;
+
+		if (vkCreatePipelineLayout(m_Device.device(), &info, nullptr, &m_ShadowPipelineLayout) != VK_SUCCESS)
+			throw std::runtime_error("failed to create shadow pipeline layout");
+	}
+
+	void DeferredRenderSystem::CreateShadowPipeline()
+	{
+		PipelineConfigInfo cfg{};
+		Pipeline::DefaultPipelineConfigInfo(cfg); 
+		cfg.depthStencilInfo.depthTestEnable = VK_TRUE;
+		cfg.depthStencilInfo.depthWriteEnable = VK_TRUE;
+		cfg.depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+		cfg.rasterizationInfo.depthBiasEnable = VK_TRUE;
+		cfg.rasterizationInfo.depthBiasConstantFactor = 1.25f;
+		cfg.rasterizationInfo.depthBiasSlopeFactor = 1.75f;
+		cfg.colorBlendInfo.attachmentCount = 0;
+		cfg.colorBlendInfo.pAttachments = nullptr;
+		cfg.renderingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
+		cfg.renderingInfo.colorAttachmentCount = 0;
+		cfg.renderingInfo.pColorAttachmentFormats = nullptr;
+		cfg.renderingInfo.depthAttachmentFormat = VK_FORMAT_D32_SFLOAT;
+		cfg.pipelineLayout = m_ShadowPipelineLayout;
+
+		m_ShadowPipeline = std::make_unique<Pipeline>(
+			m_Device,
+			cfg,
+			"Shaders/Shadow.vert.spv",
+			"Shaders/Shadow.frag.spv"                
+		);
+	}
+
+	void DeferredRenderSystem::RenderShadowPass(VkCommandBuffer cb, Camera& camera) {
+
+		VkRenderingAttachmentInfo depthAttach{ VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO };
+		depthAttach.imageView = m_ShadowMap.getDepthView();
+		depthAttach.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		depthAttach.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		depthAttach.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		depthAttach.clearValue.depthStencil = { 1.0f, 0 };
+
+		VkRenderingInfo info{ VK_STRUCTURE_TYPE_RENDERING_INFO };
+		info.renderArea.extent = m_ShadowMap.getExtent();
+		info.layerCount = 1;
+		info.pDepthAttachment = &depthAttach;
+		vkCmdBeginRendering(cb, &info);
+
+		glm::mat4 lighViewProj = CalculateLightsViewProj(camera, m_CPULights[0]); 
+			vkCmdPushConstants(cb,
+				m_ShadowPipelineLayout,
+				VK_SHADER_STAGE_VERTEX_BIT,
+				0, sizeof(glm::mat4), &lighViewProj);
+
+		m_ShadowPipeline->Bind(cb);
+
+	}
+#pragma endregion
 #pragma region BLITTING 
 
 	void DeferredRenderSystem::CreateBlitPipelineLayout()

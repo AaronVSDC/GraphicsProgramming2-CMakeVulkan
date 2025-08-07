@@ -14,7 +14,7 @@
 
 #include "HDRImage.h"
 #include "LightBuffer.h"
-
+#include "ShadowMap.h"
 
 namespace cve
 {
@@ -32,7 +32,8 @@ namespace cve
 
 	struct LightingPassPush {
 		glm::mat4 view;       
-		glm::mat4 proj;         
+		glm::mat4 proj;
+		glm::mat4 lightViewProj;    // NEW: light-space VP
 		glm::vec2 resolution;   
 		float      _pad0[2];   
 		glm::vec3 cameraPos;    
@@ -75,9 +76,11 @@ namespace cve
 		void RenderBlit(VkCommandBuffer commandBuffer); 
 		void RecreateGBuffer(VkExtent2D extent, VkFormat swapFormat);
 		void RenderDepthPrepass(VkCommandBuffer commandBuffer, std::vector<GameObject>& gameObjects, const Camera& camera);
+		void RenderShadowPass(VkCommandBuffer cb, Camera& camera);
 
 		GBuffer& GetGBuffer() { return m_GBuffer;  }
 		LightBuffer& GetLightBuffer() { return m_LightingPassBuffer; }
+		ShadowMap& GetShadowMap() { return m_ShadowMap;  }
 
 	private:
 
@@ -86,6 +89,9 @@ namespace cve
 
 		void CreateGeometryPipelineLayout(); 
 		void CreateGeometryPipeline();
+
+		void CreateShadowPipelineLayout();     
+		void CreateShadowPipeline();
 
 		void CreateLightingPipelineLayout();
 		void CreateLightingPipeline();
@@ -96,7 +102,6 @@ namespace cve
 		void CreateBlitPipeline(VkFormat swapFormat);
 		void CreateBlitDescriptorSet();
 		void CreateLightsBuffer(size_t maxLights);
-
 
 
 
@@ -117,9 +122,12 @@ namespace cve
 		VkDescriptorPool        m_PointLightsDescriptorPool;
 		VkDescriptorSet         m_PointLightsDescriptorSet;
 
-		std::vector<Light> m_CPULights;
+		VkPipelineLayout            m_ShadowPipelineLayout;       
+		std::unique_ptr<Pipeline>   m_ShadowPipeline;
 
-		std::unique_ptr<HDRImage> m_HDRImage; 
+		std::vector<Light> m_CPULights;
+		std::unique_ptr<HDRImage> m_HDRImage;
+		ShadowMap m_ShadowMap;
 
 		 
 	};

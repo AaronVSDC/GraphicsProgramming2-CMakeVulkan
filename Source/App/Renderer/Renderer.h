@@ -11,6 +11,8 @@
 #include <vector>
 #include <cassert>
 
+#include "ShadowMap.h"
+
 namespace cve {
 
 	class Renderer
@@ -31,7 +33,9 @@ namespace cve {
 		void BeginRenderingDepthPrepass(VkCommandBuffer commandBuffer, GBuffer& gBuffer);
 		void EndRenderingDepthPrepass(VkCommandBuffer commandBuffer);
 		void BeginRenderingBlittingPass(VkCommandBuffer commandBuffer);
-		void EndRenderingBlittingPass(VkCommandBuffer commandBuffer); 
+		void EndRenderingBlittingPass(VkCommandBuffer commandBuffer);
+		void BeginRenderingShadowPass(VkCommandBuffer commandBuffer, ShadowMap& shadowMap); 
+		void EndRenderingShadowPass(VkCommandBuffer commandBuffer, ShadowMap& shadowMap);
 
 
 		VkFormat GetSwapChainImageFormat() const { return m_SwapChain->getSwapChainImageFormat(); }

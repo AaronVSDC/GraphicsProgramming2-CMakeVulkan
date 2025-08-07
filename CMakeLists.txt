@@ -19,7 +19,7 @@ include(FetchContent)
 
 FetchContent_Declare(glfw
   GIT_REPOSITORY https://github.com/glfw/glfw.git
-  GIT_TAG 3.4
+  GIT_TAG 3.4 
 )
 FetchContent_MakeAvailable(glfw)
 
@@ -68,6 +68,7 @@ set(SOURCE_FILES
   "Source/App/GBuffer/GBuffer.cpp"
   "Source/App/LightBuffer/LightBuffer.cpp"
    "Source/Vulkan/HDRImage/HDRImage.cpp"
+    "Source/App/ShadowMap/ShadowMap.cpp"
 )
 
 # Define executable

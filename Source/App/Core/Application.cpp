@@ -6,14 +6,18 @@
 //libs
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm\glm.hpp>
 #include <glm\gtc\constants.hpp>
 
 //std
 #include <stdexcept>
-#include <array>
+#include <array> 
 #include <iostream>
 #include <chrono>
+
+#include "Utils.h"
+#include <glm/gtx/string_cast.hpp>
 
 namespace cve {
 
@@ -28,9 +32,9 @@ Application::~Application()
 void Application::run()
 {
     VkExtent2D currentExtent = m_Window.GetExtent();
-    DeferredRenderSystem deferredRenderSystem = { m_Device, currentExtent, m_Renderer.GetSwapChainImageFormat(), m_Lights };
 	Camera camera{};
     camera.SetViewTarget(glm::vec3(-1.f, -2.f, 2.f), glm::vec3(0.f, 0.f, 2.5f)); 
+    DeferredRenderSystem deferredRenderSystem = { m_Device, currentExtent, m_Renderer.GetSwapChainImageFormat(), m_Lights };
 
     auto viewerObject = GameObject::CreateGameObject();  
     KeyboardMovementController cameraController{}; 
@@ -76,6 +80,10 @@ void Application::run()
             m_Renderer.BeginRenderingDepthPrepass(commandBuffer, deferredRenderSystem.GetGBuffer());
             deferredRenderSystem.RenderDepthPrepass(commandBuffer, m_GameObjects, camera);
             m_Renderer.EndRenderingDepthPrepass(commandBuffer);
+
+            m_Renderer.BeginRenderingShadowPass(commandBuffer, deferredRenderSystem.GetShadowMap());
+            deferredRenderSystem.RenderShadowPass(commandBuffer, camera);
+            m_Renderer.EndRenderingShadowPass(commandBuffer, deferredRenderSystem.GetShadowMap()); 
 
 			m_Renderer.BeginRenderingGeometry(commandBuffer,deferredRenderSystem.GetGBuffer() ); 
 			deferredRenderSystem.RenderGeometry(commandBuffer,m_GameObjects, camera); 
@@ -132,13 +140,13 @@ void Application::LoadGameObjects()
 
     // Add a red point light at (10,10,10):
 
-
-    Light yellowLight;
-    yellowLight.type = LightType::Point;
-    yellowLight.lightIntensity = 200.f;
-    yellowLight.position = glm::vec3{ 0,0,0 };
-    yellowLight.lightColor = { 1.0f, 0.27f, .17f };
-    yellowLight.radius = { 100.f };
+    //FIRST AND ONLY LIGHT DIRECTIONAL
+    Light sun;
+    sun.type = LightType::Directional;
+    sun.lightIntensity = 200.f;
+    sun.position = glm::vec3{ 0,0,0 };
+    sun.lightColor = { 1.0f, 0.27f, .17f };
+    sun.radius = { 100.f };
 
     Light redLight;
     redLight.type = LightType::Point;
@@ -147,8 +155,11 @@ void Application::LoadGameObjects()
     redLight.lightColor = { .5f, 0.8f, .15f };
     redLight.radius = { 100.f };
 
-    m_Lights.push_back(yellowLight); 
-    m_Lights.push_back(redLight); 
+    m_Lights.push_back(sun);
+    m_Lights.push_back(redLight);
+
+
+
     // Add a white directional light pointing downward
     //m_Lights.push_back({
     //    { 0.f, 0.f, 0.f },

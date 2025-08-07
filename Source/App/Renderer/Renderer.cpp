@@ -5,7 +5,8 @@
 #include <stdexcept>
 #include <array>
 #include <iostream>
-namespace cve {
+namespace cve
+{
 
 
 	Renderer::Renderer(Window& window, Device& device) : m_Window{window}, m_Device{device}
@@ -531,6 +532,76 @@ namespace cve {
 		}
 	}
 
+
+#pragma endregion
+
+#pragma region SHADOWS
+	void Renderer::BeginRenderingShadowPass(VkCommandBuffer commandBuffer, ShadowMap& shadowMap)
+	{
+		assert(m_IsFrameStarted && "Can't call BeginRenderingShadowPass while frame is not in progress");
+		assert(commandBuffer == GetCurrentCommandBuffer() && "Wrong command buffer");
+
+		// Transition shadow?map depth image to DEPTH_ATTACHMENT
+
+		VkImageLayout& layoutShadow = shadowMap.m_Layout;
+		VkImageLayout desiredShadow = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		if (layoutShadow != desiredShadow)
+		{
+			TransitionImageLayout(
+				commandBuffer,
+				shadowMap.getDepthImage(),
+				VK_IMAGE_LAYOUT_UNDEFINED,                         // assume first?use
+				VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+				VK_IMAGE_ASPECT_DEPTH_BIT
+			);
+			layoutShadow = desiredShadow; 
+		}
+		// Set up a single depth attachment
+		VkRenderingAttachmentInfo depthAttach{ VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO };
+		depthAttach.imageView = shadowMap.getDepthView();
+		depthAttach.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		depthAttach.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		depthAttach.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		depthAttach.clearValue.depthStencil = { 1.0f, 0 };
+
+		VkRenderingInfo info{ VK_STRUCTURE_TYPE_RENDERING_INFO };
+		info.renderArea.extent = shadowMap.getExtent();
+		info.layerCount = 1;
+		info.pDepthAttachment = &depthAttach;
+		// no color attachments:
+		info.colorAttachmentCount = 0;
+		info.pColorAttachments = nullptr;
+
+		vkCmdBeginRendering(commandBuffer, &info);
+
+		// viewport & scissor to match shadow map size
+		VkExtent2D ext = shadowMap.getExtent();
+		VkViewport vp{ 0.f, 0.f, float(ext.width), float(ext.height), 0.f, 1.f };
+		vkCmdSetViewport(commandBuffer, 0, 1, &vp);
+		VkRect2D sc{ {0,0}, ext };
+		vkCmdSetScissor(commandBuffer, 0, 1, &sc);
+	}
+
+	void Renderer::EndRenderingShadowPass(VkCommandBuffer commandBuffer, ShadowMap& shadowMap)
+	{
+		assert(m_IsFrameStarted && "Can't call EndRenderingShadowPass while frame is not in progress");
+		assert(commandBuffer == GetCurrentCommandBuffer() && "Wrong command buffer");
+
+		vkCmdEndRendering(commandBuffer);
+
+		VkImageLayout& layoutShadow = shadowMap.m_Layout;
+		VkImageLayout desiredShadow = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		if (layoutShadow != desiredShadow)
+		{
+			TransitionImageLayout(
+				commandBuffer,
+				shadowMap.getDepthImage(),
+				VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+				VK_IMAGE_ASPECT_DEPTH_BIT
+			);
+		}
+	}
 
 #pragma endregion
 
