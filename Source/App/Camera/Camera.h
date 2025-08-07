@@ -16,7 +16,7 @@ namespace cve
 		void SetPerspectiveProjection(float fovY, float aspect, float near, float far); 
 
 		void SetViewDirection(glm::vec3 position, glm::vec3 direction, glm::vec3 up = glm::vec3{ 0.f,-1.f,0.f }); 
-		void SetViewTarget(glm::vec3 position, glm::vec3 target, glm::vec3 up = glm::vec3{ 0.f,1.f,0.f });
+		void SetViewTarget(glm::vec3 position, glm::vec3 target, glm::vec3 up = glm::vec3{ 0.f,-1.f,0.f });
 		void SetViewYXZ(glm::vec3 position, glm::vec3 rotation); 
 
 

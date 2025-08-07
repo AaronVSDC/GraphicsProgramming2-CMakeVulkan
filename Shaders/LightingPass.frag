@@ -37,6 +37,7 @@ layout(set = 1, binding = 0) readonly buffer Lights {
 } LightsData;
 
 layout(binding = 6) uniform samplerCube environmentMap; 
+layout(binding = 7) uniform samplerCube irradianceMap; 
 
 
 layout(location = 0) out vec4 outColor;
@@ -81,8 +82,7 @@ void main() {
         if(light.type == LIGHT_TYPE_POINT)
         {
             vec3 L = light.position - worldPosSample; 
-            float distance = length(L);
-
+            float distance = length(L); 
             if(distance < light.radius)
             {
                 float attenuation = 1.0 / (distance * distance + 0.0001);
@@ -95,6 +95,10 @@ void main() {
         }
     }
     
+
+    vec3 iblColor = CalculateDiffuseIrradiance( irradianceMap ,albedoSample, normalSample);
+    litColor += iblColor;
+
     outColor = vec4(litColor, 1.0);
 
 }

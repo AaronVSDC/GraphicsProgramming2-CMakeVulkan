@@ -93,7 +93,7 @@ foreach(HDR ${HEADER_FILES})
   get_filename_component(HDR_DIR ${HDR} DIRECTORY)
   list(APPEND HEADER_DIRS ${HDR_DIR})
 endforeach() 
-list(REMOVE_DUPLICATES HEADER_DIRS)
+list(REMOVE_DUPLICATES HEADER_DIRS) 
 
 # Tell our target to include _every_ header folder
 target_include_directories(${TARGET_NAME}

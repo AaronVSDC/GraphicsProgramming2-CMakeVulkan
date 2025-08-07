@@ -94,6 +94,8 @@ namespace cve
 
         // 8) Build the cube?map from this equirectangular image
         CreateCubeMap();
+        CreateIrradianceMap(); 
+
 	}
 	HDRImage::~HDRImage()
 	{
@@ -107,8 +109,20 @@ namespace cve
         for (auto& faceViews : m_CubeMapFaceViews)
             for (auto v : faceViews)
                 vkDestroyImageView(m_Device.device(), v, nullptr);
+
+        // Destroy irradiance map face views
+        for (auto& view : m_IrradianceMapFaceViews) {
+            if (view != VK_NULL_HANDLE) {
+                vkDestroyImageView(m_Device.device(), view, nullptr);
+            }
+        }
+
+		vkDestroySampler(m_Device.device(), m_IrradianceMapSampler, nullptr);
+        vkDestroyImageView(m_Device.device(), m_IrradianceMapImageView, nullptr);
+        vkDestroyImage(m_Device.device(), m_IrradianceMapImage, nullptr);
         vkDestroyImage(m_Device.device(), m_CubeMapImage, nullptr);
         vkFreeMemory(m_Device.device(), m_CubeMapImageMemory, nullptr);
+        vkFreeMemory(m_Device.device(), m_IrradianceMapImageMemory, nullptr);
 	}
     void HDRImage::CreateEquirectImage(
         uint32_t          width,
@@ -436,7 +450,6 @@ namespace cve
         // 7) Prepare capture projection / views
         const glm::mat4 captureProj = [] {
             glm::mat4 p = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
-            p[1][1] *= -1.0f;  // GLM coordinate flip
             return p;
             }();
 
@@ -522,6 +535,117 @@ namespace cve
             vkDestroyDescriptorPool(m_Device.device(), descriptorPool, nullptr);
             vkDestroyDescriptorSetLayout(m_Device.device(), descriptorLayout, nullptr);
 	}
+
+    void HDRImage::CreateIrradianceMap()
+    {
+        uint32_t irradianceMipLevels = 1;
+
+        // 1. Create image
+        {
+            VkImageCreateInfo imageInfo{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
+            imageInfo.imageType = VK_IMAGE_TYPE_2D;
+            imageInfo.format = m_EquirectFormat;
+            imageInfo.extent = { m_IrradianceMapExtent.width,
+                                         m_IrradianceMapExtent.height,
+                                         1 };
+            imageInfo.mipLevels = irradianceMipLevels;
+            imageInfo.arrayLayers = m_FACE_COUNT;
+            imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+            imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+            imageInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
+                | VK_IMAGE_USAGE_SAMPLED_BIT
+                | VK_IMAGE_USAGE_TRANSFER_DST_BIT
+                | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+            imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+            imageInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+
+            // Allocate + bind
+            m_Device.createImageWithInfo(
+                imageInfo,
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                m_IrradianceMapImage,
+                m_IrradianceMapImageMemory 
+            );
+        }
+
+        // 2. Create view
+        {
+            VkImageViewCreateInfo viewInfo{};
+            viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+            viewInfo.image = m_IrradianceMapImage;
+            viewInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
+            viewInfo.format = m_EquirectFormat;
+            viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            viewInfo.subresourceRange.baseMipLevel = 0;
+            viewInfo.subresourceRange.levelCount = irradianceMipLevels;
+            viewInfo.subresourceRange.baseArrayLayer = 0;
+            viewInfo.subresourceRange.layerCount = m_FACE_COUNT;
+
+            if (vkCreateImageView(m_Device.device(), &viewInfo, nullptr, &m_IrradianceMapImageView) != VK_SUCCESS)
+            {
+                throw std::runtime_error("Failed to create irradiance cubemap view!");
+            }
+        }
+        {
+            VkSamplerCreateInfo samplerInfo{};
+            samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+            samplerInfo.magFilter = VK_FILTER_LINEAR;
+            samplerInfo.minFilter = VK_FILTER_LINEAR;
+            samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+            samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+            samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+            samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+            samplerInfo.maxAnisotropy = 1.0f;
+            samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+            samplerInfo.unnormalizedCoordinates = VK_FALSE;
+
+            if (vkCreateSampler(m_Device.device(), &samplerInfo, nullptr, &m_IrradianceMapSampler) != VK_SUCCESS)
+            {
+                throw std::runtime_error("Failed to create irradiance cubemap sampler!");
+            }
+        }
+
+        // 3. Create face views
+        {
+            for (uint32_t face = 0; face < m_FACE_COUNT; ++face)
+            {
+                VkImageViewCreateInfo faceViewInfo{};
+                faceViewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+                faceViewInfo.image = m_IrradianceMapImage;
+                faceViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+                faceViewInfo.format = m_EquirectFormat;
+                faceViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                faceViewInfo.subresourceRange.baseMipLevel = 0;
+                faceViewInfo.subresourceRange.levelCount = irradianceMipLevels;
+                faceViewInfo.subresourceRange.baseArrayLayer = face;
+                faceViewInfo.subresourceRange.layerCount = 1;
+                VkImageView view;
+                if (vkCreateImageView(m_Device.device(), &faceViewInfo, nullptr, &view) != VK_SUCCESS)
+                {
+                    throw std::runtime_error("Failed to create irradiance cubemap face view!");
+                }
+                m_IrradianceMapFaceViews[face] = view;
+            }
+        }
+
+        // 4. Render to irradiance map
+        {
+            std::array<std::vector<VkImageView>, 6> faceViews;
+            for (int i = 0; i < 6; ++i)
+                faceViews[i].push_back(m_IrradianceMapFaceViews[i]);
+
+            RenderToCubeMap(m_IrradianceMapExtent, irradianceMipLevels,
+                m_CubeVertPath, m_IBLFragPath, m_CubeMapImage,
+                m_CubeMapImageView, m_EquirectSampler, m_IrradianceMapImage, faceViews
+            );
+
+            //GenerateMipmaps(m_IrradianceMapImage, m_EquirectFormat,
+            //	m_IrradianceMapExtent.width, m_IrradianceMapExtent.height,
+            //	irradianceMipLevels, m_FACE_COUNT);
+
+        }
+    }
 
     void HDRImage::TransitionImageLayout(
         VkImage image,

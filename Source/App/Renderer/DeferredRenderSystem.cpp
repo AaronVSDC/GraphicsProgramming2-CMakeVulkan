@@ -302,9 +302,15 @@ namespace cve {
 		HDRBinding.binding = 6;
 		HDRBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		HDRBinding.descriptorCount = 1;
-		HDRBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT; 
+		HDRBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-		std::array<VkDescriptorSetLayoutBinding, 3> bindings{ descBinding, depthBinding, HDRBinding };
+		VkDescriptorSetLayoutBinding irrBinding{};
+		irrBinding.binding = 7;
+		irrBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		irrBinding.descriptorCount = 1;
+		irrBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+		std::array<VkDescriptorSetLayoutBinding, 4> bindings{ descBinding, depthBinding, HDRBinding, irrBinding };
 
 		VkDescriptorSetLayoutCreateInfo dsInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
 		dsInfo.bindingCount = static_cast<uint32_t>(bindings.size());
@@ -419,6 +425,23 @@ namespace cve {
 		writeHDR.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		writeHDR.pImageInfo = &HDRInfo;
 
+		VkDescriptorImageInfo irrInfo{};
+		irrInfo.sampler = m_HDRImage->GetIrradianceSampler();
+		irrInfo.imageView = m_HDRImage->GetIrradianceView();
+		irrInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+		VkWriteDescriptorSet writeIrr{
+		  VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+		  nullptr,                
+		  m_LightDescriptorSet,   
+		  7,                     
+		  0,                      
+		  1,                      
+		  VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+		  &irrInfo,               
+		  nullptr, nullptr
+		};
+
 		VkWriteDescriptorSet writeDepth{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
 		writeDepth.dstSet = m_LightDescriptorSet;
 		writeDepth.dstBinding = 5;
@@ -427,7 +450,7 @@ namespace cve {
 		writeDepth.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		writeDepth.pImageInfo = &depthInfo;
 
-		std::array<VkWriteDescriptorSet, 3> writes{ writeGBuffer, writeDepth, writeHDR };
+		std::array<VkWriteDescriptorSet, 4> writes{ writeGBuffer, writeDepth, writeHDR, writeIrr };
 
 
 
