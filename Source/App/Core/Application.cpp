@@ -120,7 +120,7 @@ void Application::LoadGameObjects()
 {
     m_HDRImage = std::make_unique<HDRImage>(m_Device, "Resources/HDRImages/circus_arena_4k.hdr");
 
-    std::shared_ptr<Model> newSponza = Model::CreateModelFromFile(m_Device, "Resources/ABeautifulGame/glTF/ABeautifulGame.gltf");
+    std::shared_ptr<Model> newSponza = Model::CreateModelFromFile(m_Device, "Resources/MetalRoughSpheres/glTF/MetalRoughSpheres.gltf");
     auto gameObj = GameObject::CreateGameObject(); 
     gameObj.m_Model = newSponza;
     gameObj.m_Transform.translation = { 0.f,0.f,0.f }; 

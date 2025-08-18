@@ -42,8 +42,8 @@ void main() {
 
     vec2 mr = vec2(0.0, 1.0);
     if (pc.metalRoughIndex != 0xFFFFFFFFu) {
-        mr = texture(bindlessTextures[ nonuniformEXT(pc.metalRoughIndex) ], fragUV).rg;
-    }
+        mr = texture(bindlessTextures[ nonuniformEXT(pc.metalRoughIndex) ], fragUV).bg;
+        }
 
     float occ = 1.0;
     if (pc.occlusionIndex != 0xFFFFFFFFu) {
