@@ -57,11 +57,11 @@ void main() {
     normalSample = normalize(normalSample * 2.0 - 1.0);
 
     vec3 albedoSample     = texelFetch(gBuffers[2], pix, 0).rgb;
-    vec2 metalRoughSample = texelFetch(gBuffers[3],pix, 0).rg;
+    vec3 metalRoughSample = texelFetch(gBuffers[3],pix, 0).rgb;
     float depthSample     = texelFetch(gDepth, pix, 0).r;
 
-    float metallic = metalRoughSample.r; 
-    float roughness = max(metalRoughSample.g, MIN_ROUGHNESS); 
+    float metallic = metalRoughSample.g; 
+    float roughness = max(metalRoughSample.b, MIN_ROUGHNESS); 
 
     // 0. Depth check for skybox
     if (depthSample >= 1.0) 
