@@ -28,7 +28,7 @@ Application::~Application()
 void Application::run()
 {
     VkExtent2D currentExtent = m_Window.GetExtent();
-    DeferredRenderSystem deferredRenderSystem = { m_Device, currentExtent, m_Renderer.GetSwapChainImageFormat(), m_Lights };
+    DeferredRenderSystem deferredRenderSystem = { m_Device, currentExtent, m_Renderer.GetSwapChainImageFormat(),m_HDRImage,  m_Lights };
 	Camera camera{};
     camera.SetViewTarget(glm::vec3(-1.f, -2.f, 2.f), glm::vec3(0.f, 0.f, 2.5f)); 
 
@@ -118,14 +118,12 @@ void Application::run()
 
 void Application::LoadGameObjects()
 {
-	//-------------------------------------------------------------------------
-	//THIS IS WHERE ALL THE MODELS ARE LOADED (OR HARDCODED BUT PLS DONT) AND PUSHED INSIDE THE MODEL POINTER 
-	//-------------------------------------------------------------------------
+    m_HDRImage = std::make_unique<HDRImage>(m_Device, "Resources/HDRImages/circus_arena_4k.hdr");
 
-    std::shared_ptr<Model> newSponza = Model::CreateModelFromFile(m_Device, "Resources/Sponza/glTF/Sponza.gltf");
+    std::shared_ptr<Model> newSponza = Model::CreateModelFromFile(m_Device, "Resources/ABeautifulGame/glTF/ABeautifulGame.gltf");
     auto gameObj = GameObject::CreateGameObject(); 
     gameObj.m_Model = newSponza;
-    gameObj.m_Transform.translation = { 0.f,1.f,0.f }; 
+    gameObj.m_Transform.translation = { 0.f,0.f,0.f }; 
     gameObj.m_Transform.scale = glm::vec3(1.f); 
     gameObj.m_Transform.rotation = { 0.f, glm::radians(-90.f),glm::radians(180.f) };
     m_GameObjects.push_back(std::move(gameObj));
@@ -133,31 +131,31 @@ void Application::LoadGameObjects()
     // Add a red point light at (10,10,10):
 
 
-    Light yellowLight;
-    yellowLight.type = LightType::Point;
-    yellowLight.lightIntensity = 200.f;
-    yellowLight.position = glm::vec3{ 0,0,0 };
-    yellowLight.lightColor = { 1.0f, 0.27f, .17f };
-    yellowLight.radius = { 100.f };
+    //Light yellowLight;
+    //yellowLight.type = LightType::Point;
+    //yellowLight.lightIntensity = 200.f;
+    //yellowLight.position = glm::vec3{ 0,0,0 };
+    //yellowLight.lightColor = { 1.0f, 0.27f, .17f };
+    //yellowLight.radius = { 100.f };
 
-    Light redLight;
-    redLight.type = LightType::Point;
-    redLight.lightIntensity = 200.f;
-    redLight.position = glm::vec3{ 0,0,6 };
-    redLight.lightColor = { .5f, 0.8f, .15f };
-    redLight.radius = { 100.f };
+    //Light redLight;
+    //redLight.type = LightType::Point;
+    //redLight.lightIntensity = 200.f;
+    //redLight.position = glm::vec3{ 0,0,6 };
+    //redLight.lightColor = { .5f, 0.8f, .15f };
+    //redLight.radius = { 100.f };
 
-    m_Lights.push_back(yellowLight); 
-    m_Lights.push_back(redLight); 
-    // Add a white directional light pointing downward
-    //m_Lights.push_back({
-    //    { 0.f, 0.f, 0.f },
-    //     0.f,
-    //     {0.577f, 0.577f, -0.577f},
-    //     LightType::Directional,
-    //     { 1.f, 1.f, 1.f },
-    //     1.f
-    //    });
+    //m_Lights.push_back(yellowLight); 
+    //m_Lights.push_back(redLight);
+
+    m_Lights.push_back({
+        { 0.f, 0.f, 0.f },
+         0.f,
+         {0.577f, 0.577f, -0.577f},
+         LightType::Directional,
+         { 1.000, 0.891, 0.796 },
+         1.f
+        });
 }
 
 }

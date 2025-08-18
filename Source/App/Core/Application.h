@@ -34,7 +34,8 @@ private:
 	Device m_Device{m_Window}; 
 	Renderer m_Renderer{ m_Window, m_Device }; 
 	std::vector<GameObject> m_GameObjects;
-	std::vector<Light> m_Lights; 
+	std::vector<Light> m_Lights;
+	std::shared_ptr<HDRImage> m_HDRImage; 
 
 };
 

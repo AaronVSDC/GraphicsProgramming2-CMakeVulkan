@@ -14,8 +14,8 @@ namespace cve {
 
 
 
-	DeferredRenderSystem::DeferredRenderSystem(Device& device, VkExtent2D extent, VkFormat swapFormat, std::vector<Light>& lights)
-		:m_Device{ device }, m_CPULights{lights}
+	DeferredRenderSystem::DeferredRenderSystem(Device& device, VkExtent2D extent, VkFormat swapFormat, std::shared_ptr<HDRImage>& hdrImage, std::vector<Light>& lights)
+		:m_Device{ device }, m_CPULights{lights}, m_HDRImage(hdrImage)
 	{
 		assert(device.properties.limits.maxPushConstantsSize > sizeof(GeometryPassPush) && "Max supported push constant data is smaller than 256 bytes");
 		Initialize(extent, swapFormat);
@@ -23,16 +23,17 @@ namespace cve {
 
 	DeferredRenderSystem::~DeferredRenderSystem()
 	{
-		vkDestroyBuffer(m_Device.device(), m_LightsBuffer, nullptr); 
+		vkDestroyBuffer(m_Device.device(), m_LightsBuffer, nullptr);
 		vkFreeMemory(m_Device.device(), m_LightsBufferMemory, nullptr);
-		vkDestroyDescriptorPool(m_Device.device(), m_LightingPassDescriptorPool, nullptr); 
-		vkDestroyDescriptorSetLayout(m_Device.device(), m_LightingPassDescriptorSetLayout, nullptr);
-		vkDestroyPipelineLayout(m_Device.device(), m_LightPipelineLayout, nullptr);
+		vkDestroyDescriptorPool(m_Device.device(), m_LightingPassDescriptorPool, nullptr);
 		vkDestroyDescriptorPool(m_Device.device(), m_BlitDescriptorPool, nullptr);
-		vkDestroyDescriptorSetLayout(m_Device.device(), m_BlitDescriptorSetLayout, nullptr);
+		vkDestroyPipelineLayout(m_Device.device(), m_LightPipelineLayout, nullptr);
 		vkDestroyPipelineLayout(m_Device.device(), m_BlitPipelineLayout, nullptr);
 		vkDestroyPipelineLayout(m_Device.device(), m_GeometryPipelineLayout, nullptr);
 		vkDestroyPipelineLayout(m_Device.device(), m_DepthPrepassPipelineLayout, nullptr);
+		vkDestroyDescriptorSetLayout(m_Device.device(), m_LightingPassDescriptorSetLayout, nullptr);
+		vkDestroyDescriptorSetLayout(m_Device.device(), m_PointLightsDescriptorSetLayout, nullptr);
+		vkDestroyDescriptorSetLayout(m_Device.device(), m_BlitDescriptorSetLayout, nullptr);
 		Texture::cleanupBindless(m_Device);
 	}
 
@@ -40,8 +41,6 @@ namespace cve {
 	{
 		m_GBuffer.create(m_Device, extent.width, extent.height);
 		m_LightingPassBuffer.create(m_Device, extent.width, extent.height); 
-		m_HDRImage = std::make_unique<HDRImage>(m_Device, "Resources/HDRImages/circus_arena_4k.hdr"); 
-
 		CreateDepthPrepassPipelineLayout();
 		CreateDepthPrepassPipeline();
 		CreateGeometryPipelineLayout();

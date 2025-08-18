@@ -71,7 +71,7 @@ namespace cve
 
 		std::unordered_map<std::string, uint32_t> indexMap;
 		std::vector<std::unique_ptr<Texture>>    textures;
-		textures.reserve(data.materials.size() * 4); //BE CAREFULL NOT TO FORGET CHANGING THIS TO AMOUNT OF TEXTURES 
+		textures.reserve(data.materials.size() * 4); 
 
 
 		auto tryLoad = [&](std::string const& filename, uint32_t& outIndex, VkFormat format)
@@ -107,7 +107,6 @@ namespace cve
 		data.textures = std::move(textures);
 		Texture::initBindless(device, uint32_t(data.textures.size()));
 		Texture::updateBindless(device, &data);
-
 		return std::make_unique<Model>(device, std::move(data));
 	}
 

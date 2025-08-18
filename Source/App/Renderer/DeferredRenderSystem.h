@@ -60,7 +60,7 @@ namespace cve
 	class DeferredRenderSystem final
 	{
 	public:
-		DeferredRenderSystem(Device& device, VkExtent2D extent, VkFormat swapFormat, std::vector<Light>& lights);
+		DeferredRenderSystem(Device& device, VkExtent2D extent, VkFormat swapFormat,std::shared_ptr<HDRImage>& hdrImage, std::vector<Light>& lights);
 		~DeferredRenderSystem();
 
 		DeferredRenderSystem(const DeferredRenderSystem& other) = delete;
@@ -119,7 +119,7 @@ namespace cve
 
 		std::vector<Light> m_CPULights;
 
-		std::unique_ptr<HDRImage> m_HDRImage; 
+		std::shared_ptr<HDRImage> m_HDRImage; 
 
 		 
 	};

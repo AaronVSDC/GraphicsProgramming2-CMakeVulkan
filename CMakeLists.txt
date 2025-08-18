@@ -50,7 +50,7 @@ target_include_directories(stb INTERFACE ${stb_SOURCE_DIR})
 find_package(Vulkan REQUIRED)
 
 # Source files
-set(SOURCE_FILES
+set(SOURCE_FILES 
   source/main.cpp
   "Source/App/Core/Application.cpp"
   "Source/App/Window/Window.cpp"
