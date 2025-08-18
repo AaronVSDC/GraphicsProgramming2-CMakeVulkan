@@ -39,6 +39,7 @@ void Application::run()
      
     float fpsTimer = 0.0f;
     int   frameCount = 0;
+    bool  debugKeyPressed = false;
 
      
     //main loop
@@ -50,6 +51,15 @@ void Application::run()
 
         glfwPollEvents();
         VkExtent2D newExtent = m_Window.GetExtent();
+        if (glfwGetKey(m_Window.GetGLFWwindow(), GLFW_KEY_F4) == GLFW_PRESS) {
+            if (!debugKeyPressed) {
+                deferredRenderSystem.CycleDebugOutput();
+                debugKeyPressed = true;
+            }
+        }
+        else if (glfwGetKey(m_Window.GetGLFWwindow(), GLFW_KEY_F4) == GLFW_RELEASE) {
+            debugKeyPressed = false;
+        }
 
 
 

@@ -57,6 +57,17 @@ namespace cve
 		float     lightIntensity{};
 	};
 
+	enum class DebugOutput { 
+		Lighting = 0,
+		Position,
+		Normal,
+		Albedo,
+		MetalRough,
+		Occlusion,
+		Depth,
+		COUNT
+	};
+
 	class DeferredRenderSystem final
 	{
 	public:
@@ -75,6 +86,7 @@ namespace cve
 		void RenderBlit(VkCommandBuffer commandBuffer); 
 		void RecreateGBuffer(VkExtent2D extent, VkFormat swapFormat);
 		void RenderDepthPrepass(VkCommandBuffer commandBuffer, std::vector<GameObject>& gameObjects, const Camera& camera);
+		void CycleDebugOutput(); 
 
 		GBuffer& GetGBuffer() { return m_GBuffer;  }
 		LightBuffer& GetLightBuffer() { return m_LightingPassBuffer; }
@@ -119,7 +131,9 @@ namespace cve
 
 		std::vector<Light> m_CPULights;
 
-		std::shared_ptr<HDRImage> m_HDRImage; 
+		std::shared_ptr<HDRImage> m_HDRImage;
+		DebugOutput m_DebugOutput{ DebugOutput::Lighting };
+
 
 		 
 	};

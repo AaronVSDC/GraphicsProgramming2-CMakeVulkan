@@ -642,8 +642,75 @@ namespace cve {
 		vkUpdateDescriptorSets(m_Device.device(), 1, &write, 0, nullptr);
 	}
 
+	void DeferredRenderSystem::CycleDebugOutput()
+	{
+		int mode = static_cast<int>(m_DebugOutput);
+		mode = (mode + 1) % static_cast<int>(DebugOutput::COUNT);
+		m_DebugOutput = static_cast<DebugOutput>(mode);
+		static const char* names[] = {
+		"Lighting",
+		"Position",
+		"Normal",
+		"Albedo",
+		"MetalRough",
+		"Occlusion",
+		"Depth"
+		};
+		std::cout << "Debug output: " << names[mode] << std::endl;
+	
+	}
+
 	void DeferredRenderSystem::RenderBlit(VkCommandBuffer commandBuffer)
 	{
+		VkDescriptorImageInfo imageInfo{};
+
+		switch (m_DebugOutput) {
+		case DebugOutput::Lighting:
+			imageInfo.sampler = m_LightingPassBuffer.getSampler();
+			imageInfo.imageView = m_LightingPassBuffer.getImageView();
+			imageInfo.imageLayout = m_LightingPassBuffer.m_Layout;
+			break;
+		case DebugOutput::Position:
+			imageInfo.sampler = m_GBuffer.getPositionSampler();
+			imageInfo.imageView = m_GBuffer.getPositionView();
+			imageInfo.imageLayout = m_GBuffer.m_PositionLayout;
+			break;
+		case DebugOutput::Normal:
+			imageInfo.sampler = m_GBuffer.getNormalSampler();
+			imageInfo.imageView = m_GBuffer.getNormalView();
+			imageInfo.imageLayout = m_GBuffer.m_NormalLayout;
+			break;
+		case DebugOutput::Albedo:
+			imageInfo.sampler = m_GBuffer.getAlbedoSpecSampler();
+			imageInfo.imageView = m_GBuffer.getAlbedoSpecView();
+			imageInfo.imageLayout = m_GBuffer.m_AlbedoLayout;
+			break;
+		case DebugOutput::MetalRough:
+			imageInfo.sampler = m_GBuffer.getMetalRoughSampler();
+			imageInfo.imageView = m_GBuffer.getMetalRoughView();
+			imageInfo.imageLayout = m_GBuffer.m_MetalRoughLayout;
+			break;
+		case DebugOutput::Occlusion:
+			imageInfo.sampler = m_GBuffer.getOcclusionSampler();
+			imageInfo.imageView = m_GBuffer.getOcclusionView();
+			imageInfo.imageLayout = m_GBuffer.m_OcclusionLayout;
+			break;
+		case DebugOutput::Depth:
+			imageInfo.sampler = m_GBuffer.getDepthSampler();
+			imageInfo.imageView = m_GBuffer.getDepthView();
+			imageInfo.imageLayout = m_GBuffer.m_DepthLayout;
+			break;
+		default:
+			break;
+		}
+
+		VkWriteDescriptorSet write{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+		write.dstSet = m_BlitDescriptorSet;
+		write.dstBinding = 0;
+		write.descriptorCount = 1;
+		write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		write.pImageInfo = &imageInfo;
+		vkUpdateDescriptorSets(m_Device.device(), 1, &write, 0, nullptr);
 
 		// Bind blit/tone-map pipeline
 		m_BlitPipeline->Bind(commandBuffer);
@@ -655,7 +722,6 @@ namespace cve {
 		// Fullscreen triangle
 		vkCmdDraw(commandBuffer, 3, 1, 0, 0);
 	}
-
 #pragma endregion
 
 

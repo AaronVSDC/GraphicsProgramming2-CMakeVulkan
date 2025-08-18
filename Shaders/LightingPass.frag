@@ -97,7 +97,7 @@ void main() {
     
 
     vec3 iblColor = CalculateDiffuseIrradiance( irradianceMap ,albedoSample, normalSample);
-    litColor += vec3(metallic);
+    litColor += iblColor; 
 
     outColor = vec4(litColor, 1.0);
 

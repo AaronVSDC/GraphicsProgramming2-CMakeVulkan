@@ -277,19 +277,23 @@ namespace cve
 			// left the metallic-roughness channel uninitialised causing the
 			// spheres to render with default values.
 
-			// First try the dedicated PBR texture types 
+			// First try the dedicated PBR texture types
 			tryTex(aiTextureType_METALNESS, mi.metallicRoughTex);
 			if (mi.metallicRoughTex == "NULL") {
 				tryTex(aiTextureType_DIFFUSE_ROUGHNESS, mi.metallicRoughTex);
 			}
 			// Fallback for older exporters that might still use the specular slot
-			if (mi.metallicRoughTex == "NULL" && mat->GetTextureCount(aiTextureType_SPECULAR) > 0) {
-				aiString path; mat->GetTexture(aiTextureType_SPECULAR, 0, &path);
-				mi.metallicRoughTex = path.C_Str();
-			}
-			else if (mat->GetTextureCount(aiTextureType_DIFFUSE_ROUGHNESS) > 0) {
-				aiString path; mat->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, 0, &path);
-				mi.metallicRoughTex = path.C_Str();
+			if (mi.metallicRoughTex == "NULL") {
+				if (mat->GetTextureCount(aiTextureType_SPECULAR) > 0) {
+					aiString path;
+					mat->GetTexture(aiTextureType_SPECULAR, 0, &path);
+					mi.metallicRoughTex = path.C_Str();
+				}
+				else if (mat->GetTextureCount(aiTextureType_DIFFUSE_ROUGHNESS) > 0) {
+					aiString path;
+					mat->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, 0, &path);
+					mi.metallicRoughTex = path.C_Str();
+				}
 			}
 
 			// NORMAL MAP
