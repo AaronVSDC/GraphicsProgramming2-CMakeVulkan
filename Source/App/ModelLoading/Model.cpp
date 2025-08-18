@@ -269,7 +269,21 @@ namespace cve
 			tryTex(aiTextureType_BASE_COLOR, mi.baseColorTex);
 
 			// METALLIC-ROUGHNESS
-			if (mat->GetTextureCount(aiTextureType_SPECULAR) > 0) {
+			// Assimp may expose the combined metallic/roughness texture under
+			// different texture types depending on the importer.  The original
+			// code only queried aiTextureType_SPECULAR which corresponds to the
+			// legacy specular/glossiness workflow and therefore failed to locate
+			// the texture for glTF PBR assets such as MetalRoughSpheres.  This
+			// left the metallic-roughness channel uninitialised causing the
+			// spheres to render with default values.
+
+			// First try the dedicated PBR texture types 
+			tryTex(aiTextureType_METALNESS, mi.metallicRoughTex);
+			if (mi.metallicRoughTex == "NULL") {
+				tryTex(aiTextureType_DIFFUSE_ROUGHNESS, mi.metallicRoughTex);
+			}
+			// Fallback for older exporters that might still use the specular slot
+			if (mi.metallicRoughTex == "NULL" && mat->GetTextureCount(aiTextureType_SPECULAR) > 0) {
 				aiString path; mat->GetTexture(aiTextureType_SPECULAR, 0, &path);
 				mi.metallicRoughTex = path.C_Str();
 			}

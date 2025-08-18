@@ -60,8 +60,8 @@ void main() {
     vec3 metalRoughSample = texelFetch(gBuffers[3],pix, 0).rgb;
     float depthSample     = texelFetch(gDepth, pix, 0).r;
 
-    float metallic = metalRoughSample.g; 
-    float roughness = max(metalRoughSample.b, MIN_ROUGHNESS); 
+    float metallic = metalRoughSample.r; 
+    float roughness = max(metalRoughSample.g, MIN_ROUGHNESS); 
 
     // 0. Depth check for skybox
     if (depthSample >= 1.0) 
@@ -97,7 +97,7 @@ void main() {
     
 
     vec3 iblColor = CalculateDiffuseIrradiance( irradianceMap ,albedoSample, normalSample);
-    litColor += iblColor;
+    litColor += vec3(metallic);
 
     outColor = vec4(litColor, 1.0);
 
