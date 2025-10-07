@@ -4,7 +4,7 @@
 This project was part of my **"Graphics Programming 2"** course in **"Digital Arts and Entertainment"**.  
 We made a 3D renderer using the Vulkan API.  
 
-My project supports the following Vulkan-specific techniques or concepts:
+My project supports the following techniques or concepts:
 
 - Images and Buffers, including texture loading  
 - Depth Buffering  
