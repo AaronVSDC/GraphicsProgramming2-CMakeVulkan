@@ -1,7 +1,7 @@
 # Vulkan Renderer
 
 ## Project Overview
-This project was part of my **"Graphics Programming 2"** course in **"Digital Arts and Entertainment"**.  
+This project was part of my **"Graphics Programming 2"** course at **"Digital Arts and Entertainment"**.  
 We made a 3D renderer using the Vulkan API.  
 
 My project supports the following techniques or concepts:
