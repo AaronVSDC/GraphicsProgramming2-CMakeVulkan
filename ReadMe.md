@@ -25,4 +25,4 @@ My project supports the following Vulkan-specific techniques or concepts:
 
 ## Deferred Rendering 
 Depth Prepass → Position → MetalRough → Normal → Albedo  
-![Deferred Rendering](ReadMeAssets/DefferedRendering.png)
+![Deferred Rendering](ReadMeAssets/DefferedRendering.PNG)
