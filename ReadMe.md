@@ -18,11 +18,11 @@ My project supports the following Vulkan-specific techniques or concepts:
 # Showcase Renders
 
 ## Sponza Scene
-![Sponza](ReadMeAssets/Sponza.png)
+![Sponza](ReadMeAssets/Sponza.PNG)
 
 ## Flight Helmet Scene
 ![Flight Helmet](ReadMeAssets/FlightHelmet.png)
 
-## Deferred Rendering Showcase
+## Deferred Rendering 
 Depth Prepass → Position → MetalRough → Normal → Albedo  
-![Deferred Rendering](ReadMeAssets/DefferedRendering.PNG)
+![Deferred Rendering](ReadMeAssets/DefferedRendering.png)
